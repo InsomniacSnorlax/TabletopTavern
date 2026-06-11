@@ -347,8 +347,10 @@ public class BattleInputManager : MonoBehaviour
         {
             // Debug.Log($"Stopped RotatingSelectedUnits");
             positionDrawer.UnParentTheParented();
+            ResetCursor();
         }
     }
+    public void StopRotation() => RotatingSelectedUnits(false);
     private void OnCursorModeChanged(CursorMode _cursorMode)
     {
         cursorMode = _cursorMode;

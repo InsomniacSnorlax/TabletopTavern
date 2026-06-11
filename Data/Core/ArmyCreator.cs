@@ -11,7 +11,7 @@ namespace TJ
             public int unitTier;
             public int unitsToGet;
         }
-        public static SquadToLoad[] GenerateTownGarrison(TownSize _townSize, Race _townRace, int _seed, List<UnitTier> unitsPool, bool difficultyImperator)
+        public static SquadToLoad[] GenerateTownGarrison(TownSize _townSize, Race _townRace, int _seed, List<UnitTier> unitsPool, bool difficultyImperator, int _bookNumber = 1)
         {
             // Garrisons don't field cavalry or outriders — filter them out before picking units
             unitsPool = unitsPool.FindAll(u =>
@@ -20,35 +20,99 @@ namespace TJ
 
             List<UnitsToGetByTier> unitsToGetByTier = new();
 
-            if(!difficultyImperator)
+            switch (_bookNumber)
             {
-                //if town is village, get 4 units from the first tier
-                //if town is castle, get 4 units from the first tier and 2 units from the second tier
-                //if town is city, get 4 units from the first tier, 2 units from the second tier and 1 unit from the third tier
-                if (_townSize == TownSize.Village) {
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
-                } else if (_townSize == TownSize.Castle) {
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                } else if (_townSize == TownSize.City) {
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                case 1:
+                {
+                    if (!difficultyImperator)
+                    {
+                        if (_townSize == TownSize.Village) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
+                        } else if (_townSize == TownSize.Castle) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                        } else if (_townSize == TownSize.City) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                        }
+                    }
+                    else
+                    {
+                        if (_townSize == TownSize.Village) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                        } else if (_townSize == TownSize.Castle) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
+                        } else if (_townSize == TownSize.City) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
+                        }
+                    }
+                    break;
                 }
-            }
-            else {
-                unitsToGetByTier = new();
-                if (_townSize == TownSize.Village) {
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                } else if (_townSize == TownSize.Castle) {
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
-                } else if (_townSize == TownSize.City) {
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
-                    unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
+
+                case 2:
+                {
+                    if (!difficultyImperator)
+                    {
+                        if (_townSize == TownSize.Village) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
+                        } else if (_townSize == TownSize.Castle) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                        } else if (_townSize == TownSize.City) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
+                        }
+                    }
+                    else
+                    {
+                        if (_townSize == TownSize.Village) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 1 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                        } else if (_townSize == TownSize.Castle) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
+                        } else if (_townSize == TownSize.City) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 7 });
+                        }
+                    }
+                    break;
+                }
+
+                case 3:
+                {
+                    if (!difficultyImperator)
+                    {
+                        if (_townSize == TownSize.Village) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 1 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                        } else if (_townSize == TownSize.Castle) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
+                        } else if (_townSize == TownSize.City) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 6 });
+                        }
+                    }
+                    else
+                    {
+                        if (_townSize == TownSize.Village) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
+                        } else if (_townSize == TownSize.Castle) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 1 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
+                        } else if (_townSize == TownSize.City) {
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                            unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 7 });
+                        }
+                    }
+                    break;
                 }
             }
 

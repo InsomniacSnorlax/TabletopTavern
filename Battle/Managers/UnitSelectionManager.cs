@@ -197,6 +197,7 @@ public class UnitSelectionManager : MonoBehaviour
         }
         else if (!InputHandler.Instance.RepositioningSelectedUnits && battleInputManager.CursorMode == CursorMode.Reposition)
         {
+            battleInputManager.StopRotation();
             BattleManager.Instance.SetCursorMode(CursorMode.UnitsSelected);
             positionDrawer.TurnOff();
             return;

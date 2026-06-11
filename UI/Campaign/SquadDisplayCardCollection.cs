@@ -56,7 +56,14 @@ namespace TJ
         public override void OnPointerEnter(PointerEventData eventData)
         {
             // base.OnPointerEnter(eventData);
-            base.HoverSquad(true);
+            // base.HoverSquad(true);
+            if (_presenter.Animator == null) return;
+
+            _presenter.Animator.Play("SquadDisplayPointerEnter");
+
+            if(isCollected)
+                _presenter.OnHoverEnterFeedback.PlayFeedbacks();
+
             collectionPanel.HoverSquad(squad, isCollected);
             // onHoverEnterFeedback.PlayFeedbacks();
 
@@ -69,11 +76,17 @@ namespace TJ
         }
         public override void OnPointerExit(PointerEventData eventData)
         {
-            base.OnPointerExit(eventData);
-            // if(isLocked) return;
-            _presenter.Animator.Play("SquadDisplayPointerExit");
-            // onHoverExitFeedback.PlayFeedbacks();
+            // base.OnPointerExit(eventData);
 
+            _presenter.Animator.Play("SquadDisplayPointerExit");
+
+            if(isCollected)
+                _presenter.OnHoverExitFeedback.PlayFeedbacks();
+
+            collectionPanel.HoverSquad(squad, isCollected);
+
+            // if(isLocked) return;
+            // onHoverExitFeedback.PlayFeedbacks();
             // CampaignManager.Instance.MapSceneUIManager.HUDPanel.HoverSquad(squad, false);
         }
     }
