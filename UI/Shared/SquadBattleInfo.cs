@@ -1,0 +1,479 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using System.Collections.Generic;
+using Memori.SaveData;
+using Memori.Utilities;
+using Memori.Tooltip;
+using Unity.Entities;
+using Unity.Mathematics;
+using Memori.Scenes;
+using Memori.Localization;
+using TJ.Morale;
+
+namespace TJ
+{
+    [RequireComponent(typeof(UnitAttributesUIContainer), typeof(UnitStatsUIContainer))]
+    public class SquadBattleInfo : MonoBehaviour, IPointerEnterHandler
+    {
+        [SerializeField] protected CanvasGroup tooltipCanvasGroup;
+        [SerializeField] protected TMP_Text unitNameText, unitTypeText, unitCount, unitKillsText;
+        [SerializeField] protected Image unitIcon;
+
+        [Header("Health Bar")]
+        [SerializeField] private TMP_Text healthbarText;
+        [SerializeField] private Color friendlyColor;
+        [SerializeField] private Color enemyColor;
+        [SerializeField] protected Slider healthBarSlider;
+        [SerializeField] protected Image healthBarFillImage;
+
+        [Header("Prestige")]
+        [SerializeField] protected TMP_Text prestigeText;
+        [SerializeField] protected MemoriTooltipTrigger prestigeTooltipTrigger;
+        [SerializeField] protected GameObject bronzePrestige, silverPrestige, goldPrestige;
+
+        [Header("Unit Rarity")]
+        [SerializeField] private Image unitRarityImage;
+        [SerializeField] private TMP_Text unitRarityText;
+
+        [Header("Race Passive")]
+        [SerializeField] private TMP_Text passiveNameText;
+        [SerializeField] private Image raceColorImage1;
+        [SerializeField] private Image raceColorImage2;
+        [SerializeField] private MemoriTooltipTrigger passiveTooltipTrigger;
+        [SerializeField] private float raceColorAlpha = 25f;
+
+        [Header("Battlefield Attributes")]
+        [SerializeField] private UnitAttributesUI inForestAttribute;
+        [SerializeField] private UnitAttributesUI inSwampAttribute, isChargingAttribute, inCombatAttribute, isTerrifiedAttribute, isExhaustedAttribute, isOutOfAmmoAttribute, bloodFrenzyAttribute, rageAttribute, armorSunderedAttribute, isOnFireAttribute;
+
+        int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1;
+        SquadToLoad squadToLoad;
+        SquadEntity squadEntity;
+        public SquadEntity SquadEntity => squadEntity;
+        UnitAttributesUIContainer unitAttributesUIContainer;
+        UnitStatsUIContainer unitStatsUIContainer;
+        SquadStats squadStats;
+        Team team;
+        bool applyGearBonuses = false, isCustomBattle = false;
+        CampaignSaveData cachedSnapshot;
+
+        private void Start()
+        {
+            isCustomBattle = SaveDataHandler.LoadPlayerSaveData().customBattle;
+            if(!isCustomBattle)
+                cachedSnapshot = SaveDataHandler.LoadSnapshot();
+        }
+        public void SetUpCampaign(SquadToLoad _squadToLoad, Team _team)
+        {
+            if(_squadToLoad.HitPointsPerUnit == 0)
+            {
+                Debug.LogError($"[SquadBattleInfo] SetUpCampaign: {_squadToLoad.UnitName} (team={_team}, index={_squadToLoad.UnitIndex}, health={_squadToLoad.SquadCurrentHealth}, maxUnits={_squadToLoad.maxUnitCount}) has HitPointsPerUnit=0 — defaulting to 1 to avoid divide-by-zero.");
+                _squadToLoad.HitPointsPerUnit = 1;
+            }
+
+            isCustomBattle = false;
+            squadToLoad = _squadToLoad;
+            team = _team;
+            currentEntityCount = squadToLoad.SquadCurrentHealth / squadToLoad.HitPointsPerUnit;
+            maxEntityCount = squadToLoad.maxUnitCount;
+            prestige = squadToLoad.UnitPrestige;
+            healthBarFillImage.color = friendlyColor;
+            applyGearBonuses = team == Team.Player;
+
+            squadStats = TabletopTavernData.Instance.GetSquadStats(squadToLoad.UnitName);
+            health = squadToLoad.SquadCurrentHealth;
+            maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
+            unitCount.text = $"{health / squadStats.HitPointsPerUnit} ({maxEntityCount})";
+
+            GetHistoricalSquadKillCount();
+            Load();
+            TurnOffBattlefieldConditions();
+        }
+        public void SetUpCollection(SquadToLoad _squadToLoad, Team _team)
+        {
+            squadToLoad = _squadToLoad;
+            team = _team;
+            currentEntityCount = squadToLoad.SquadCurrentHealth / squadToLoad.HitPointsPerUnit;
+            maxEntityCount = squadToLoad.maxUnitCount;
+            prestige = squadToLoad.UnitPrestige;
+            healthBarFillImage.color = friendlyColor;
+            applyGearBonuses = team == Team.Player;
+
+            squadStats = TabletopTavernData.Instance.GetSquadStats(squadToLoad.UnitName);
+            health = squadToLoad.SquadCurrentHealth;
+            maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
+            unitCount.text = $"{maxEntityCount} ({maxEntityCount})";
+
+            GetHistoricalSquadKillCount();
+            Load();
+            TurnOffBattlefieldConditions();
+        }
+        public void SetUpBattle(SquadEntity _squadEntity, int _currentEntityCount, int _prestige)
+        {
+            if (SettingsManager.Instance.HideSquadInfoInBattle.Value)
+            {
+                tooltipCanvasGroup.CGDisable();
+                return;
+            }
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            team = _squadEntity.Team;
+            if (team == Team.Player)
+                cachedSnapshot = null;
+            applyGearBonuses = team == Team.Player && !isCustomBattle;
+
+            squadEntity = _squadEntity;
+            currentEntityCount = _currentEntityCount;
+            prestige = _prestige;
+            maxEntityCount = squadEntity.initialSquadSize;
+            healthBarFillImage.color = squadEntity.SquadId > 0 ? friendlyColor : enemyColor;
+            UpdateSquadKillCount();
+
+            squadStats = TabletopTavernData.Instance.GetSquadStats(squadEntity.UnitName);
+
+            //check dynamic buffer for batlefield bonuses
+            if (entityManager.Exists(squadEntity.SelfEntity))
+            {
+                HandleBattlefieldConditions(entityManager, squadEntity);
+                SquadStateComponent squadTotalHealth = entityManager.GetComponentData<SquadStateComponent>(squadEntity.SelfEntity);
+                health = squadTotalHealth.CurrentHealthValue;
+                maxHealth = squadTotalHealth.MaxHealthValue;
+            }
+            else
+            {
+                health = currentEntityCount * squadStats.HitPointsPerUnit;
+                maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
+            }
+
+            Load();
+        }
+        public void SetUpSpawn(SquadStats _squadStats, int _prestige)
+        {
+            squadStats = _squadStats;
+            currentEntityCount = _squadStats.baseUnitCount;
+            maxEntityCount = _squadStats.baseUnitCount;
+
+            health = currentEntityCount * squadStats.HitPointsPerUnit;
+            maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
+
+            healthBarSlider.maxValue = maxHealth;
+            healthBarSlider.value = healthBarSlider.maxValue;
+
+
+            unitCount.text = $"{maxEntityCount} ({maxEntityCount})";
+            prestige = _prestige;
+            healthBarFillImage.color = friendlyColor;
+            squadEntity = default;
+            Load();
+            TurnOffBattlefieldConditions();
+        }
+        private void Update()
+        {
+            if (squadEntity.SquadId == 0) return;
+
+            applyGearBonuses = team == Team.Player && !isCustomBattle;
+
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            if (!entityManager.Exists(squadEntity.SelfEntity))
+            {
+                healthBarSlider.value = healthBarSlider.maxValue;
+                healthbarText.text = $"{healthBarSlider.maxValue}";
+
+                unitCount.text = $"{maxEntityCount} ({maxEntityCount})";
+                return;
+            }
+
+            SquadStateComponent squadTotalHealth = entityManager.GetComponentData<SquadStateComponent>(squadEntity.SelfEntity);
+            squadEntity = entityManager.GetComponentData<SquadEntity>(squadEntity.SelfEntity);
+            currentEntityCount = entityManager.GetBuffer<EntityReferenceBufferElement>(squadEntity.SelfEntity).Length;
+            unitCount.text = $"{currentEntityCount} ({maxEntityCount})";
+            int currentBonusBufferSize = entityManager.GetBuffer<BattlefieldBonusBufferElement>(squadEntity.SelfEntity).Length;
+            if (battlefieldBonusCount != currentBonusBufferSize)
+            {
+                battlefieldBonusCount = currentBonusBufferSize;
+                unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+            }
+            else if (entityManager.HasComponent<CrashingHordeComponent>(squadEntity.SelfEntity))
+            {
+                int currentWarbandStacks = entityManager.GetComponentData<CrashingHordeComponent>(squadEntity.SelfEntity).AppliedStacks;
+                if (lastCrashingHordeStacks != currentWarbandStacks)
+                {
+                    lastCrashingHordeStacks = currentWarbandStacks;
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+            else if (entityManager.HasComponent<DeathcryComponent>(squadEntity.SelfEntity))
+            {
+                int currentDeathcryBonus = entityManager.GetComponentData<DeathcryComponent>(squadEntity.SelfEntity).AppliedBonus;
+                if (lastDeathcryBonus != currentDeathcryBonus)
+                {
+                    lastDeathcryBonus = currentDeathcryBonus;
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+            else if (entityManager.HasComponent<HuntersPatienceComponent>(squadEntity.SelfEntity))
+            {
+                int currentPatienceBonus = entityManager.GetComponentData<HuntersPatienceComponent>(squadEntity.SelfEntity).CurrentBonus;
+                if (lastHuntersPatienceBonus != currentPatienceBonus)
+                {
+                    lastHuntersPatienceBonus = currentPatienceBonus;
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+            else if (entityManager.HasComponent<KenseiEyeComponent>(squadEntity.SelfEntity))
+            {
+                int currentStage = entityManager.GetComponentData<KenseiEyeComponent>(squadEntity.SelfEntity).CurrentStage;
+                if (lastKenseiEyeStage != currentStage)
+                {
+                    lastKenseiEyeStage = currentStage;
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+            else if (entityManager.HasComponent<OathcarvedComponent>(squadEntity.SelfEntity))
+            {
+                int currentDeaths = entityManager.GetComponentData<OathcarvedComponent>(squadEntity.SelfEntity).DeathCount;
+                if (lastOathcarvedDeaths != currentDeaths)
+                {
+                    lastOathcarvedDeaths = currentDeaths;
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+            else if (entityManager.HasComponent<ApexHuntersComponent>(squadEntity.SelfEntity))
+            {
+                int currentStacks = entityManager.GetComponentData<ApexHuntersComponent>(squadEntity.SelfEntity).AppliedStacks;
+                if (lastApexHuntersStacks != currentStacks)
+                {
+                    lastApexHuntersStacks = currentStacks;
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+
+            health = squadTotalHealth.CurrentHealthValue;
+            healthBarSlider.value = health;
+            healthbarText.text = $"{health}";
+        }
+        private void Load()
+        {
+            // Debug.Log($"Loading SquadBattleInfo for {applyGearBonuses} applying gear bonuses.");
+            unitAttributesUIContainer = GetComponent<UnitAttributesUIContainer>();
+            unitAttributesUIContainer.Load(squadStats.unitName, applyGearBonuses);
+
+            unitStatsUIContainer = GetComponent<UnitStatsUIContainer>();
+            unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+
+            string displayName = LocalizationManager.Instance.GetText(squadStats.unitName.ToString());
+            if (team == Team.Player && !isCustomBattle)
+            {
+                if (cachedSnapshot == null) 
+                    cachedSnapshot = SaveDataHandler.LoadSnapshotNullAllowed();
+
+                if(cachedSnapshot != null && cachedSnapshot.playerArmy != null)
+                {
+                    string uniqueID = squadToLoad.UniqueID;
+                    if (string.IsNullOrEmpty(uniqueID) && squadEntity.SquadId > 0)
+                    {
+                        int armyIndex = squadEntity.SquadId - 1;
+                        if (armyIndex >= 0 && armyIndex < cachedSnapshot.playerArmy.Length)
+                            uniqueID = cachedSnapshot.playerArmy[armyIndex].UniqueID;
+                    }
+                    if (!string.IsNullOrEmpty(uniqueID) && cachedSnapshot.unitNameOverrides != null)
+                    {
+                        UnitNameOverrides match = cachedSnapshot.unitNameOverrides.Find(x => x.unitGUID == uniqueID);
+                        if (match.unitGUID != null)
+                            displayName = match.unitNameOverride;
+                    }
+                } 
+            }
+            unitNameText.text = displayName;
+            string unitTypeLocalised = LocalizationManager.Instance.GetText(squadStats.unitType.ToString());
+            string unitSizeLocalised = (squadStats.unitSize != UnitSize.Artillery && squadStats.unitType != UnitType.Structure) ? " " + LocalizationManager.Instance.GetText(squadStats.unitSize.ToString()) : "";
+
+            unitTypeText.text = $"{unitTypeLocalised}{unitSizeLocalised}";
+
+            // unitCount.text = $"{TabletopTavernData.Instance.GetSquadCurrentUnitCount(squadToLoad)} ({maxEntityCount})";
+            unitIcon.sprite = TabletopTavernData.Instance.GetSquadTypeIcon(squadStats.unitName);
+
+            HandlePrestige();
+            Color tierColor = ColorData.GetRarityTierColor(squadStats.RarityTier);
+            unitRarityImage.color = tierColor;
+            unitRarityText.text = LocalizationManager.Instance.GetText(squadStats.RarityTier.ToString());
+
+            LoadRacePassive();
+
+            tooltipCanvasGroup.CGEnable();
+
+            //force refresh of ui
+            LayoutRebuilder.ForceRebuildLayoutImmediate(transform as RectTransform);
+            unitAttributesUIContainer.Refresh();
+            unitStatsUIContainer.Refresh();
+
+            healthbarText.text = $"{health}";
+            healthBarSlider.maxValue = maxHealth;
+            healthBarSlider.value = health;
+        }
+        private void LoadRacePassive()
+        {
+            Race race = TabletopTavernData.Instance.GetRaceFromUnitName(squadStats.unitName);
+            RaceData raceData = TabletopTavernData.Instance.GetRaceData(race);
+
+            Color passiveColor = raceData != null ? race switch
+            {
+                Race.IronLegion      => raceData.PrimaryColor,
+                Race.Gruntkin        => raceData.PrimaryColor,
+                Race.RavenHost       => raceData.PrimaryColor,
+                Race.TaelindorForest => raceData.PrimaryColor,
+                Race.SanguineCourt   => raceData.SecondaryColor,
+                Race.SakuraDynasty   => raceData.SecondaryColor,
+                Race.DeepstoneHold   => raceData.PrimaryColor,
+                Race.DrakosaurBrood  => raceData.PrimaryColor,
+                _                    => raceData.PrimaryColor,
+            } : Color.white;
+
+            float alpha = race switch
+            {
+                Race.IronLegion      => 25f,
+                Race.Gruntkin        => 85f,
+                Race.RavenHost       => 65f,
+                Race.TaelindorForest => 15f,
+                Race.SanguineCourt   => 10f,
+                Race.SakuraDynasty   => 10f,
+                Race.DeepstoneHold   => 35f,
+                Race.DrakosaurBrood  => 25f,
+                _                    => 25f,
+            };
+
+            raceColorImage1.color = passiveColor;
+            raceColorImage2.color = new Color(passiveColor.r, passiveColor.g, passiveColor.b, alpha / 255f);
+            string passiveName = LocalizationManager.Instance.GetText(race.ToString() + "PassiveName");
+            string passiveDesc = LocalizationManager.Instance.GetText(race.ToString() + "PassiveDescription");
+            passiveNameText.text = passiveName;
+            passiveTooltipTrigger.SetUpToolTip(_title: passiveName, _description: passiveDesc);
+        }
+        private void HandlePrestige()
+        {
+            static string PrestigeRomanNumeral(int _prestige)
+            {
+                return _prestige switch
+                {
+                    0 => "I",
+                    1 => "II",
+                    2 => "III",
+                    _ => "",
+                };
+            }
+            prestigeText.text = PrestigeRomanNumeral(prestige);
+            bronzePrestige.SetActive(prestige == 0);
+            silverPrestige.SetActive(prestige == 1);
+            goldPrestige.SetActive(prestige == 2);
+            string prestigeLocalised = LocalizationManager.Instance.GetText("Prestige");
+            prestigeTooltipTrigger.SetUpToolTip(_description: $"{prestigeLocalised}: " + PrestigeRomanNumeral(prestige));
+        }
+        public void InvalidateSnapshotCache()
+        {
+            cachedSnapshot = null;
+        }
+        public void Unhover()
+        {
+            if (tooltipCanvasGroup.alpha > 0)
+            {
+                tooltipCanvasGroup.CGDisable();
+            }
+        }
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (UnitSelectionManager.Instance == null) return;
+            if (!UnitSelectionManager.Instance.HasCursorMovedSinceHover()) return;
+            BattleManager.Instance.UIManager.HideSquadHoveredTooltip();
+        }
+        public void GetHistoricalSquadKillCount()
+        {
+            if (SceneHandler.Instance.CurrentGameState != GameStateEnum.Map)
+            {
+                unitKillsText.text = "";
+                return;
+            }
+            unitKillsText.text = CampaignManager.Instance.CampaignSaveManager.GetSquadHistoricalKillCount(squadToLoad.UniqueID).ToString();
+        }
+        public void UpdateSquadKillCount()
+        {
+            unitKillsText.text = BattleManager.Instance.ArmySpawnManager.GetSquadKillCount(squadEntity.SquadId).ToString();
+        }
+        private void HandleBattlefieldConditions(EntityManager entityManager, SquadEntity squadEntity)
+        {
+            inForestAttribute.gameObject.SetActive(entityManager.HasComponent<InForestTag>(squadEntity.SelfEntity));
+            if (inForestAttribute.gameObject.activeSelf)
+            {
+                inForestAttribute.Load(UnitCondition.InForest);
+            }
+            inSwampAttribute.gameObject.SetActive(entityManager.HasComponent<InSwampTag>(squadEntity.SelfEntity));
+            if (inSwampAttribute.gameObject.activeSelf)
+            {
+                inSwampAttribute.Load(UnitCondition.InSwamp);
+            }
+            inCombatAttribute.gameObject.SetActive(entityManager.HasComponent<InCombat>(squadEntity.SelfEntity));
+            if (inCombatAttribute.gameObject.activeSelf)
+            {
+                inCombatAttribute.Load(UnitCondition.InCombat);
+            }
+            isChargingAttribute.gameObject.SetActive(entityManager.HasComponent<ChargeBonus>(squadEntity.SelfEntity));
+            if (isChargingAttribute.gameObject.activeSelf)
+            {
+                isChargingAttribute.Load(UnitCondition.IsCharging);
+            }
+            isTerrifiedAttribute.gameObject.SetActive(entityManager.IsComponentEnabled<IsTerrified>(squadEntity.SelfEntity));
+            if (isTerrifiedAttribute.gameObject.activeSelf)
+            {
+                isTerrifiedAttribute.Load(UnitCondition.IsTerrified);
+            }
+            isExhaustedAttribute.gameObject.SetActive(entityManager.HasComponent<ExhaustedTag>(squadEntity.SelfEntity));
+            if (isExhaustedAttribute.gameObject.activeSelf)
+            {
+                isExhaustedAttribute.Load(UnitCondition.IsExhausted);
+                isChargingAttribute.gameObject.SetActive(false);
+            }
+            isOutOfAmmoAttribute.gameObject.SetActive(entityManager.HasComponent<AmmuntionSpent>(squadEntity.SelfEntity));
+            if (isOutOfAmmoAttribute.gameObject.activeSelf)
+            {
+                isOutOfAmmoAttribute.Load(UnitCondition.IsOutOfAmmo);
+            }
+            bloodFrenzyAttribute.gameObject.SetActive(entityManager.HasComponent<BloodFrenzyActiveTag>(squadEntity.SelfEntity));
+            if (bloodFrenzyAttribute.gameObject.activeSelf)
+            {
+                bloodFrenzyAttribute.Load(UnitAttribute.BloodFrenzy);
+            }
+            rageAttribute.gameObject.SetActive(entityManager.HasComponent<RageActiveTag>(squadEntity.SelfEntity));
+            if (rageAttribute.gameObject.activeSelf)
+            {
+                rageAttribute.Load(UnitAttribute.Rage);
+            }
+            armorSunderedAttribute.gameObject.SetActive(entityManager.HasComponent<ArmorSunderedTag>(squadEntity.SelfEntity));
+            if (armorSunderedAttribute.gameObject.activeSelf)
+            {
+                armorSunderedAttribute.Load(UnitAttribute.Emblazing);
+            }
+            isOnFireAttribute.gameObject.SetActive(entityManager.IsComponentEnabled<TakingFireDamage>(squadEntity.SelfEntity));
+            if (isOnFireAttribute.gameObject.activeSelf)
+            {
+                isOnFireAttribute.Load(UnitAttribute.IsOnFire);
+            }
+            rageAttribute.gameObject.SetActive(entityManager.HasComponent<SlayerActiveTag>(squadEntity.SelfEntity));
+
+        }
+        private void TurnOffBattlefieldConditions()
+        {
+            inForestAttribute.gameObject.SetActive(false);
+            inSwampAttribute.gameObject.SetActive(false);
+            inCombatAttribute.gameObject.SetActive(false);
+            isChargingAttribute.gameObject.SetActive(false);
+            isTerrifiedAttribute.gameObject.SetActive(false);
+            isExhaustedAttribute.gameObject.SetActive(false);
+            isOutOfAmmoAttribute.gameObject.SetActive(false);
+            bloodFrenzyAttribute.gameObject.SetActive(false);
+            rageAttribute.gameObject.SetActive(false);
+            armorSunderedAttribute.gameObject.SetActive(false);
+            isOnFireAttribute.gameObject.SetActive(false);
+        }
+    }
+}

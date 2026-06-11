@@ -1,0 +1,132 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2366246564921771323
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4769369386984544687}
+  - component: {fileID: 2724998882691609303}
+  - component: {fileID: 1403237793129510391}
+  - component: {fileID: 4521238940841728534}
+  - component: {fileID: 7800834943378386686}
+  m_Layer: 0
+  m_Name: Settings Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4769369386984544687
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2366246564921771323}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2724998882691609303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2366246564921771323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e08ebfb649506b94cb21c74ce53d6d25, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  settingsCanvasGroup: {fileID: 0}
+  closeSettingsPanelButton: {fileID: 0}
+  autoDrawCards: 0
+  autoDrawCardsToggle: {fileID: 0}
+  rotationSpeedSlider: {fileID: 0}
+  isOpen: 0
+--- !u!114 &1403237793129510391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2366246564921771323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f9b87555bb4d740b05bf756c5d7548, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  keybinds:
+  - actionName: 4
+    keyName: Cancel
+    keybindingUI: {fileID: 0}
+  - actionName: 5
+    keyName: Rotate Left
+    keybindingUI: {fileID: 0}
+  - actionName: 6
+    keyName: Rotate Right
+    keybindingUI: {fileID: 0}
+  - actionName: 7
+    keyName: Hide UI
+    keybindingUI: {fileID: 0}
+  - actionName: 8
+    keyName: Select Spell 1
+    keybindingUI: {fileID: 0}
+  - actionName: 9
+    keyName: Select Spell 2
+    keybindingUI: {fileID: 0}
+  - actionName: 10
+    keyName: Select Spell 3
+    keybindingUI: {fileID: 0}
+  - actionName: 11
+    keyName: Select Spell 4
+    keybindingUI: {fileID: 0}
+  preventDuplicates: 1
+--- !u!114 &4521238940841728534
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2366246564921771323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1549cfbbd32b3d5409c40748fe36914e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  masterVolumeSlider: {fileID: 0}
+  ambienceVolumeSlider: {fileID: 0}
+  sFXVolumeSlider: {fileID: 0}
+  bGMVolumeSlider: {fileID: 0}
+--- !u!114 &7800834943378386686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2366246564921771323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2eaaa88c2ee792448fc8ecf540ce827, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  applyVideoSettingsButton: {fileID: 0}
+  resetVideoSettingsButton: {fileID: 0}
+  resolutionDropdown: {fileID: 0}
+  refreshRateDropdown: {fileID: 0}
+  graphicsQualityDropdown: {fileID: 0}
+  antiAliasingDropdown: {fileID: 0}
+  fullscreenToggle: {fileID: 0}
+  vsyncToggle: {fileID: 0}
+  fpsToggle: {fileID: 0}
+  animateClothToggle: {fileID: 0}
+  fancyCloudsToggle: {fileID: 0}

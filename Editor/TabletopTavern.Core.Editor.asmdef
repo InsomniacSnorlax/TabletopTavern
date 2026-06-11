@@ -1,0 +1,24 @@
+{
+    "name": "TabletopTavern.Core.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:ea84e8a05119e624d9353f641a42c446",
+        "GUID:eec0964c48f6f4e40bc3ec2257ccf8c5",
+        "GUID:343deaaf83e0cee4ca978e7df0b80d21",
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:4dd477af08d378b4d99d7b78e158eb24",
+        "GUID:84651a3751eca9349aac36a66bba901b",
+        "GUID:ab0a621123532ad46a8da3736c9eb61a"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

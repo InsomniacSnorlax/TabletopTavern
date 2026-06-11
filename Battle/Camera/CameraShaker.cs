@@ -1,0 +1,166 @@
+using System.Collections;
+using Unity.Mathematics;
+using UnityEngine;
+
+namespace TJ
+{
+    public class CameraShaker : MonoBehaviour
+    {
+        [SerializeField] private Transform objectToShake; // Assign your RTS camera in Inspector
+        [SerializeField] private Transform cameraTransform; // Assign your RTS camera in Inspector
+        // [SerializeField] private float testForce = 0.5f; // Force for testing (magnitude)
+        // [SerializeField] private float testDuration = 0.5f; // Duration for testing (seconds)
+        // [SerializeField] private float testShakeSpeed = 10f; // Speed for testing (frequency, adjust for violence)
+
+        private Vector3 originalPosition; // Camera's original position
+        private float shakeForce = 0f; // Current shake intensity
+        private float shakeDuration = 0f; // Remaining shake time
+        private float shakeTimer = 0f; // Timer for decay
+        private float shakeSpeed = 0f; // Current shake frequency
+        private bool battleEnded = false;
+
+        public bool ShakingEnabled { get; set; } = true;
+        public float3 CameraPosition => cameraTransform != null ? (float3)cameraTransform.position : float3.zero;
+
+        void Start()
+        {
+            if (objectToShake == null)
+            {
+                objectToShake = Camera.main?.transform; // Fallback to main camera
+                if (objectToShake == null)
+                {
+                    Debug.LogError("CameraShaker: No camera assigned or found!");
+                    enabled = false;
+                    return;
+                }
+            }
+
+            originalPosition = objectToShake.localPosition;
+            BattleManager.Instance.OnGamePhaseChanged += OnGamePhaseChanged;
+            ShakingEnabled = SettingsManager.Instance.CameraShakeEnabled.Value;
+            SettingsManager.Instance.CameraShakeEnabled.OnValueChanged += OnCameraShakeSettingChanged;
+        }
+
+        private void OnDestroy()
+        {
+            if (BattleManager.Instance != null)
+                BattleManager.Instance.OnGamePhaseChanged -= OnGamePhaseChanged;
+            if (SettingsManager.Instance != null)
+                SettingsManager.Instance.CameraShakeEnabled.OnValueChanged -= OnCameraShakeSettingChanged;
+        }
+
+        private void OnCameraShakeSettingChanged(bool isEnabled)
+        {
+            ShakingEnabled = isEnabled;
+            if (!isEnabled) StopShake();
+        }
+
+        private void OnGamePhaseChanged(GamePhase phase)
+        {
+            if (phase != GamePhase.PostGame) return;
+            battleEnded = true;
+            shakeDuration = 0f;
+            if (objectToShake != null) objectToShake.localPosition = originalPosition;
+        }
+
+        void Update()
+        {
+            #if UNITY_EDITOR
+            // Test shake with C key
+            // if (Input.GetKeyDown(KeyCode.C))
+            // {
+            //     ShakeCamera(testForce, testDuration, testShakeSpeed);
+            //     Debug.Log($"Testing camera shake: Force={testForce}, Duration={testDuration}, Speed={testShakeSpeed}");
+            // }
+            #endif
+
+            // Apply shake if active
+            if (shakeDuration > 0f)
+            {
+                shakeTimer -= Time.deltaTime;
+                shakeDuration -= Time.deltaTime;
+
+                if (shakeDuration <= 0f)
+                {
+                    // Stop shake and restore position
+                    shakeDuration = 0f;
+                    objectToShake.localPosition = originalPosition;
+                }
+                else
+                {
+                    // Calculate decay (linearly reduce force)
+                    float currentForce = shakeForce * (shakeDuration / shakeTimer);
+
+                    // Use Perlin noise for shake offset, scaled by speed
+                    float time = Time.time * shakeSpeed;
+                    Vector3 offset = new Vector3(
+                        (Mathf.PerlinNoise(time, 0f) - 0.5f) * 2f, // -1 to 1
+                        (Mathf.PerlinNoise(0f, time) - 0.5f) * 2f,
+                        (Mathf.PerlinNoise(time, time) - 0.5f) * 2f
+                    ) * currentForce;
+
+                    objectToShake.localPosition = originalPosition + offset;
+                }
+            }
+        }
+        public void ChargeShake(float3 _chargePosition)
+        {
+            if (battleEnded) return;
+            float distance = math.distance(_chargePosition, cameraTransform.position);
+
+            // Debug.Log($"Charge shake triggered at position {_chargePosition}, distance from camera: {distance}");
+            if(distance > 50f) return;
+
+            if(shakeDuration > 0f) {
+                shakeDuration = 0f;
+                objectToShake.localPosition = originalPosition;
+            }
+            ShakeCamera(0.5f, 0.7f, 5f);
+        }
+        public void ExplosionShake(float3 position)
+        {
+            if (battleEnded) return;
+            float distance = math.distance(position, cameraTransform.position);
+            if (distance > 45f) return;
+
+            float normalizedDist = 1f - (distance / 45f);
+            float force = Mathf.Lerp(0.2f, 0.9f, normalizedDist);
+
+            if (shakeDuration > 0f && force <= shakeForce) return;
+            if (shakeDuration > 0f) objectToShake.localPosition = originalPosition;
+
+            // Debug.Log($"Explosion shake triggered at position {position}, distance from camera: {distance}, force: {force}");
+            ShakeCamera(force, 0.5f, 6f);
+        }
+
+        public void NearCombatShake()
+        {
+            if (battleEnded) return;
+            if(shakeDuration > 0f) return;
+
+            ShakeCamera(0.075f, 0.9f, 3f);
+        }
+
+        /// <param name="force">Magnitude of shake (e.g., 0.5 for subtle, 2.0 for strong).</param>
+        /// <param name="duration">Duration of shake in seconds.</param>
+        /// <param name="shakeSpeed">Frequency of shake (e.g., 5 for smooth, 20 for violent).</param>
+        public void StopShake()
+        {
+            shakeDuration = 0f;
+            if (objectToShake != null) objectToShake.localPosition = originalPosition;
+        }
+
+        public void ShakeCamera(float force, float duration, float shakeSpeed)
+        {
+            if (objectToShake == null || !ShakingEnabled) return;
+
+            shakeForce = force;
+            shakeDuration = duration;
+            shakeTimer = duration;
+            this.shakeSpeed = shakeSpeed;
+
+            // Update original position
+            originalPosition = objectToShake.localPosition;
+        }
+    }
+}

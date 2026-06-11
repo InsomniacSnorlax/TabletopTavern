@@ -1,0 +1,233 @@
+using Unity.Burst;
+using Unity.Entities;
+using Unity.Mathematics;
+using UnityEngine;
+using Unity.Transforms;
+
+namespace TJ
+{
+    public partial struct ApplyDamageSystem : ISystem
+    {
+        private Unity.Mathematics.Random _random;
+
+        [BurstCompile]
+        public void OnCreate(ref SystemState state)
+        {
+            _random = new Unity.Mathematics.Random(1);
+            state.RequireForUpdate<BattleHasStarted>();
+        }
+        [BurstCompile]
+        public void OnUpdate(ref SystemState state)
+        {
+            var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+            EntityManager entityManager = state.EntityManager;
+
+            foreach (var (health, maxHealth, damageBuffer, entityTeam, parentSquadEntity, damageReceivingEntity) in SystemAPI.Query<
+            RefRW<Health>,
+            MaxHitPoints,
+            DynamicBuffer<DamageBufferElement>,
+            EntityTeam,
+            UnitParentEntityTag
+            >().WithEntityAccess()
+               .WithOptions(EntityQueryOptions.FilterWriteGroup))
+            {
+                var damageHitPoints = 0;
+                var healingHitPoints = 0;
+                int sourceSquadId = 100;
+
+                Unit unitTakingDamage = SystemAPI.GetComponent<Unit>(damageReceivingEntity);
+                bool infantry = SystemAPI.HasComponent<InfantryTag>(damageReceivingEntity);
+                bool large = SystemAPI.HasComponent<LargeTag>(damageReceivingEntity);
+                bool armored = SystemAPI.HasComponent<ArmoredTag>(damageReceivingEntity);
+                bool artillery = SystemAPI.HasComponent<ArtilleryUnit>(damageReceivingEntity);
+
+                foreach (var damageElement in damageBuffer)
+                {
+                    // Debug.Log($"ApplyDamageSystem: Applying damage to {unitTakingDamage.unitName} with {damageElement.AttackStrength} hit points of type {damageElement.DamageType} from {damageElement.DamageSource} antilarget: {damageElement.DamageAttributes}");
+
+                    // Debug.Log($"ApplyDamageSystem: Infantry: {infantry}, Large: {large}, Armored: {armored}");
+                    int attackHitPoints = 0;
+
+
+                    switch (damageElement.DamageType)
+                    {
+                        case DamageType.Physical:
+                            // Ignore friendly fire
+                            if (entityTeam.Value == damageElement.TeamOfSource) continue;
+                            var physicalHitPoints = damageElement.AttackStrength;
+                            bool flankAttack =
+                                physicalHitPoints > 0 &&
+                                damageElement.DamageSource == DamageSource.Melee &&
+                                damageElement.FlankAttack;
+                            if(flankAttack && entityManager.HasComponent<TakingFlankingDamage>(parentSquadEntity.parentSquadEntity)) {
+                                TakingFlankingDamage TakingFlankingDamage = entityManager.GetComponentData<TakingFlankingDamage>(parentSquadEntity.parentSquadEntity);
+                                TakingFlankingDamage.RecentlyTookDamage = true;
+                                entityManager.SetComponentData(parentSquadEntity.parentSquadEntity, TakingFlankingDamage);
+                            }
+
+                            if(damageElement.Flaming && entityManager.HasComponent<TakingFireDamage>(parentSquadEntity.parentSquadEntity))
+                            {
+                                TakingFireDamage TakingFireDamage = entityManager.GetComponentData<TakingFireDamage>(parentSquadEntity.parentSquadEntity);
+                                TakingFireDamage.RecentlyTookDamage = true;
+                                entityManager.SetComponentData(parentSquadEntity.parentSquadEntity, TakingFireDamage);
+                            }
+
+                            if (SystemAPI.HasComponent<PhysicalDamageMultiplier>(damageReceivingEntity))
+                            {
+                                var physicalDamageMultiplier = SystemAPI.GetComponent<PhysicalDamageMultiplier>(damageReceivingEntity).Value;
+                                physicalHitPoints = (int)(physicalHitPoints * physicalDamageMultiplier);
+                            }
+
+                            if(armored) {
+                                if( damageElement.DamageAttributes != DamageAttributes.ArmorPiercing &&
+                                    damageElement.DamageAttributes != DamageAttributes.ArmorPiercingAntiInfantry &&
+                                    damageElement.DamageAttributes != DamageAttributes.ArmorPiercingAntiLarge) {
+                                    // Debug.Log($"Physical hit points before mitigation: {physicalHitPoints}");
+                                    physicalHitPoints -= (int)(physicalHitPoints * SystemAPI.GetComponent<ArmoredTag>(damageReceivingEntity).ArmorMitigation);
+                                    // Debug.Log($"Physical hit points after mitigation: {physicalHitPoints}");
+                                }
+                            }
+                            if(infantry) {
+                                if( damageElement.DamageAttributes == DamageAttributes.AntiInfantry ||
+                                    damageElement.DamageAttributes == DamageAttributes.ArmorPiercingAntiInfantry) {
+                                    physicalHitPoints *= 2;
+                                }
+                            }
+                            if(large) {
+                                if( damageElement.DamageAttributes == DamageAttributes.AntiLarge ||
+                                    damageElement.DamageAttributes == DamageAttributes.ArmorPiercingAntiLarge) {
+                                        // Debug.Log($"ApplyDamageSystem: Large unit hit with anti-large damage, doubling damage.");
+                                    physicalHitPoints *= 2;
+                                }
+                            }
+
+                            if (artillery && damageElement.DamageSource == DamageSource.Melee)
+                                physicalHitPoints *= 2;
+
+                            attackHitPoints += physicalHitPoints;
+                            break;
+
+                        case DamageType.Magical:
+
+                            // Ignore friendly fire
+                            if (entityTeam.Value == damageElement.TeamOfSource) continue;
+                            var magicHitPoints = damageElement.AttackStrength;
+                            if (SystemAPI.HasComponent<MagicalDamageMultiplier>(damageReceivingEntity))
+                            {
+                                var magicDamageMultiplier = SystemAPI.GetComponent<MagicalDamageMultiplier>(damageReceivingEntity).Value;
+                                magicHitPoints = (int)(magicHitPoints * magicDamageMultiplier);
+                            }
+                            attackHitPoints += magicHitPoints;
+                            break;
+
+                        case DamageType.Healing:
+
+                            // Only apply healing if coming from the same team
+                            if (entityTeam.Value != damageElement.TeamOfSource) continue;
+                            healingHitPoints += damageElement.AttackStrength;
+                            break;
+
+                        default:
+                            Debug.LogWarning($"Warning: attempting to apply undefined damage type: {damageElement.DamageType}");
+                            break;
+                    }
+
+                    if (damageElement.DamageSource == DamageSource.Ranged)
+                    {
+                        attackHitPoints = (int)(attackHitPoints * TabletopTavernConstants.RANGED_TOTAL_DAMAGE_MODIFIER);
+
+                        if (SystemAPI.HasComponent<MissileResistance>(damageReceivingEntity))
+                        {
+                            attackHitPoints = (int)(attackHitPoints * SystemAPI.GetComponent<MissileResistance>(damageReceivingEntity).DamageMultiplier);
+                        }
+
+                        bool shielded = SystemAPI.HasComponent<Shield>(damageReceivingEntity);
+                        float shieldBlockChance = shielded ? SystemAPI.GetComponent<Shield>(damageReceivingEntity).ShieldBlockChance : 0f;
+                        bool isInForest = SystemAPI.HasComponent<InForestTag>(damageReceivingEntity);
+                        // Debug.Log($"damageElement.FlankAttack = {damageElement.FlankAttack}");
+                        if (shielded && damageElement.FlankAttack == false)
+                        {
+                            if (_random.NextFloat() < shieldBlockChance)
+                            {
+                                //add a shield block component
+                                ecb.AddComponent(damageReceivingEntity, new BlockedArrowTag());
+                                attackHitPoints = 0;
+                            }
+                        }
+
+                        if (isInForest)
+                        {
+                            // Debug.Log($"ApplyDamageSystem: {damageReceivingEntity.Index} is in forest, applying forest damage reduction");
+                            if (_random.NextFloat() > 0.75f)
+                            {
+                                attackHitPoints = 0;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        attackHitPoints = (int)(attackHitPoints * TabletopTavernConstants.MELEE_TOTAL_DAMAGE_MODIFIER);
+                    }
+
+
+                    damageHitPoints += attackHitPoints;
+                    // ecb.SetComponent(damageReceivingEntity, new DamageRecievedFrom { SquadId = damageElement.DamageSourceSquadId });
+                    sourceSquadId = damageElement.DamageSourceSquadId;
+                }
+
+                damageBuffer.Clear();
+
+
+                var totalHitPoints = 0 - (damageHitPoints) + healingHitPoints;
+                if (totalHitPoints == 0) continue;
+
+                // Debug.Log($"ApplyDamageSystem: Applying damage to {damageReceivingEntity} with {totalHitPoints}");
+
+                health.ValueRW.Value += totalHitPoints;
+                health.ValueRW.Value = math.min(health.ValueRO.Value, maxHealth.Value);
+                health.ValueRW.onHealthChanged = true;
+
+                if (sourceSquadId == 100)
+                {
+                    Debug.LogError($"ApplyDamageSystem: sourceSquadId is 100, this means damage was applied without a valid source. Check if damage is being added to the DamageBuffer without setting the DamageSourceSquadId.");
+                }
+
+                //emit an event here for other systems to react to damage
+                if (SystemAPI.TryGetSingletonBuffer<SquadDamageBufferElement>(out var globalDamageBuffer))
+                {
+                    if(sourceSquadId != 100)
+                    {
+                        globalDamageBuffer.Add(new SquadDamageBufferElement
+                        {
+                            SquadId = sourceSquadId,
+                            DamageAmount = -totalHitPoints,
+                        });
+                    }
+                }
+
+                if (health.ValueRO.Value <= 0)
+                {
+                    // Debug.Log($"Unit {damageReceivingEntity} has been slain");
+                    ecb.AddComponent(damageReceivingEntity,
+                        new UnitRemovedFromSquad { Entity = damageReceivingEntity, SquadId = unitTakingDamage.squadId, KilledBySquadId = sourceSquadId });
+                } else if(_random.NextFloat() > 0.5f) {
+                    //chance to play damage sfx
+                    DynamicBuffer<SFXBufferElement> sfxBuffer = SystemAPI.GetBuffer<SFXBufferElement>(damageReceivingEntity);
+                    sfxBuffer.Add(new SFXBufferElement { UnitName = unitTakingDamage.unitName, SFXEntityType = Memori.Audio.SFXEntityType.Death, MaxDistance = 30f });
+                }
+
+                //blood vfx
+                if (SystemAPI.TryGetSingletonBuffer<BloodBufferElement>(out var BloodBufferElement))
+                {
+                    BloodBufferElement.Add(new BloodBufferElement
+                    {
+                        Position = SystemAPI.GetComponent<LocalTransform>(damageReceivingEntity).Position
+                    });
+                }
+
+                // var buffer = EntityManager.GetBuffer<FlankDamageEvent>(parentSquadEntity.parentSquadEntity);
+                // buffer.Add(new FlankDamageEvent { Time = SystemAPI.Time.ElapsedTime });
+            }
+        }
+    }
+}
