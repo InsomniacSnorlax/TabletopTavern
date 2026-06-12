@@ -145,6 +145,8 @@ namespace TJ.Engagement
         private bool postBattleChoicesClaimed;
         private bool autoResolveResult;
         private bool isLoadingEnemyCompany;
+        private bool recruitButtonHiddenByConscript;
+        private bool raiseDeadHiddenByRecruit;
         List<UnitName> raiseDeadUnitList = new ();
 
         #region SetUp
@@ -211,6 +213,7 @@ namespace TJ.Engagement
         private void TurnOffAllOptionalRewards()
         {
             conscriptSurvivorsButton.gameObject.SetActive(false);
+            conscriptSurvivorsButtonScript.enabled = false;
 
             raiseDeadButton.enabled = false;
             raiseDeadButton.SetUp(this);
@@ -251,6 +254,10 @@ namespace TJ.Engagement
         }
         public async void LoadEngagement()
         {
+            TurnOffAllOptionalRewards();
+            recruitButtonHiddenByConscript = false;
+            raiseDeadHiddenByRecruit = false;
+
             autoResolveButton.interactable = false;
             startBattleButton.interactable = false;
             autoResolveTooltipTrigger.enabled = false;
@@ -843,6 +850,17 @@ namespace TJ.Engagement
             recruitPanel.LoadRecruitPanelFromBattle(HeroData.GetRaceFromHero(campaignSaveManager.SaveData.heroID), recruitsRarity);
             recruitUnitButton.gameObject.SetActive(false);
             recruitUnitButton.GetComponent<MemoriButtonV2>().OnPointerExit(null);
+            conscriptSurvivorsButton.gameObject.SetActive(false);
+            conscriptSurvivorsButtonScript.enabled = false;
+            if (raiseDeadButton.gameObject.activeSelf)
+            {
+                raiseDeadHiddenByRecruit = true;
+                raiseDeadButton.enabled = false;
+                raiseDeadButton.gameObject.SetActive(false);
+                raiseDeadCard1.gameObject.SetActive(false);
+                raiseDeadCard2.gameObject.SetActive(false);
+                raiseDeadCard3.gameObject.SetActive(false);
+            }
             HidePanel();
         }
         public void RansomCaptivesButtonClicked()
@@ -854,6 +872,12 @@ namespace TJ.Engagement
         public void ConscriptSurvivorsButtonClicked()
         {
             HidePostBattleOptionalRewards();
+            if (recruitUnitButton.gameObject.activeSelf)
+            {
+                recruitButtonHiddenByConscript = true;
+                recruitUnitButton.gameObject.SetActive(false);
+                recruitUnitButton.GetComponent<MemoriButtonV2>().OnPointerExit(null);
+            }
             recruitPanel.LoadRecruitPanelForConscript(conscriptedUnitNames);
             HidePanel();
         }
@@ -1068,10 +1092,33 @@ namespace TJ.Engagement
             postBattleChoicesClaimed = true;
             postBattleChoicesCanvasGroup.FadeOutAsync(0.25f);
             squadDisplayCardConscript.gameObject.SetActive(false);
+            raiseDeadButton.enabled = false;
+            raiseDeadCard1.gameObject.SetActive(false);
+            raiseDeadCard2.gameObject.SetActive(false);
+            raiseDeadCard3.gameObject.SetActive(false);
         }
         public void ReturnFromRecruitPanel()
         {
             engagementPanelCanvasGroup.FadeInAsync(0.25f);
+            if (!postBattleChoicesClaimed)
+            {
+                conscriptSurvivorsButton.gameObject.SetActive(true);
+                conscriptSurvivorsButtonScript.enabled = true;
+            }
+            if (recruitButtonHiddenByConscript)
+            {
+                recruitButtonHiddenByConscript = false;
+                recruitUnitButton.gameObject.SetActive(true);
+            }
+            if (raiseDeadHiddenByRecruit && !postBattleChoicesClaimed)
+            {
+                raiseDeadHiddenByRecruit = false;
+                raiseDeadButton.gameObject.SetActive(true);
+                raiseDeadButton.enabled = true;
+                raiseDeadCard1.gameObject.SetActive(true);
+                raiseDeadCard2.gameObject.SetActive(true);
+                raiseDeadCard3.gameObject.SetActive(true);
+            }
             ForceContinueIfAllRewardsClaimed();
         }
         private void ForceContinueIfAllRewardsClaimed()

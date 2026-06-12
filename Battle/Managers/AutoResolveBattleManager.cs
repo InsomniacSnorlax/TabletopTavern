@@ -35,7 +35,11 @@ namespace TJ.Engagement
         public AutoResolveSquad[] PlayerAutoResolveStats => playerAutoResolveStats;
         public AutoResolveSquad[] EnemyAutoResolveStats => enemyAutoResolveStats;
         List<int3> unitsSlainData = new();
-        private readonly float ENEMY_AUTORESOLVE_SPECIAL_BONUS= 1.5f;
+        private float ENEMY_AUTORESOLVE_SPECIAL_BONUS => CampaignManager.Instance.CampaignSaveManager.SaveData.bookNumber switch {
+            2 => 1.6f,
+            3 => 1.7f,
+            _ => 1.5f,
+        };
         private const float GARRISON_AUTORESOLVE_BONUS = 1.4f;
         private bool _isGarrisonBattle;
 

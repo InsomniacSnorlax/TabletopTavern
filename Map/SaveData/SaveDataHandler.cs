@@ -803,11 +803,11 @@ namespace Memori.SaveData
             // UnityEngine.Debug.Log($"Depositing gold: {playerSaveData.goldToDeposit}");
             playerSaveData.depositedGold += playerSaveData.goldToDeposit;
             //cap at 500
-#if DEMO
-            if(playerSaveData.depositedGold > TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD) {
-                playerSaveData.depositedGold = TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD;
-            }
-#endif
+// #if DEMO
+//             if(playerSaveData.depositedGold > TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD) {
+//                 playerSaveData.depositedGold = TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD;
+//             }
+// #endif
             playerSaveData.goldToDeposit = 0;
 
             if(playerSaveData.depositedGold >= 100) {

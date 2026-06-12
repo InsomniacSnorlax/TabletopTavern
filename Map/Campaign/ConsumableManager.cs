@@ -107,6 +107,7 @@ namespace TJ.Map
                 case ConsumableEnum.FateshineElixir:
                 {
                     CampaignManager.Instance.MapSceneUIManager.EventPanel.Guarentee20();
+                    CampaignManager.Instance.MapSceneUIManager.GamesPanel.Guarentee20();
                     break;
                 }
                 case ConsumableEnum.Alchemist:

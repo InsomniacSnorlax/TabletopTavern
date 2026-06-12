@@ -712,23 +712,23 @@ namespace TJ
             int totalHealth = 0;
             foreach (SquadToLoad s in squads) totalHealth += s.SquadCurrentHealth;
 
-            int firstIdx = Array.FindIndex(saveData.playerArmy, x => x.UniqueID == squads[0].UniqueID);
-            saveData.playerArmy[firstIdx].SquadCurrentHealth = Mathf.Min(totalHealth, saveData.playerArmy[firstIdx].SquadMaxHealth);
-            int remainder = totalHealth - saveData.playerArmy[firstIdx].SquadCurrentHealth;
-
-            int secondIdx = Array.FindIndex(saveData.playerArmy, x => x.UniqueID == squads[1].UniqueID);
-            if (remainder > 0)
-                saveData.playerArmy[secondIdx].SquadCurrentHealth = Mathf.Min(remainder, saveData.playerArmy[secondIdx].SquadMaxHealth);
-            else
-                saveData.playerArmy[secondIdx].UnitIndex = -1;
-
-            for (int i = 2; i < squads.Count; i++)
+            int remainder = totalHealth;
+            for (int i = 0; i < squads.Count; i++)
             {
                 int idx = Array.FindIndex(saveData.playerArmy, x => x.UniqueID == squads[i].UniqueID);
-                if (idx >= 0) saveData.playerArmy[idx].UnitIndex = -1;
+                if (idx < 0) continue;
+                if (remainder > 0)
+                {
+                    saveData.playerArmy[idx].SquadCurrentHealth = Mathf.Min(remainder, saveData.playerArmy[idx].SquadMaxHealth);
+                    remainder -= saveData.playerArmy[idx].SquadCurrentHealth;
+                }
+                else
+                {
+                    saveData.playerArmy[idx].UnitIndex = -1;
+                }
             }
 
-            Debug.Log($"[Unit] Merging squads. Resulting health: {saveData.playerArmy[firstIdx].SquadCurrentHealth} in slot {firstIdx}, {saveData.playerArmy[secondIdx].SquadCurrentHealth} in slot {secondIdx}");
+            Debug.Log($"[Unit] Merging squads. Total health: {totalHealth}, leftover after fill: {remainder}");
 
             ReorderUnits();
         }

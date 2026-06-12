@@ -273,10 +273,10 @@ namespace TJ
                     }
                     else
                     {
-                        if      (_battlesFought < 3) { spec.Add((1, 3)); spec.Add((2, 3)); }
-                        else if (_battlesFought < 5) { spec.Add((1, 1)); spec.Add((2, 4)); spec.Add((3, 1)); }
-                        else if (_battlesFought < 7) { spec.Add((2, 4)); spec.Add((3, 2)); }
-                        else                         { spec.Add((2, 5)); spec.Add((3, 2)); }
+                        if      (_battlesFought < 3) { spec.Add((2, 4)); spec.Add((3, 2)); }
+                        else if (_battlesFought < 5) { spec.Add((2, 3)); spec.Add((3, 3)); }
+                        else if (_battlesFought < 7) { spec.Add((2, 3)); spec.Add((3, 4)); }
+                        else                         { spec.Add((2, 2)); spec.Add((3, 6)); }
                     }
                     break;
 
@@ -288,10 +288,10 @@ namespace TJ
                     }
                     else
                     {
-                        if      (_battlesFought < 3) { spec.Add((1, 3)); spec.Add((2, 3)); spec.Add((3, 2)); }
-                        else if (_battlesFought < 5) { spec.Add((1, 2)); spec.Add((2, 2)); spec.Add((3, 4)); }
-                        else if (_battlesFought < 7) { spec.Add((1, 1)); spec.Add((2, 3)); spec.Add((3, 4)); }
-                        else                         { spec.Add((3, 7)); }
+                        if      (_battlesFought < 3) { spec.Add((1, 1)); spec.Add((2, 3)); spec.Add((3, 4)); }
+                        else if (_battlesFought < 5) { spec.Add((2, 2)); spec.Add((3, 6)); }
+                        else if (_battlesFought < 7) { spec.Add((2, 2)); spec.Add((3, 6)); }
+                        else                         { spec.Add((3, 9)); }
                     }
                     break;
 

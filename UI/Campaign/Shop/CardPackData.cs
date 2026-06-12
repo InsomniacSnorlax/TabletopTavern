@@ -40,7 +40,7 @@ public static class CardPackDataInfo
     };
     public readonly static CardPackData CardPack4 = new ()
     {
-        packPrice = 75,
+        packPrice = 100,
         packName = "CardPack4",
         packDescription = "CardPack4Description",
         packID = 4,

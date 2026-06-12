@@ -11,7 +11,7 @@ namespace TJ
     public class DepositGoldPopup : MonoBehaviour
     {
         [SerializeField] private TMP_Text _depositAmountText, _totalDepositedText, _startAmountText;
-        [SerializeField] private Button _confirmButton, _cancelButton, _minusButton, _plusButton;
+        [SerializeField] private Button _confirmButton, _cancelButton, _minusButton, _plusButton, _depositAllButton;
         [SerializeField] private CanvasGroup _minusButtonCanvasGroup, _plusButtonCanvasGroup;
 
         private int _startAmount;
@@ -44,6 +44,8 @@ namespace TJ
             _cancelButton.onClick.AddListener(CancelDeposit);
             _minusButton.onClick.AddListener(() => AdjustDepositAmount(-1));
             _plusButton.onClick.AddListener(() => AdjustDepositAmount(1));
+            if (_depositAllButton != null)
+                _depositAllButton.onClick.AddListener(DepositAll);
 
             // Long-press support
             AddHoldEvents(_plusButton, OnPlusPointerDown, OnPlusPointerUp);
@@ -109,14 +111,14 @@ namespace TJ
             int newDeposit = _depositAmount + amount;
             int newStart   = _startAmount - amount;
 
-#if DEMO
-            if(newDeposit + _initialDepositAmount > TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD)
-            {
-                _plusButtonCanvasGroup.alpha = 0.1f;
-                _plusButtonCanvasGroup.interactable = false;
-                return;
-            }
-#endif
+// #if DEMO
+//             if(newDeposit + _initialDepositAmount > TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD)
+//             {
+//                 _plusButtonCanvasGroup.alpha = 0.1f;
+//                 _plusButtonCanvasGroup.interactable = false;
+//                 return;
+//             }
+// #endif
 
             if (newDeposit < 0 || newStart < 0)
                 return;
@@ -134,14 +136,32 @@ namespace TJ
             IAudioRequester.Instance.PlaySFX(SFXData.AquireGold);
         }
 
+        private void DepositAll()
+        {
+            int maxDeposit = _initialStartAmount;
+// #if DEMO
+//             int demoRemaining = TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD - _initialDepositAmount;
+//             maxDeposit = Mathf.Min(maxDeposit, demoRemaining);
+// #endif
+            maxDeposit = Mathf.Max(maxDeposit, 0);
+
+            _depositAmount = maxDeposit;
+            _startAmount   = _initialStartAmount - maxDeposit;
+
+            UpdateDepositAmountText();
+            UpdateStartAmountText();
+            UpdateCanvasGroupInteractivity();
+            IAudioRequester.Instance.PlaySFX(SFXData.AquireGold);
+        }
+
         private void UpdateDepositAmountText()
         {
             _depositAmountText.text = _depositAmount.ToString();
-#if DEMO
-            _totalDepositedText.text = $"{_depositAmount + _initialDepositAmount} / {TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD} (Demo MAX)";
-#else
+// #if DEMO
+//             _totalDepositedText.text = $"{_depositAmount + _initialDepositAmount} / {TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD} (Demo MAX)";
+// #else
             _totalDepositedText.text = $"{_depositAmount + _initialDepositAmount}";
-#endif
+// #endif
 
         }
         private void UpdateStartAmountText()   => _startAmountText.text   = _startAmount.ToString();
@@ -151,7 +171,8 @@ namespace TJ
         public void Open()
         {
             gameObject.SetActive(true);
-            _initialDepositAmount = SaveDataHandler.LoadPlayerSaveData().depositedGold;
+            PlayerSaveData playerSaveData = SaveDataHandler.LoadPlayerSaveData();
+            _initialDepositAmount = playerSaveData.depositedGold + playerSaveData.goldToDeposit - _sessionDepositedAmount;
 
             int currentGold = CampaignManager.Instance.EconomyManager.CurrentGoldAmount;
             // Budget = gold on hand now plus what was already confirmed this visit
@@ -217,18 +238,18 @@ namespace TJ
         private void UpdateCanvasGroupInteractivity()
         {
             // Update plus button interactivity
-#if DEMO
-            if (_startAmount <= 0 || _depositAmount + _initialDepositAmount >= TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD)
-            {
-                _plusButtonCanvasGroup.alpha = 0.1f;
-                _plusButtonCanvasGroup.interactable = false;
-            }
-            else
-            {
-                _plusButtonCanvasGroup.alpha = 1f;
-                _plusButtonCanvasGroup.interactable = true;
-            }
-#endif
+// #if DEMO
+//             if (_startAmount <= 0 || _depositAmount + _initialDepositAmount >= TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD)
+//             {
+//                 _plusButtonCanvasGroup.alpha = 0.1f;
+//                 _plusButtonCanvasGroup.interactable = false;
+//             }
+//             else
+//             {
+//                 _plusButtonCanvasGroup.alpha = 1f;
+//                 _plusButtonCanvasGroup.interactable = true;
+//             }
+// #endif
 
             if (_depositAmount <= 0)
             {

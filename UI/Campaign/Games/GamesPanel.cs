@@ -54,9 +54,11 @@ namespace TJ.Games
         private int largeBet;
 
         private bool diceRolled = false;
+        private bool guarentee20 = false;
         private int lastBet;
         private int lastGoldChange;
         public bool CanRewind => diceRolled;
+        public void Guarentee20() => guarentee20 = true;
 
         private void Awake()
         {
@@ -173,6 +175,27 @@ namespace TJ.Games
             int playerRoll = random.Next(1, 7);
             int houseRoll  = random.Next(1, 7);
             int margin = playerRoll - houseRoll;
+
+            // reroll once in the player's favor if they lose
+            if (margin < 0)
+            {
+                int rerollPlayer = random.Next(1, 7);
+                int rerollHouse  = random.Next(1, 7);
+                if (rerollPlayer - rerollHouse > margin)
+                {
+                    playerRoll = rerollPlayer;
+                    houseRoll  = rerollHouse;
+                    margin     = playerRoll - houseRoll;
+                }
+            }
+
+            if (guarentee20)
+            {
+                playerRoll = 6;
+                houseRoll  = 1;
+                margin     = 5;
+                guarentee20 = false;
+            }
 
             string resultMessage;
             int goldChange;

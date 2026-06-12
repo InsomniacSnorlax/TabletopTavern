@@ -68,7 +68,7 @@ public static class TabletopTavernConstants
     public const float CONSUME_CAPTIVES_HEAL_AMOUNT = 0.33f;
     public const int PRESTIGE_BONUS = 10;
     public const int FORGEFURY_TEMPERING_KILLS_REQUIRED = 50;
-    public const int MAX_DEMO_DEPOSITED_GOLD = 200; //max gold that can be deposited in demo version of the game
+    // public const int MAX_DEMO_DEPOSITED_GOLD = 200000; //max gold that can be deposited in demo version of the game
     public const int RANSOM_CAPTIVES_REWARD = 3;
     public const int SKIRMISH_REWARD = 3;
     public const int HORDE_REWARD = 6;

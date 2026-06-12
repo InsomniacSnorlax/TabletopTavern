@@ -207,12 +207,14 @@ namespace TJ.Recruit
                 return;
             }
 
-            if(!campaignSaveManager.CheckForRoomToRecruit()) {
+            if(!campaignSaveManager.CheckForRoomToRecruit()) 
+            {
                 if(!_recruitCard.CanCombine) {
                     string errorLocalized = LocalizationManager.Instance.GetText("Max Units Recruited");
                     NotificationManager.Instance.ErrorNotification(errorLocalized);
                     return;
                 }
+                
                 var selected = CampaignManager.Instance.MapSceneUIManager.HUDPanel.SelectedCards;
                 SquadToLoad[] army = campaignSaveManager.SaveData.playerArmy;
 
@@ -221,6 +223,13 @@ namespace TJ.Recruit
                 {
                     if (army[i].UnitIndex == -1 || army[i].UnitName != _squadStats.unitName) continue;
                     if (army[i].UnitPrestige < minPrestige) minPrestige = army[i].UnitPrestige;
+                }
+
+                if (minPrestige != 0)
+                {
+                    string errorLocalized = LocalizationManager.Instance.GetText("Max Units Recruited");
+                    NotificationManager.Instance.ErrorNotification(errorLocalized);
+                    return;
                 }
 
                 bool selectionValid = selected.Count >= 2
@@ -244,6 +253,14 @@ namespace TJ.Recruit
                         if (uid1 == string.Empty) uid1 = army[i].UniqueID;
                         else { uid2 = army[i].UniqueID; break; }
                     }
+
+                    if (uid1 == string.Empty || uid2 == string.Empty)
+                    {
+                        string errorLocalized = LocalizationManager.Instance.GetText("Max Units Recruited");
+                        NotificationManager.Instance.ErrorNotification(errorLocalized);
+                        return;
+                    }
+
                     campaignSaveManager.PrestigeAndCombineWithRecruit(uid1, uid2);
                 }
             }

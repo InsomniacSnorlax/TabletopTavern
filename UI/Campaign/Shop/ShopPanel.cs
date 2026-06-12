@@ -312,6 +312,7 @@ namespace TJ.Shop
             cardPack1.gameObject.SetActive(false);
             cardPack2.gameObject.SetActive(false);
             cardPack3.gameObject.SetActive(false);
+            cardPack4.gameObject.SetActive(false);
 
             shopCanvasGroup.CGDisable();
         }

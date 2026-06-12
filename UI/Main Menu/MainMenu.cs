@@ -116,6 +116,8 @@ namespace TJ.MainMenu
             }
             else
             {
+                PlayerPrefs.SetInt(DEMO_SAVE_PROMPT_KEY, 1);
+                PlayerPrefs.Save();
                 OpenMainMenuPanel();
             }
 

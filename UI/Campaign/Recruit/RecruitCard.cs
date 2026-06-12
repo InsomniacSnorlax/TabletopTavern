@@ -22,7 +22,7 @@ namespace TJ.Recruit
     {
         [SerializeField] private Image iconHighlight, tierGradient, tierGradientBack1, tierGradientBack2;
         [SerializeField] private ParticleSystem _tierParticleSystem1, _tierParticleSystem2, _tierParticleSystem3, _tierParticleSystem4;
-        [SerializeField] private TMP_Text recruitNameText, goldCostText;
+        [SerializeField] private TMP_Text recruitNameText, goldCostText, unitCountText;
         [SerializeField] private GameObject purceasedGO, cardBackGO, canCombineGO;//costGO
         [SerializeField] private Transform cardParentTransform;
         [SerializeField] private Image recruitUnitTypeImage1, recruitUnitTypeImage2;
@@ -70,6 +70,7 @@ namespace TJ.Recruit
             goldCostText.color = CampaignManager.Instance.EconomyManager.CheckIfCanAfford(cost) ? Color.white : Color.red;
 
             recruitNameText.text = LocalizationManager.Instance.GetText(squadStats.unitName.ToString());
+            unitCountText.text = squadStats.baseUnitCount.ToString();
             recruitImageRaw.texture = _recruitImage;
 
 
@@ -172,7 +173,7 @@ namespace TJ.Recruit
                         matchCount++;
                     }
                 }
-                if (matchCount >= 2)
+                if (matchCount >= 2 && minPrestige == 0)
                 {
                     canCombine = true;
                     canCombineGO.SetActive(true);

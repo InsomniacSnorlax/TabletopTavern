@@ -38,6 +38,7 @@ public class RecruitmentScene : MonoBehaviour
         {
             _loadedKeys[i] = TabletopTavernData.Instance.GetRecruitmentPrefabKey(_recruitmentOptions[i]);
             GameObject prefab = await TabletopTavernData.Instance.LoadRecruitmentPrefabAsync(_recruitmentOptions[i]);
+            if (prefab == null) return;
             gameObjects[i] = Instantiate(prefab, GetHolder(i));
         }
     }
