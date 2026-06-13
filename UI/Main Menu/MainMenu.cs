@@ -25,6 +25,7 @@ namespace TJ.MainMenu
         [SerializeField] private Button upgradesPanelButton, questsPanelButton, collectionPanelButton, settingsPanelButton, exitPanelButton, abandonRunButton, customBattleButton;
         enum PanelType { Main, Play, Upgrades, Quests, Collection, Options, Exit }
         MainMenuPanel currentPanel;
+        bool _isPanelTransitioning;
         [SerializeField] private Canvas mainMenuCanvas;
         [SerializeField] private MemoriCanvasGroup titleCanvasGroup;
 
@@ -50,6 +51,7 @@ namespace TJ.MainMenu
         [Header("Demo Save Import")]
         [SerializeField] private MemoriCanvasGroup demoSaveImportCanvasGroup;
         [SerializeField] private Button keepDemoSaveButton, deleteDemoSaveButton;
+        [SerializeField] private Button openDemoSaveImportButton;
 
         [Header("Localization")]
         [SerializeField] private Button openLocalizationPanelButton;
@@ -74,6 +76,7 @@ namespace TJ.MainMenu
             roadmapCanvasGroup.CGDisable();
             keepDemoSaveButton.onClick.AddListener(KeepDemoSave);
             deleteDemoSaveButton.onClick.AddListener(DeleteDemoSave);
+            openDemoSaveImportButton.onClick.AddListener(OpenDemoSaveImportPrompt);
             demoSaveImportCanvasGroup.CGDisable();
 
             questsPanelButton.gameObject.SetActive(false);
@@ -101,25 +104,33 @@ namespace TJ.MainMenu
         }
         private void Load()
         {
+            bool firstBoot = SceneHandler.Instance.IsFirstBoot;
             mainMenuCanvas.enabled = true;
             mainMenuPanel.OpenPanel();
             currentPanel = mainMenuPanel;
             SceneHandler.Instance.AlertOfSceneSetUpComlete();
 
-            roadmapCanvasGroup.CGEnable();
-            EventSystem.current.SetSelectedGameObject(closeRoadmapCanvasButton.gameObject);
-
-            if (PlayerPrefs.GetInt(DEMO_SAVE_PROMPT_KEY, 0) == 0 && SaveDataHandler.PlayerSaveDataExists())
+            if (firstBoot)
             {
-                demoSaveImportCanvasGroup.CGEnable();
-                EventSystem.current.SetSelectedGameObject(keepDemoSaveButton.gameObject);
+                roadmapCanvasGroup.CGEnable();
+                EventSystem.current.SetSelectedGameObject(closeRoadmapCanvasButton.gameObject);
             }
             else
             {
-                PlayerPrefs.SetInt(DEMO_SAVE_PROMPT_KEY, 1);
-                PlayerPrefs.Save();
-                OpenMainMenuPanel();
+                FadeInTitle();
             }
+
+            // if (PlayerPrefs.GetInt(DEMO_SAVE_PROMPT_KEY, 0) == 0 && SaveDataHandler.PlayerSaveDataExists())
+            // {
+            //     demoSaveImportCanvasGroup.CGEnable();
+            //     EventSystem.current.SetSelectedGameObject(keepDemoSaveButton.gameObject);
+            // }
+            // else
+            // {
+            //     PlayerPrefs.SetInt(DEMO_SAVE_PROMPT_KEY, 1);
+            //     PlayerPrefs.Save();
+            //     OpenMainMenuPanel();
+            // }
 
         }
         private async void FadeInTitle()
@@ -170,33 +181,54 @@ namespace TJ.MainMenu
         }
         public async void SwitchToMainMenuPanel()
         {
-            if(currentPanel != mainMenuPanel)
-                currentPanel.ClosePanel();
+            if (_isPanelTransitioning) return;
+            _isPanelTransitioning = true;
+            try
+            {
+                MainMenuPanel panelToClose = currentPanel;
+                if (panelToClose != mainMenuPanel)
+                    panelToClose.ClosePanel();
 
-            if(currentPanel != libraryPanel && currentPanel != mainMenuPanel)
-                await Task.Delay(500);
+                if (panelToClose != libraryPanel && panelToClose != mainMenuPanel)
+                    await Task.Delay(500);
 
-            mainMenuPanel.gameObject.SetActive(true);
-            mainMenuPanel.OpenPanel();
-            depthField.focusDistance.value = 9f;
+                mainMenuPanel.gameObject.SetActive(true);
+                mainMenuPanel.OpenPanel();
+                depthField.focusDistance.value = 9f;
 
-            UpdateCurrentPanel(PanelType.Main);
+                UpdateCurrentPanel(PanelType.Main);
+            }
+            finally { _isPanelTransitioning = false; }
         }
         public async void SwitchToPlayPanel()
         {
-            playPanel.OpenPanel();
-            await Task.Delay(500);
-            depthField.focusDistance.value = 3.82f;
-            currentPanel.ClosePanel();
-            UpdateCurrentPanel(PanelType.Play);
+            if (_isPanelTransitioning) return;
+            _isPanelTransitioning = true;
+            try
+            {
+                MainMenuPanel panelToClose = currentPanel;
+                playPanel.OpenPanel();
+                await Task.Delay(500);
+                depthField.focusDistance.value = 3.82f;
+                panelToClose.ClosePanel();
+                UpdateCurrentPanel(PanelType.Play);
+            }
+            finally { _isPanelTransitioning = false; }
         }
         public async void SwitchToUpgradesPanel()
         {
-            upgradesPanel.OpenPanel();
-            await Task.Delay(500);
-            depthField.focusDistance.value = 3f;
-            currentPanel.ClosePanel();
-            UpdateCurrentPanel(PanelType.Upgrades);
+            if (_isPanelTransitioning) return;
+            _isPanelTransitioning = true;
+            try
+            {
+                MainMenuPanel panelToClose = currentPanel;
+                upgradesPanel.OpenPanel();
+                await Task.Delay(500);
+                depthField.focusDistance.value = 3f;
+                panelToClose.ClosePanel();
+                UpdateCurrentPanel(PanelType.Upgrades);
+            }
+            finally { _isPanelTransitioning = false; }
         }
         public void OpenSettingsPanel()
         {
@@ -220,6 +252,9 @@ namespace TJ.MainMenu
         }
         public void LoadMapScene()
         {
+            if (_isPanelTransitioning) return;
+            _isPanelTransitioning = true;
+
             PlayerSaveData saveData = SaveDataHandler.LoadPlayerSaveData();
             saveData.customBattle = false;
             SaveDataHandler.SavePlayerSaveData(saveData);
@@ -295,6 +330,9 @@ namespace TJ.MainMenu
         }
         private void HandleCustomBattle()
         {
+            if (_isPanelTransitioning) return;
+            _isPanelTransitioning = true;
+
             PlayerSaveData saveData = SaveDataHandler.LoadPlayerSaveData();
             saveData.customBattle = true;
             SaveDataHandler.SavePlayerSaveData(saveData);
@@ -315,8 +353,6 @@ namespace TJ.MainMenu
             activeLocaleText.text = LocalizationManager.Instance.GetActiveLocaleName();
             CloseLocalizationPanel();
             libraryPanel.SetUp(this);
-
-            roadmapCanvasGroup.FadeInAsync();
         }
         private async void OpenLocalizationPanel()
         {
@@ -340,6 +376,11 @@ namespace TJ.MainMenu
         private void OpenMainMenuPanel()
         {
             mainMenuPanel.OpenPanel();
+        }
+        public void OpenDemoSaveImportPrompt()
+        {
+            demoSaveImportCanvasGroup.CGEnable();
+            EventSystem.current.SetSelectedGameObject(keepDemoSaveButton.gameObject);
         }
         public void KeepDemoSave()
         {

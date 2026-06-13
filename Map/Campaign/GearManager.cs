@@ -87,7 +87,7 @@ namespace TJ
                     unitStatBonuses.Add(new UnitStatBonus(_unitStat, gearNameLocalized, GearData.TexanBBQ.GearModifierValue));
                 }
             }
-            if(activeGearItems.Contains(GearID.BallisticCharts)) {
+            if(activeGearItems.Contains(GearID.BallisticCharts) && squadStats.unitType == UnitType.Ranged) {
                 if(_unitStat == UnitStat.Accuracy) {
                     string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.BallisticCharts.ToString()+"Name");
                     unitStatBonuses.Add(new UnitStatBonus(_unitStat, gearNameLocalized, GearData.BallisticCharts.GearModifierValue));

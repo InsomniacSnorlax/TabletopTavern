@@ -10,19 +10,22 @@ partial struct UnitPrestigeSystemSetUpSystem : ISystem
         EntityManager entityManager = state.EntityManager;
         EntityCommandBuffer entityCommandBuffer = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
 
-        foreach (var ( 
+        foreach (var (
             MeleeAttack,
             MeleeDefense,
             UnitPrestigeSetUpTag,
+            unit,
             entity
         ) in SystemAPI.Query<
             RefRW<MeleeAttack>,
             RefRW<MeleeDefense>,
-            RefRO<UnitPrestigeSetUpTag>
+            RefRO<UnitPrestigeSetUpTag>,
+            RefRO<Unit>
         >().WithEntityAccess()) {
 
-            //check if ranged
-            if(entityManager.HasComponent<RangedUnitTag>(entity)) {
+            bool isPureRanged = !TabletopTavernConstants.UsesMeleePrestige(unit.ValueRO.unitName)
+                             && entityManager.HasComponent<RangedFireModeUnitComponent>(entity);
+            if(isPureRanged) {
                 ShootAttack ShootAttack = entityManager.GetComponentData<ShootAttack>(entity);
                 ShootAttack.Range += TabletopTavernConstants.PRESTIGE_BONUS * UnitPrestigeSetUpTag.ValueRO.PrestigeLevel;
                 ShootAttack.Accuracy += TabletopTavernConstants.PRESTIGE_BONUS * UnitPrestigeSetUpTag.ValueRO.PrestigeLevel;

@@ -1,5 +1,6 @@
 using UnityEngine;
 using Memori.Scenes;
+using Memori.Tooltip;
 using System.Collections.Generic;
 using Memori.Audio;
 using Memori.SaveData;
@@ -33,6 +34,8 @@ namespace TJ.Map
 
         [Header("Player Token")]
         [SerializeField] private PlayerToken playerToken;
+
+        private MemoriTooltipTriggerMesh _hoveredTooltip;
 
         [Header("Map Race")]
         public Race MapRace => mapGenerator.MapRace;

@@ -567,7 +567,9 @@ namespace TJ
         {
             string prestigeLocalised = LocalizationManager.Instance.GetText("Prestige");
             string prestigeTooltipLocalised = LocalizationManager.Instance.GetText("PrestigeTooltip");
-            string unitTypeLocalised = LocalizationManager.Instance.GetText(unitType.ToString());
+            string unitTypeLocalised = TabletopTavernConstants.UsesMeleePrestige(squad.UnitName)
+                ? LocalizationManager.Instance.GetText(squad.UnitName.ToString())
+                : LocalizationManager.Instance.GetText(unitType.ToString());
             string unitsGainLocalised = LocalizationManager.Instance.GetText("UnitsGain");
             string meleeAttackLocalised = LocalizationManager.Instance.GetText("MeleeAttack");
             string meleeDefenseLocalised = LocalizationManager.Instance.GetText("MeleeDefense");
@@ -577,7 +579,7 @@ namespace TJ
             string perLevelLocalised = LocalizationManager.Instance.GetText("PerLevel");
             string mergeUnitsDescriptionLocalised = LocalizationManager.Instance.GetText("MergeUnitsDescription");
 
-            if(unitType == UnitType.Melee || unitType == UnitType.Hybrid) {
+            if(unitType == UnitType.Melee || unitType == UnitType.Hybrid || TabletopTavernConstants.UsesMeleePrestige(squad.UnitName)) {
                 prestigeTooltipLocalised += $"[{unitTypeLocalised}] {unitsGainLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{meleeAttackLocalised}</color> {andLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{meleeDefenseLocalised}</color> {perLevelLocalised}";
             } else if(unitType == UnitType.Ranged || unitType == UnitType.Artillery) {
                 prestigeTooltipLocalised += $"[{unitTypeLocalised}] {unitsGainLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{accuracyLocalised}</color> {andLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{rangeLocalised}</color> {perLevelLocalised}";

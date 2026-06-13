@@ -16,8 +16,8 @@ namespace TabletopAnalytics
             if (Instance == null) {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
-                await UnityServices.InitializeAsync();
-                AnalyticsService.Instance.StartDataCollection();
+                // await UnityServices.InitializeAsync();
+                // AnalyticsService.Instance.StartDataCollection();
                 _initialized = true;
                 // Consent (GDPR/etc.) - call once on first launch
                 // AnalyticsService.Instance.StartDataCollection(); // If pre-6.1
@@ -25,9 +25,9 @@ namespace TabletopAnalytics
         }
         public void LogRunStart(string runUUID, int heroID, int difficultyLevel, string startingGear, SquadToLoad[] startingArmy)
         {
-#if UNITY_EDITOR
+// #if UNITY_EDITOR
             return;
-#endif
+// #endif
             if (!_initialized) return;
 
             List<UnitName> startingUnits = new ();
@@ -53,9 +53,9 @@ namespace TabletopAnalytics
         }
         public void LogRunEnd(string runUUID, RunResult runResult, int turnNumber, int goldCount, int enemiesSlain)
         {
-#if UNITY_EDITOR
+// #if UNITY_EDITOR
             return;
-#endif
+// #endif
             if (!_initialized) return;
 
             CustomEvent myEvent = new ("runEndEvent")

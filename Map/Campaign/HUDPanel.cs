@@ -51,6 +51,11 @@ namespace TJ.Map
         [SerializeField] private Button renameSquadButtonConfirm, renameSquadButtonCancel;
         [SerializeField] private TMP_InputField renameSquadInputField;
 
+        [Header("Weather Hover")]
+        [SerializeField] private CanvasGroup weatherHoverPanel;
+        [SerializeField] private TMP_Text weatherHoverTitle;
+        [SerializeField] private TMP_Text weatherHoverDescription;
+
         [Header("Gold")]
         [SerializeField] private TMP_Text goldAmountText;
         [SerializeField] private MemoriTooltipTrigger goldTooltipTrigger;
@@ -778,6 +783,23 @@ namespace TJ.Map
                         break;
                 }
             }
+        }
+        public void ShowWeatherHover(Weather weather, bool show)
+        {
+            if (weatherHoverPanel == null) return;
+
+            if (!show || weather == Weather.ClearSkies)
+            {
+                weatherHoverPanel.CGDisable();
+                return;
+            }
+
+            string weatherWord = LocalizationManager.Instance.GetText("Weather");
+            string weatherName = LocalizationManager.Instance.GetText(weather.ToString());
+            string title = $"<color={ColorData.Primary}>{weatherWord}</color> {weatherName}";
+            weatherHoverTitle.text = title;
+            weatherHoverDescription.text = $"<color={ColorData.Tier1}>{LocalizationManager.Instance.GetText(weather.ToString() + "Desc")}</color>";
+            weatherHoverPanel.CGEnable();
         }
         public void DisplayJuiceOnSquad(ArmyJuice _armyJuice)
         {

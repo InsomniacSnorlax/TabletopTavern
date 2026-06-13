@@ -50,7 +50,8 @@ namespace TJ
             
             if(_prestige > 0)
             {
-                if(TabletopTavernData.Instance.GetUnitTypeFromUnitName(_unitName) != UnitType.Ranged && TabletopTavernData.Instance.GetUnitTypeFromUnitName(_unitName) != UnitType.Artillery)
+                UnitType unitType = TabletopTavernData.Instance.GetUnitTypeFromUnitName(_unitName);
+                if(TabletopTavernConstants.UsesMeleePrestige(_unitName) || (unitType != UnitType.Ranged && unitType != UnitType.Artillery))
                 {
                     if(UnitStat.MeleeAttack == unitStat || UnitStat.MeleeDefense == unitStat)
                     {

@@ -96,6 +96,7 @@ public class GraphicsPanel : MonoBehaviour
             QualitySettings.antiAliasing = AAIndexToValue(antiAliasingDropdown.value);
             QualitySettings.SetQualityLevel(graphicsQualityDropdown.value);
             Screen.SetResolution(resolutionWidth, resolutionHeight, fullScreenMode, refreshRateObj);
+            Cursor.lockState = fullscreenToggle.isOn ? CursorLockMode.Confined : CursorLockMode.None;
             if (!vsyncToggle.isOn)
                 Application.targetFrameRate = (int)refreshRateObj.numerator;
 
@@ -260,6 +261,7 @@ public class GraphicsPanel : MonoBehaviour
         QualitySettings.antiAliasing = AAIndexToValue(antiAliasingDropdown.value);
         QualitySettings.SetQualityLevel(graphicsQualityDropdown.value);
         Screen.SetResolution(resolutionWidth, resolutionHeight, fullScreenMode, refreshRateObj);
+        Cursor.lockState = fullscreenToggle.isOn ? CursorLockMode.Confined : CursorLockMode.None;
         StartCoroutine(ForceCanvasRebuildNextFrame());
         if (!vsyncToggle.isOn)
             Application.targetFrameRate = (int)refreshRateObj.numerator;
@@ -303,6 +305,7 @@ public class GraphicsPanel : MonoBehaviour
 
         var res = resolutionDropdown.options[resolutionDropdown.value].text.Split('x');
         Screen.SetResolution(int.Parse(res[0]), int.Parse(res[1]), fullScreenMode, refreshRateObj);
+        Cursor.lockState = fullscreenToggle.isOn ? CursorLockMode.Confined : CursorLockMode.None;
         StartCoroutine(ForceCanvasRebuildNextFrame());
 
         QualitySettings.vSyncCount = 1;

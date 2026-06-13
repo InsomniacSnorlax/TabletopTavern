@@ -7,6 +7,7 @@ using Memori.Audio;
 using QuickOutline;
 using TMPro;
 using Memori.Localization;
+using Memori.Tooltip;
 
 namespace TJ.Map
 {
@@ -197,6 +198,7 @@ namespace TJ.Map
                     if (campfireGameObject != null) campfireGameObject.SetActive(true);
                     break;
             }
+            
             if (Application.isPlaying)
             {
                 weatherFlag.SetActive(_weather != Weather.ClearSkies);
@@ -261,6 +263,9 @@ namespace TJ.Map
         }
         public void HoverNode(bool _hover)
         {
+            if(!surprise)
+                CampaignManager.Instance.MapSceneUIManager.HUDPanel.ShowWeatherHover(_weather, _hover);
+            
             if(completed) return;
 
             // iconHover.gameObject.SetActive(_hover);

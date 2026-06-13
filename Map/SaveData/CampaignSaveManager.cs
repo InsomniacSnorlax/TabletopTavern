@@ -1238,6 +1238,12 @@ namespace TJ
             SavePlayerArmy(playerSquadsSaveData);
             OnUnitHealthChanged?.Invoke();
         }
+        public void NonHealReserves()
+        {
+            SquadToLoad[] playerSquadsSaveData = saveData.playerArmy;
+            SavePlayerArmy(playerSquadsSaveData);
+            OnUnitHealthChanged?.Invoke();
+        }
         public void CorrectHealthOfWithdrawnSquads()
         {
             int squadCount = 0;

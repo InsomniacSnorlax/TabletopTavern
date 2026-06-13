@@ -229,7 +229,7 @@ namespace TJ
             StartingGold = 15,
             HeroID = 15,
             Race = Race.DrakosaurBrood,
-            SignatureUnit = UnitName.Kaiju,
+            SignatureUnit = UnitName.ObsidianScales,
             StartingArmyUnits = new UnitName[] { UnitName.Brutes, UnitName.KoboldBrawlers, UnitName.KoboldBrawlers, UnitName.ScalebowKobolds, UnitName.ScalebowKobolds }
         };
         public static Hero ValthrexPrimeclaw = new()
@@ -243,7 +243,7 @@ namespace TJ
             StartingGold = 16,
             HeroID = 16,
             Race = Race.DrakosaurBrood,
-            SignatureUnit = UnitName.ObsidianScales,
+            SignatureUnit = UnitName.Kaiju,
             StartingArmyUnits = new UnitName[] { UnitName.Redhorns, UnitName.Redhorns, UnitName.ScalebowKobolds, UnitName.ScalebowKobolds }
         };
         public static Hero[] Heroes = new Hero[]

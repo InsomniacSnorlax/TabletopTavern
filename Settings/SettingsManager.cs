@@ -248,6 +248,12 @@ namespace TJ
 
             PlayerPrefs.SetInt("battleTutorial", 0);
         }
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+                Cursor.lockState = Screen.fullScreen ? CursorLockMode.Confined : CursorLockMode.None;
+        }
+
         public void OnDestroy()
         {
             if (SceneHandler.Instance != null)

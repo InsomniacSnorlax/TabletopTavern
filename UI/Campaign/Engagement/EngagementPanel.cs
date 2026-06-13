@@ -613,7 +613,7 @@ namespace TJ.Engagement
             {
                 //get random unit from enemy army with same tier
                 if(TabletopTavernData.Instance.GetUnitTierFromUnitName(campaignSaveManager.SaveData.enemyArmy[i].UnitName) == maxTier) {
-                    float conscriptedHealth = SaveDataHandler.CheckForGear(GearID.RiverTrout) ? 1 : TabletopTavernConstants.CONSCRIPT_SURVIVORS_HEALTH_PERCENTAGE;
+                    float conscriptedHealth = CampaignManager.Instance.CampaignSaveManager.CheckForGear(GearID.RiverTrout) ? 1 : TabletopTavernConstants.CONSCRIPT_SURVIVORS_HEALTH_PERCENTAGE;
                     if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_postBattleRecruitMetaprogressionModel)) {
                         conscriptedHealth *= 2;
                     }
@@ -720,7 +720,11 @@ namespace TJ.Engagement
             {
                 halfHealthHealing = true;
             }
-            campaignSaveManager.HealTroopsInReserve(halfHealthHealing);
+
+            if(!garrisonFight)          
+                campaignSaveManager.HealTroopsInReserve(halfHealthHealing);
+            else
+                campaignSaveManager.NonHealReserves();
 
             HideAutoResolvePrediction();
             campaignSaveManager.PrestigeUnitsOnKills();

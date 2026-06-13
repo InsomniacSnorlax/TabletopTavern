@@ -32,6 +32,7 @@ public class UnitSelectionManager : MonoBehaviour
     private bool EnemySquadsSelected => selectedSquadIds.Count > 0 && selectedSquadIds.All(id => id < 0);
     private bool IsHoveringEnemySquad => previousHoveredSquad < 0;
     private int _shiftAnchorSquadId = -1;
+    private int _lastSelectSFXFrame = -1;
     private float timer = 0;
     private Vector2 hoverStartCursorPosition;
     private bool attackIfNotDragged = false;
@@ -581,7 +582,7 @@ public class UnitSelectionManager : MonoBehaviour
         battleInputManager.SetAngle(-90f);// Default angle if no rotation is applied
         positionDrawer.PositionsParent.rotation = Quaternion.Euler(0, battleInputManager.Angle, 0);
     }
-    private void GetSelectedUnitsCount(Dictionary<int, float3> SEwidthAndDepth, bool silent = false)
+    private void GetSelectedUnitsCount(Dictionary<int, float3> SEwidthAndDepth, Dictionary<int, UnitType> SEunitTypes, bool silent = false)
     {
         // Debug.Log($"GetSelectedUnitsCount");
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -632,6 +633,7 @@ public class UnitSelectionManager : MonoBehaviour
         }
 
         positionDrawer.Formation.SetUnitCounts(selectedSquadEntityAndEntitiesCountDict);
+        positionDrawer.Formation.SetUnitTypes(SEunitTypes);
         positionDrawer.Formation.SetWidthAndDepthDict(SEwidthAndDepth);
 
         if (battleInputManager.CursorMode != CursorMode.SpawnSquad)
@@ -965,6 +967,7 @@ public class UnitSelectionManager : MonoBehaviour
         EntityQuery query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<SquadEntity>());
         using var squadEntities = query.ToEntityArray(Allocator.TempJob);
         Dictionary<int, float3> SEwidthAndDepth = new();
+        Dictionary<int, UnitType> SEunitTypes = new();
         SelectedSquadUnitNames = new();
 
         //sort squadEntities by true squad order
@@ -1033,6 +1036,8 @@ public class UnitSelectionManager : MonoBehaviour
             float spread = TabletopTavernConstants.GetSpread(unitSize);
 
             SEwidthAndDepth[squad.SquadId] = new float3(widthAndDepth.x, widthAndDepth.y, spread);
+            SquadOverridesComponent overrides = entityManager.GetComponentData<SquadOverridesComponent>(squad.SelfEntity);
+            SEunitTypes[squad.SquadId] = overrides.UnitType;
             SetSelectedSquadAngle(squadMovementComponent.SquadRotation);
         }
         //sort SEwidthAndDepth by true squad order
@@ -1047,10 +1052,11 @@ public class UnitSelectionManager : MonoBehaviour
         }
         // Debug.Log($"Selected squads width and depth: {string.Join(", ", sortedSEwidthAndDepth.Select(kvp => $"{kvp.Key}: ({kvp.Value.x}, {kvp.Value.y}, {kvp.Value.z})"))}");
         SEwidthAndDepth = sortedSEwidthAndDepth;
-        GetSelectedUnitsCount(SEwidthAndDepth);
+        GetSelectedUnitsCount(SEwidthAndDepth, SEunitTypes);
 
-        if (_selectedSquadIds.Count > 0)
+        if (_selectedSquadIds.Count > 0 && Time.frameCount != _lastSelectSFXFrame)
         {
+            _lastSelectSFXFrame = Time.frameCount;
             IAudioRequester.Instance.PlaySFX("select-squad");
             TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.SelectUnit);
         }

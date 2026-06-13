@@ -102,4 +102,7 @@ public static class TabletopTavernConstants
             _ => 69,
         };
     }//<a href="https://www.flaticon.com/free-icons/jurassic" title="jurassic icons">Jurassic icons created by Marz Gallery - Flaticon</a>
+    // Hybrid units that are typed as Ranged but should receive melee prestige bonuses
+    public static bool UsesMeleePrestige(UnitName unitName) =>
+        unitName == UnitName.Cragflayers || unitName == UnitName.Berserkers || unitName == UnitName.KunoichiInfiltrators;
 }

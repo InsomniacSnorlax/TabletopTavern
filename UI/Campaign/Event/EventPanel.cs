@@ -218,11 +218,11 @@ namespace TJ.Event
             for (int i = 0; i < gc_Event.EventChoices.Length; i++)
             {
                 EventChoiceDisplay eventChoise = Instantiate(eventChoicePrefab, eventChoicesParent);
+                EventChoice choice = gc_Event.EventChoices[i];
                 if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_eventReducedRollRequirementsMetaprogressionModel)) {
-                    gc_Event.EventChoices[i].minimumRollNeeded = math.max(1, gc_Event.EventChoices[i].minimumRollNeeded - (int)_eventReducedRollRequirementsMetaprogressionModel.NodeValue);
-                    // Debug.Log($"Reduced roll requirement to: {gc_Event.EventChoices[i].minimumRollNeeded}");
+                    choice.minimumRollNeeded = math.max(1, choice.minimumRollNeeded - _eventReducedRollRequirementsMetaprogressionModel.NodeValue);
                 }
-                eventChoise.LoadEventChoice(gc_Event.EventChoices[i], this, collapsedEventName + i);
+                eventChoise.LoadEventChoice(choice, this, collapsedEventName + i);
                 eventChoices.Add(eventChoise);
                 await Task.Delay(100);
             }

@@ -298,8 +298,12 @@ namespace TJ.MainMenu
         }
         public void OnStartButtonClicked()
         {
+            if (!startButton.Button.interactable) return;
+            startButton.Button.interactable = false;
+
             if(!heroIsUnlocked) {
                 NotificationManager.Instance.ErrorNotification(HeroBonusManager.GetLocalizedHeroUnlockDescription(hero, _unlockCondition));
+                startButton.Button.interactable = true;
                 return;
             }
 
@@ -307,16 +311,19 @@ namespace TJ.MainMenu
             if(lockedInsufficientFundsButton.gameObject.activeSelf)
             {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("InsufficientGoldError"));
+                startButton.Button.interactable = true;
                 return;
-            } 
+            }
             else if(lockedDifficultyStartButton.gameObject.activeSelf)
             {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("Difficulty Locked"));
+                startButton.Button.interactable = true;
                 return;
             }
             else if(oneUnitRequiredButton.gameObject.activeSelf)
             {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("OneUnitRequiredError"));
+                startButton.Button.interactable = true;
                 return;
             }
 

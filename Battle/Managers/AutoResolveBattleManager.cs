@@ -205,12 +205,12 @@ namespace TJ.Engagement
         int totalHealth = _squadToLoad.SquadCurrentHealth;
         float armorMitigation = (float)squadStats.Armor/(float)(squadStats.Armor + 100f);
 
-        if (squadStats.unitType == UnitType.Melee || squadStats.unitType == UnitType.Hybrid)
+        if (squadStats.unitType == UnitType.Melee || squadStats.unitType == UnitType.Hybrid || TabletopTavernConstants.UsesMeleePrestige(squadStats.unitName))
         {
             meleeAttack += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
             meleeDefense += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
         }
-        if (squadStats.unitType == UnitType.Ranged || squadStats.unitType == UnitType.Artillery)
+        else if (squadStats.unitType == UnitType.Ranged || squadStats.unitType == UnitType.Artillery)
         {
             accuracy += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
             range += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
