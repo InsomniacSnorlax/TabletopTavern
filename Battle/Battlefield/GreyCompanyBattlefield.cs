@@ -201,7 +201,7 @@ namespace TJ
             islandGenerator.CreateNavMesh();
             islandGenerator.CleanUpData();
 
-            positionDrawer.DrawZones(isGarrison);
+            positionDrawer.DrawZones(isGarrison, isGarrison ? garrisonWallsGenerator.ConcaveZone : default);
             positionDrawer.DrawBiomes();
             
             if(Application.isPlaying)

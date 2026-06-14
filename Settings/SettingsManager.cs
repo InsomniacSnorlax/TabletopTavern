@@ -44,11 +44,13 @@ namespace TJ
         [SerializeField] private SettingsToggleV2 disbandConfirmationToggle;
         [SerializeField] private SettingsToggleV2 hideUnitInfoInBattleToggle;
         [SerializeField] private SettingsToggleV2 cameraShakeToggle;
+        [SerializeField] private SettingsToggleV2 autoRollInitiativeToggle;
         [SerializeField] private MemoriButtonV2 resetTutorialButton;
         public Action<bool> OnSettingsPanelToggled;
 
         public MonitoredData<bool> HideSquadInfoInBattle = new();
         public MonitoredData<bool> CameraShakeEnabled = new();
+        public MonitoredData<bool> AutoRollInitiative = new();
 
         public MonitoredData<float> CameraRotationSpeed;
         public MonitoredData<float> CameraMovementSpeed;
@@ -109,6 +111,9 @@ namespace TJ
             CameraShakeEnabled.Value = cameraShakeToggle.OnToggle.isOn;
             cameraShakeToggle.OnToggle.onValueChanged.AddListener(val => CameraShakeEnabled.Value = val);
 
+            AutoRollInitiative.Value = autoRollInitiativeToggle.OnToggle.isOn;
+            autoRollInitiativeToggle.OnToggle.onValueChanged.AddListener(val => AutoRollInitiative.Value = val);
+
             CameraRotationSpeed.Value = PlayerPrefs.GetFloat("cameraRotationSpeed", 0.5f);
             CameraMovementSpeed.Value = PlayerPrefs.GetFloat("cameraMovementSpeed", 0.5f);
             cameraRotationSpeedSlider.AssignMonitoredData(CameraRotationSpeed);
@@ -134,6 +139,7 @@ namespace TJ
                 cachedTimeValue = Time.timeScale;
                 Time.timeScale = 0;
             }
+            InputHandler.Instance.SetSettingsPanelOpen(true);
             OnSettingsPanelToggled?.Invoke(true);
         }
         public void CloseSettingsPanel()
@@ -146,6 +152,7 @@ namespace TJ
             {
                 Time.timeScale = cachedTimeValue;
             }
+            InputHandler.Instance.SetSettingsPanelOpen(false);
             OnSettingsPanelToggled?.Invoke(false);
         }
         public void AbandonRunConfirmationPopUp()

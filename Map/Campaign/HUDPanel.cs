@@ -120,7 +120,6 @@ namespace TJ.Map
         List<string> pendingDisbandGuids = new();
         string renameSquadGUID;
         Coroutine rollGoldCoroutine;
-        int chapter;
         List<SquadDisplayCardMenu> selectedCards = new();
         public IReadOnlyList<SquadDisplayCardMenu> SelectedCards => selectedCards;
         List<GameObject> emptySquadCards = new();
@@ -164,8 +163,9 @@ namespace TJ.Map
             UpdateHeroNameAndRace();
             legendGO.SetActive(true);
 
-            string chapterLocalized = LocalizationManager.Instance.GetText("Chapter");
-            chapterTooltipTrigger.SetUpToolTip(_title: chapterLocalized);
+            chapterText.text = $"{campaignSaveManager.SaveData.bookNumber} - {campaignSaveManager.SaveData.activeMapLayer + 1}";
+            chapterTooltipTrigger.SetUpToolTip(_title: GetChapterTooltipTitle(campaignSaveManager.SaveData.bookNumber, campaignSaveManager.SaveData.activeMapLayer));
+
             settingsTooltipTrigger.SetUpToolTip(_title: LocalizationManager.Instance.GetText("Settings"));
         }
         private void SetUpDifficultyTooltip()
@@ -286,7 +286,7 @@ namespace TJ.Map
         public void HoverSquad(SquadToLoad squad, bool _hovered, Transform _squadCardTransform)
         {
             Team team = Team.Player;
-            if (mapSceneUIManager.EngagementPanel.EnemyArmyParent == _squadCardTransform.parent)
+            if (mapSceneUIManager.EngagementPanel.EnemyArmyParent == _squadCardTransform.parent || mapSceneUIManager.TownPanel.GarrisonTroopTransform == _squadCardTransform.parent)
             {
                 team = Team.Enemy;
             }
@@ -387,11 +387,15 @@ namespace TJ.Map
         }
         public void UpdateChapterText(int _chapter)
         {
-            chapter = _chapter;
-            // string chapterLocalized = LocalizationManager.Instance.GetText("Chapter");
-            chapterText.text = $"{_chapter + 1}";
-            // chapterText.text = $"{chapterLocalized} {_chapter+1}";
+            chapterText.text = $"{campaignSaveManager.SaveData.bookNumber} - {_chapter + 1}";
+            chapterTooltipTrigger.SetUpToolTip(_title: GetChapterTooltipTitle(campaignSaveManager.SaveData.bookNumber, _chapter));
             chapterMMFeedback.PlayFeedbacks();
+        }
+        private string GetChapterTooltipTitle(int bookNumber, int chapter)
+        {
+            string actLocalized = LocalizationManager.Instance.GetText("Act");
+            string chapterLocalized = LocalizationManager.Instance.GetText("Chapter");
+            return $"{actLocalized} {bookNumber} - {chapterLocalized} {chapter + 1}";
         }
         private void ReloadGear()
         {

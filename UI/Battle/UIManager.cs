@@ -208,7 +208,8 @@ namespace TJ
             if (SceneHandler.Instance.CurrentGameState != GameStateEnum.Battle) return;
 
             //check if bug report open
-            if (FindFirstObjectByType<ReportABugScreen>().GetComponent<CanvasGroup>().alpha > 0) return;
+            ReportABugScreen bugScreen = FindFirstObjectByType<ReportABugScreen>();
+            if (bugScreen != null && bugScreen.GetComponent<CanvasGroup>().alpha > 0) return;
             
 
             Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);

@@ -103,13 +103,13 @@ public class GameOverPanel : MonoBehaviour
         goldDepositedText.text = $"{runStats.goldDeposited} <color={bonusColor}>+ {bonusGold}</color> = {runStats.goldDeposited + bonusGold}";
         goldDepositedOutcomeText.text = $"<color={bonusColor}>{LocalizationManager.Instance.GetText(_beatDemo ? "Victory" : "Defeat")}</color>";
 
-        AnalyticsManager.Instance.LogRunEnd(
-            saveData.runUUID.ToString(),
-            _beatDemo ? RunResult.Win : RunResult.Loss,
-            runStats.chaptersCompleted,
-            saveData.goldAmount,
-            runStats.enemiesSlain
-        );
+        // AnalyticsManager.Instance.LogRunEnd(
+        //     saveData.runUUID.ToString(),
+        //     _beatDemo ? RunResult.Win : RunResult.Loss,
+        //     runStats.chaptersCompleted,
+        //     saveData.goldAmount,
+        //     runStats.enemiesSlain
+        // );
 
         CampaignManager.Instance.CampaignSaveManager.DeleteCampaignSave();
     }

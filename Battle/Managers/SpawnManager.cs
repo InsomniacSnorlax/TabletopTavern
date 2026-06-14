@@ -89,6 +89,11 @@ public class SpawnManager : MonoBehaviour
 
         // Resolve GPU anim prefabs — prefer UnitGPUAnimPrefabs (migrated units) over EntitiesReferences
         UnitGPUAnimPrefabs? unitGPUAnims = UnitGPUAnimPrefabs.Find(entityManager, squadSpawner.unitName);
+        if (!unitGPUAnims.HasValue)
+        {
+            Debug.LogError($"[SpawnManager] GPU anim prefabs not loaded for {squadSpawner.unitName}. Ensure PreloadThenSpawn is used.");
+            return;
+        }
 
         for (int i = 0; i < squadSpawner.unitCount; i++)
         {
@@ -116,9 +121,8 @@ public class SpawnManager : MonoBehaviour
                 });
 
             int randomIndex = random.NextInt(0, 9);
-            
+
             Entity gpuAnimPrefab = unitGPUAnims.Value.Get(randomIndex);
-            // unitGPUAnims.HasValue ?  : entitiesReferences.GetGPUAnimFromUnitName(squadSpawner.unitName, randomIndex);
             Entity childEntity = entityManager.Instantiate(gpuAnimPrefab);
 
             entityCommandBuffer.AddComponent(childEntity, new Parent { Value = spawnedEntity });

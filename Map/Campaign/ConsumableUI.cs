@@ -49,7 +49,7 @@ namespace TJ.Map
             consumableIcon.sprite = SpriteData.GetSprite(_consumableEnum.ToString());
             hudPanel = CampaignManager.Instance.MapSceneUIManager.HUDPanel;
             string localizedConsumableName = LocalizationManager.Instance.GetText(consumable.ConsumableEnum.ToString() + "Name");
-            string localizedConsumableDescription = LocalizationManager.Instance.GetText(consumable.ConsumableEnum.ToString() + "Desc");
+            string localizedConsumableDescription = CampaignManager.Instance.ConsumableManager.GetConsumableDescription(consumable.ConsumableEnum);
             memoriTooltipTrigger.SetUpToolTip(localizedConsumableName, localizedConsumableDescription, _delay: 0f);
             memoriTooltipTrigger.enabled = true;
             consumableIcon.enabled = true;

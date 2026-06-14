@@ -38,6 +38,9 @@ namespace TJ
 
         public async Task<int> ShowAndRoll()
         {
+            if (SettingsManager.Instance.AutoRollInitiative.Value)
+                return await AutoRoll();
+
             StartBattleRequested = false;
             _panelGroup.CGEnable();
             if (_dieObject   != null) _dieObject.SetActive(true);
@@ -118,6 +121,42 @@ namespace TJ
             if (_winSubText  != null) _winSubText.color  = playerSecond ? _winColor  : _dimColor;
             if (_loseText    != null) _loseText.color    = playerSecond ? _dimColor  : _loseColor;
             if (_loseSubText != null) _loseSubText.color = playerSecond ? _dimColor  : _loseColor;
+        }
+
+        private async Task<int> AutoRoll()
+        {
+            StartBattleRequested = false;
+            _panelGroup.CGEnable();
+            if (_dieObject != null) _dieObject.SetActive(true);
+            _rollButton.gameObject.SetActive(false);
+            _continueButton.gameObject.SetActive(false);
+            if (_startBattleDirectButton != null) _startBattleDirectButton.gameObject.SetActive(false);
+            if (_winText     != null) _winText.color     = _dimColor;
+            if (_winSubText  != null) _winSubText.color  = _dimColor;
+            if (_loseText    != null) _loseText.color    = _dimColor;
+            if (_loseSubText != null) _loseSubText.color = _dimColor;
+
+            int result = Random.Range(1, 7);
+            await AnimateRoll(result);
+
+            string resultSFX = result switch
+            {
+                1 or 2 or 3 => SFXData.Failure,
+                4 or 5 or 6 => SFXData.Success,
+                _ => SFXData.DiceRoll
+            };
+            IAudioRequester.Instance.PlaySFX(resultSFX);
+            _dice.SetOutlineColor(result >= 4 ? Color.green : Color.red);
+            _dice.PulseOutline();
+            ShowResult(result);
+
+            await Task.Delay(2000);
+
+            BattleManager.Instance.SetGamePhase(GamePhase.Deployment);
+            BattleManager.Instance.UIManager.ShowStartBattleButton();
+            _panelGroup.FadeOutAsync();
+            if (_dieObject != null) _dieObject.SetActive(false);
+            return result;
         }
     }
 }

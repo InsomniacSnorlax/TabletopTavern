@@ -172,16 +172,16 @@ namespace TJ
                         {
                             if(knightDifficulty)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 2 });
-                            }
-                            else
-                            {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
+                            }
+                            else
+                            {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
                             }
                         }
@@ -199,8 +199,8 @@ namespace TJ
                             }
                             else if (_battlesFought < 7)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
                             }
                             else
@@ -223,12 +223,12 @@ namespace TJ
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
                             }
                             else
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
                             }
                         }
@@ -237,22 +237,22 @@ namespace TJ
                             if (_battlesFought < 3)
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
                             }
                             else if (_battlesFought < 5)
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
                             }
                             else if (_battlesFought < 7)
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
                             }
                             else
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 6 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
                             }
                         }
                     break;
@@ -320,12 +320,18 @@ namespace TJ
                     //filter out all units that are not the same tier
                     //filter out all large units
                     int unitTier = TabletopTavernData.Instance.GetUnitTierFromUnitName(squad.UnitName);
-                    List<UnitTier> filteredUnitsPool = unitsPool.FindAll(unit => unit.tier == unitTier);
-                    filteredUnitsPool = filteredUnitsPool.FindAll(unit => TabletopTavernData.Instance.GetUnitSizeFromUnitName(unit.unitName) != UnitSize.Monstrous && TabletopTavernData.Instance.GetUnitSizeFromUnitName(unit.unitName) != UnitSize.SingleUnit);
+                    List<UnitTier> filteredUnitsPool = new();
+                    int searchTier = unitTier;
+                    while (filteredUnitsPool.Count == 0 && searchTier >= 1)
+                    {
+                        filteredUnitsPool = unitsPool.FindAll(unit => unit.tier == searchTier);
+                        filteredUnitsPool = filteredUnitsPool.FindAll(unit => TabletopTavernData.Instance.GetUnitSizeFromUnitName(unit.unitName) != UnitSize.Monstrous && TabletopTavernData.Instance.GetUnitSizeFromUnitName(unit.unitName) != UnitSize.SingleUnit);
+                        searchTier--;
+                    }
 
                     if (filteredUnitsPool.Count == 0)
                     {
-                        Debug.LogError($"ArmyCreator: No replacement infantry unit found for tier {unitTier}. Keeping original squad.");
+                        Debug.LogError($"ArmyCreator: No replacement infantry unit found for tier {unitTier} or below. Keeping original squad.");
                         newSquads.Add(squad);
                         continue;
                     }

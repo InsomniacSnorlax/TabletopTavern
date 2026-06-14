@@ -70,7 +70,10 @@ namespace TJ.Map
             if (mapRegion.additionalGameObject != null && mapRegion.additionalGameObject.RuntimeKeyIsValid())
             {
                 GameObject prefab = await AddressablesManager.Instance.LoadAsync<GameObject>(mapRegion.additionalGameObject);
-                Instantiate(prefab, terrainDetailsParent);
+                if (prefab != null)
+                    Instantiate(prefab, terrainDetailsParent);
+                else
+                    Debug.LogWarning($"[TreeSpawner] Failed to load additionalGameObject for region {mapRegion}; skipping.");
             }
 
             if (!mapRegion.spawnTrees)
@@ -152,6 +155,11 @@ namespace TJ.Map
                 tree.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
                 tree.transform.localScale *= SeededRandom.Range(0.80f, 1.20f);
                 trees.Add(tree.transform);
+                if (mapRegion.TreeBase == null)
+                {
+                    Debug.LogWarning($"[TreeSpawner] mapRegion.TreeBase is null for region {mapRegion}; skipping tree base.");
+                    continue;
+                }
                 GameObject treeBaseInstance = Instantiate(mapRegion.TreeBase, tree.transform);
                 treeBaseInstance.transform.localPosition = new Vector3(0, 0, 0);
                 treeBaseInstance.transform.localScale = new Vector3(0.5f, 0.15f, 0.5f);

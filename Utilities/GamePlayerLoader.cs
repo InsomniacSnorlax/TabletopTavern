@@ -17,18 +17,28 @@ public class GamePlayerLoader : Singleton<GamePlayerLoader>
     [SerializeField] private GameObject enemyHeroGameObject;
     [SerializeField] private Transform enemyBattlePosition, enemyMapPosition, enemyGamesPosition;
 
+    private int _loadGeneration;
+
     private void Start()
     {
         LoadGamePlayer();
         SceneHandler.Instance.OnGameStateChanged += OnGameStateChanged;
     }
 
+    private void OnDestroy()
+    {
+        if (SceneHandler.HasInstance)
+            SceneHandler.Instance.OnGameStateChanged -= OnGameStateChanged;
+    }
+
     public async void LoadGamePlayer()
     {
+        int gen = ++_loadGeneration;
         if (playerHeroGameObject != null) Destroy(playerHeroGameObject);
         if (enemyHeroGameObject != null) Destroy(enemyHeroGameObject);
 
         GameObject playerPrefab = await SaveDataHandler.GetPlayerHeroPrefabAsync();
+        if (gen != _loadGeneration) return;
         playerHeroGameObject = Instantiate(playerPrefab, playerBattlePosition);
         playerHeroGameObject.SwapLayer("TavernGOs");
 
@@ -41,12 +51,15 @@ public class GamePlayerLoader : Singleton<GamePlayerLoader>
             justGetRandomHero: !hasCampaign
         );
         GameObject enemyPrefab = await TabletopTavernData.Instance.LoadHeroPrefabAsync(enemyHero.HeroID);
+        if (gen != _loadGeneration) return;
         enemyHeroGameObject = Instantiate(enemyPrefab, enemyBattlePosition);
         enemyHeroGameObject.SwapLayer("TavernGOs");
 
         MagicaClothHandler[] clothHandlers = GetComponentsInChildren<MagicaClothHandler>(true);
         foreach (MagicaClothHandler clothHandler in clothHandlers)
             clothHandler.DisableClothSimulation();
+
+        PositionPlayer(SceneHandler.Instance.CurrentGameState);
     }
 
     public void MoveToGames()

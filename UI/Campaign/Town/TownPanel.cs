@@ -27,6 +27,7 @@ namespace TJ.Town
         [SerializeField] private Image villageImage, castleImage, cityImage;
         [SerializeField] MemoriCanvasGroup garrisonCanvasGroup;
         [SerializeField] Transform garrisonTroopTransform;
+        public Transform GarrisonTroopTransform => garrisonTroopTransform;
         [SerializeField] private SquadDisplayCardMenu squadDisplayCardMenuPrefab;
 
         [Header("Sack Town")]
@@ -66,7 +67,7 @@ namespace TJ.Town
         RecruitPanel recruitPanel;
         ShopPanel shopPanel;
         EconomyManager economyManager;
-        int recruitmentCost = 10;
+        int recruitmentCost;
         bool hasRecruitedMaxUnits = false;
         bool imperialEdictActive = false;
 
@@ -143,6 +144,12 @@ namespace TJ.Town
         {
             townSaveData = campaignSaveManager.SaveData.townData;
             // Debug.Log($"Setting up town info: {townSaveData.hasLootedGear} bountyAmount: {townSaveData.bountyAmount} gear IDs: {string.Join(", ", townSaveData.townLootGearIDs)}");
+            recruitmentCost = townSaveData.townSize switch
+            {
+                TownSize.Castle => TabletopTavernConstants.CASTLE_RECRUIT_COST,
+                TownSize.City => TabletopTavernConstants.CITY_RECRUIT_COST,
+                _ => TabletopTavernConstants.VILLAGE_RECRUIT_COST,
+            };
             string townSizeLocalized = LocalizationManager.Instance.GetText(townSaveData.townSize.ToString());
             townNameText.text = LocalizationManager.Instance.GetText(townSaveData.townName);
             string raceLocalized = LocalizationManager.Instance.GetText(townSaveData.townRace.ToString());

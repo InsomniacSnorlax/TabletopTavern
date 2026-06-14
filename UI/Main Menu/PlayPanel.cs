@@ -328,13 +328,13 @@ namespace TJ.MainMenu
             }
 
             Guid runUUID = Guid.NewGuid();
-            AnalyticsManager.Instance.LogRunStart(
-                runUUID.ToString(),
-                hero.HeroID,
-                (int)_difficultySelected,
-                startingGearID.ToString(),
-                startingArmySection.SelectedArmy
-            );
+            // AnalyticsManager.Instance.LogRunStart(
+            //     runUUID.ToString(),
+            //     hero.HeroID,
+            //     (int)_difficultySelected,
+            //     startingGearID.ToString(),
+            //     startingArmySection.SelectedArmy
+            // );
             SaveDataHandler.CreateCampaign(hero, startingArmySection.SelectedArmy, _difficultySelected, startingGearID, runUUID, startingArmySection.remainingTreasury.Value);
             PlayerSaveData saveData = SaveDataHandler.LoadPlayerSaveData();
             saveData.campaignsStarted++;

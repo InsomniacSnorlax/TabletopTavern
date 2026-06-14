@@ -84,6 +84,7 @@ namespace TJ.Engagement
 
             //remove any unit with a unit index of -1
             List<SquadToLoad> playerArmyList = new();
+            if (CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy == null) return;
             for (int i = 0; i < CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Length && i < 10; i++)
             {
                 if (CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy[i].UnitIndex != -1)
@@ -240,13 +241,15 @@ namespace TJ.Engagement
     }
     public void SetUpArmies()
     {
+        if (CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy == null) return;
+        if (CampaignManager.Instance.CampaignSaveManager.SaveData.enemyArmy == null) return;
         List<SquadToLoad> playerArmyList = new();
         for (int i = 0; i < CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Length && i < 10; i++) {
-            if(CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy[i].UnitIndex != -1) 
+            if(CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy[i].UnitIndex != -1)
                 playerArmyList.Add(CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy[i]);
         }
         playerArmy = playerArmyList.ToArray();
-        
+
         enemyArmy = CampaignManager.Instance.CampaignSaveManager.SaveData.enemyArmy;
         playerAutoResolveStats = new AutoResolveSquad[playerArmy.Length];
         enemyAutoResolveStats = new AutoResolveSquad[enemyArmy.Length];

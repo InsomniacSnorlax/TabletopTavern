@@ -204,7 +204,7 @@ partial struct BattlefieldBonusJob : IJobEntity
                             if (ShootAttackLookup.HasComponent(unitEntity))
                             {
                                 var sa = ShootAttackLookup[unitEntity];
-                                sa.Accuracy -= (int)bonus.Value;
+                                sa.Accuracy *= 2;
                                 ShootAttackLookup[unitEntity] = sa;
                             }
                             break;
@@ -212,7 +212,7 @@ partial struct BattlefieldBonusJob : IJobEntity
                             if (ShootAttackLookup.HasComponent(unitEntity))
                             {
                                 var sa = ShootAttackLookup[unitEntity];
-                                sa.Range -= (int)bonus.Value;
+                                sa.Range *= 2;
                                 ShootAttackLookup[unitEntity] = sa;
                             }
                             break;
@@ -402,6 +402,36 @@ partial struct BattlefieldBonusJob : IJobEntity
                         morale.MaxMorale += TabletopTavernConstants.SNOW_MORALE_PENALTY;
                         morale.CurrentMorale += TabletopTavernConstants.SNOW_MORALE_PENALTY;
                         MoraleComponentLookup[entity] = morale;
+                    }
+                }
+                else if (bonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog)
+                {
+                    bonus.Applied = true;
+                    bonusBuffer.RemoveAt(i--);
+                    bonusBuffer.Add(new BattlefieldBonusBufferElement { Value = bonus });
+                    for (int j = 0; j < entityBuffer.Length; j++)
+                    {
+                        Entity unitEntity = entityBuffer[j].Entity;
+                        if (!ExistsLookup.HasComponent(unitEntity)) continue;
+                        switch (bonus.UnitStat)
+                        {
+                            case UnitStat.Accuracy:
+                                if (ShootAttackLookup.HasComponent(unitEntity))
+                                {
+                                    var sa = ShootAttackLookup[unitEntity];
+                                    sa.Accuracy = (int)(sa.Accuracy * 0.5f);
+                                    ShootAttackLookup[unitEntity] = sa;
+                                }
+                                break;
+                            case UnitStat.Range:
+                                if (ShootAttackLookup.HasComponent(unitEntity))
+                                {
+                                    var sa = ShootAttackLookup[unitEntity];
+                                    sa.Range = (int)(sa.Range * 0.5f);
+                                    ShootAttackLookup[unitEntity] = sa;
+                                }
+                                break;
+                        }
                     }
                 }
                 else

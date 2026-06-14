@@ -23,7 +23,7 @@ namespace Memori.SaveData
         public SquadToLoad[] playerArmy = new SquadToLoad[13];
         public List<SquadBattlePosition> playerSquadBattlePositions = new();
         public List<SavedSquadGroup> playerSquadGroups = new();
-        public SquadToLoad[] enemyArmy;
+        public SquadToLoad[] enemyArmy = Array.Empty<SquadToLoad>();
         [SerializeField] private int selectedNodeIndex = -1;
         public TownSaveData townData;
         public UnitName[] recruitableUnits;
@@ -295,6 +295,7 @@ namespace Memori.SaveData
         }
         public static List<SquadKillsStored> AddToHistoricalKills(List<SquadKillsStored> _historicalKills, List<SquadKillsStored> _currentKills)
         {
+            _historicalKills ??= new List<SquadKillsStored>();
             for(int i = 0; i < _currentKills.Count; i++) {
                 bool found = false;
                 for(int j = 0; j < _historicalKills.Count; j++) {
@@ -418,7 +419,7 @@ namespace Memori.SaveData
             if (loadedSaveData == null || loadedSaveData.blank)
             {
                 // UnityEngine.Debug.LogError($"No campaign save data found, creating new default save data.");
-                loadedSaveData = new CampaignSaveData(UnityEngine.Random.Range(0, 100000), HeroData.EdricValeward.HeroID, 0, null, TT_Difficulty.Peasant, GearID.None, Guid.NewGuid());
+                loadedSaveData = new CampaignSaveData(UnityEngine.Random.Range(0, 100000), HeroData.EdricValeward.HeroID, 0, new SquadToLoad[13], TT_Difficulty.Peasant, GearID.None, Guid.NewGuid());
             }
 
             return loadedSaveData;
@@ -440,7 +441,7 @@ namespace Memori.SaveData
             CampaignSaveData loadedSaveData = ReadListFromJSON<CampaignSaveData>("campaignSaveDataSnapshot.json");
             if (loadedSaveData == null || loadedSaveData.blank) {
                 UnityEngine.Debug.Log($"Campaign snapshot save data is blank or does not exist, creating new default save data.");
-                loadedSaveData = new CampaignSaveData( UnityEngine.Random.Range(0, 100000), HeroData.EdricValeward.HeroID, 0, null, TT_Difficulty.Peasant, GearID.None, Guid.NewGuid());
+                loadedSaveData = new CampaignSaveData( UnityEngine.Random.Range(0, 100000), HeroData.EdricValeward.HeroID, 0, new SquadToLoad[13], TT_Difficulty.Peasant, GearID.None, Guid.NewGuid());
             }
 
             return loadedSaveData;

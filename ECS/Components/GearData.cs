@@ -34,7 +34,7 @@ namespace TJ
         public const int GEAR_WELLHONEDAXES_MODIFIER        = 10;
         public const int GEAR_RINGOFTHEELVENKING_MODIFIER   = 4;
         public const int GEAR_RAVENSEY_MODIFIER             = 20;
-        public const int GEAR_BALLISTICCHARTS_MODIFIER      = 20;
+        public const int GEAR_BALLISTICCHARTS_MODIFIER      = 10;
         public const int GEAR_OMENOFFAMINE_MODIFIER         = 1;
         public const int GEAR_QUANTITATIVEEASINGPOLICY_MODIFIER = 10;
         public const int GEAR_DWARVANTAXCOLLECTORS_MODIFIER = 10;
@@ -351,7 +351,7 @@ namespace TJ
         public static Gear UncommonBuilder = new ()
         {
             GearName = "Uncommon Builder",
-            GearRarity = GearRarity.Common,
+            GearRarity = GearRarity.Uncommon,
             GearModifierValue = GEAR_UNCOMMONBUILDER_MODIFIER,
         };
 
@@ -360,7 +360,7 @@ namespace TJ
         public static Gear RareBuilder = new ()
         {
             GearName = "Rare Builder",
-            GearRarity = GearRarity.Common,
+            GearRarity = GearRarity.Uncommon,
             GearModifierValue = GEAR_RAREBUILDER_MODIFIER,
         };
 

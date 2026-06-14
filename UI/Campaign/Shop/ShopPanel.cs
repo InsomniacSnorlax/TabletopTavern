@@ -355,6 +355,7 @@ namespace TJ.Shop
                 List<GearID> gearList = GearData.GetRandomGear(1, campaignSaveManager.SaveData.Gear, campaignSaveManager.GetSeededRandom(), campaignSaveManager.SaveData.bookNumber, true);
                 campaignSaveManager.SaveRecruitableGear(gearList.ToArray());
                 campaignSaveManager.IncrementRerollCount(1);
+                if (gearList.Count == 0) return;
                 treasurePanel.LoadTreasurePanelFromShop(gearList[0]);
             }
             else

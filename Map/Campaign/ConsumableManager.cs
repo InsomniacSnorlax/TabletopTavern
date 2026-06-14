@@ -6,12 +6,14 @@ using Memori.SaveData;
 using System.Linq;
 using System;
 using Memori.Localization;
+using Memori.Metaprogression;
 
 namespace TJ.Map
 {
     public class ConsumableManager : MonoBehaviour
     {
         [SerializeField] private string targetUnitGuid;
+        [SerializeField] private MetaprogressionModel _consumableSellValueMetaprogressionModel;
         public void UseConsumable(ConsumableEnum _consumable)
         {
             CampaignManager.Instance.CampaignSaveManager.RemoveConsumable(_consumable);
@@ -112,7 +114,8 @@ namespace TJ.Map
                 }
                 case ConsumableEnum.Alchemist:
                     {
-                        CampaignManager.Instance.CampaignSaveManager.ModifyGold(5);
+                        int alchemistGold = SaveDataHandler.IsMetaprogressionNodeUnlocked(_consumableSellValueMetaprogressionModel) ? 10 : 5;
+                        CampaignManager.Instance.CampaignSaveManager.ModifyGold(alchemistGold);
                         break;
                     }
                 case ConsumableEnum.LambSauce:
@@ -204,6 +207,16 @@ namespace TJ.Map
         }
 
         return true;
+    }
+    public string GetConsumableDescription(ConsumableEnum _consumable)
+    {
+        string consumableDescriptionLocalized = LocalizationManager.Instance.GetText(_consumable.ToString() + "Desc");
+        if(_consumable == ConsumableEnum.Alchemist) 
+        {
+            int drinkValue = SaveDataHandler.IsMetaprogressionNodeUnlocked(_consumableSellValueMetaprogressionModel) ? 10 : 5;
+            consumableDescriptionLocalized = string.Format(consumableDescriptionLocalized, drinkValue);
+        }
+        return consumableDescriptionLocalized;
     }
 }
 }

@@ -59,6 +59,8 @@ namespace TJ
         private BattleLayoutType _layoutType;
         private SpawnBox _secondaryPlayerDeploymentZone;
         private SpawnBox _secondaryEnemyDeploymentZone;
+        private GarrisonConcaveZone _garrisonZone;
+        private bool _hasGarrisonZone;
 
         private void Awake()
         {
@@ -95,16 +97,10 @@ namespace TJ
         }
 
         [ContextMenu("Draw Zones")]
-        public void DrawZones(bool isGarrison = false)
+        public void DrawZones(bool isGarrison = false, GarrisonConcaveZone zone = default)
         {
-            if (isGarrison)
-            {
-                enemyDeploymentZone = new SpawnBox
-                {
-                    min = new float3(battleZone.min.x, enemyDeploymentZone.min.y, enemyDeploymentZone.min.z - 10),
-                    max = new float3(battleZone.max.x, enemyDeploymentZone.max.y, battleZone.max.z)
-                };
-            }
+            _hasGarrisonZone = isGarrison;
+            if (isGarrison) _garrisonZone = zone;
 
             // layerMask = LayerMask.GetMask("Tile", "Water");
             //draw 4 points of the box
@@ -124,21 +120,74 @@ namespace TJ
             playerDeploymentZoneLine.SetPoints(points);
             playerDeploymentZoneLine.gameObject.SetActive(true);
 
-            points = new Vector3[80];
-            //make 20 points along each side
-            for (int i = 0; i < 20; i++)
+            if (isGarrison && !zone.isFlat)
             {
-                Vector3 pointA = new Vector3(math.lerp(enemyDeploymentZone.max.x, enemyDeploymentZone.min.x, i / 20f), 0, enemyDeploymentZone.min.z);
-                points[i] = GetPointOnTerrain(pointA);
-                Vector3 pointB = new Vector3(enemyDeploymentZone.min.x, 0, math.lerp(enemyDeploymentZone.min.z, enemyDeploymentZone.max.z, i / 20f));
-                points[i + 20] = GetPointOnTerrain(pointB);
-                Vector3 pointC = new Vector3(math.lerp(enemyDeploymentZone.min.x, enemyDeploymentZone.max.x, i / 20f), 0, enemyDeploymentZone.max.z);
-                points[i + 40] = GetPointOnTerrain(pointC);
-                Vector3 pointD = new Vector3(enemyDeploymentZone.max.x, 0, math.lerp(enemyDeploymentZone.max.z, enemyDeploymentZone.min.z, i / 20f));
-                points[i + 60] = GetPointOnTerrain(pointD);
+                // 8-segment concave closed zone matching the wall's U-shape.
+                // Expanded 3 units outward so the line renders outside the wall geometry.
+                const float o = 3f;
+                float minX = zone.battleMinX      - o;
+                float maxX = zone.battleMaxX      + o;
+                float lcX  = zone.leftConnectorX  + o;
+                float rcX  = zone.rightConnectorX - o;
+                float wZ   = zone.wallZ   - o;
+                float mZ   = zone.middleZ - o;
+                float bkZ  = zone.battleMaxZ + o;
+
+                points = new Vector3[160];
+                for (int i = 0; i < 20; i++)
+                {
+                    float t = i / 20f;
+                    points[i]       = GetPointOnTerrain(new Vector3(math.lerp(minX, lcX,  t), 0, wZ));
+                    points[20 + i]  = GetPointOnTerrain(new Vector3(lcX, 0, math.lerp(wZ, mZ, t)));
+                    points[40 + i]  = GetPointOnTerrain(new Vector3(math.lerp(lcX, rcX, t), 0, mZ));
+                    points[60 + i]  = GetPointOnTerrain(new Vector3(rcX, 0, math.lerp(mZ, wZ, t)));
+                    points[80 + i]  = GetPointOnTerrain(new Vector3(math.lerp(rcX, maxX, t), 0, wZ));
+                    points[100 + i] = GetPointOnTerrain(new Vector3(maxX, 0, math.lerp(wZ, bkZ, t)));
+                    points[120 + i] = GetPointOnTerrain(new Vector3(math.lerp(maxX, minX, t), 0, bkZ));
+                    points[140 + i] = GetPointOnTerrain(new Vector3(minX, 0, math.lerp(bkZ, wZ, t)));
+                }
+                enemyDeploymentZoneLine.SetPoints(points);
+                enemyDeploymentZoneLine.gameObject.SetActive(true);
             }
-            enemyDeploymentZoneLine.SetPoints(points);
-            enemyDeploymentZoneLine.gameObject.SetActive(true);
+            else if (isGarrison)
+            {
+                // Flat garrison wall: rectangle expanded 3 units outward on all sides.
+                const float o = 3f;
+                float minX = zone.battleMinX  - o;
+                float maxX = zone.battleMaxX  + o;
+                float wZ   = zone.wallZ       - o;
+                float bkZ  = zone.battleMaxZ  + o;
+
+                points = new Vector3[80];
+                for (int i = 0; i < 20; i++)
+                {
+                    float t = i / 20f;
+                    points[i]      = GetPointOnTerrain(new Vector3(math.lerp(maxX, minX, t), 0, wZ));
+                    points[20 + i] = GetPointOnTerrain(new Vector3(minX, 0, math.lerp(wZ, bkZ, t)));
+                    points[40 + i] = GetPointOnTerrain(new Vector3(math.lerp(minX, maxX, t), 0, bkZ));
+                    points[60 + i] = GetPointOnTerrain(new Vector3(maxX, 0, math.lerp(bkZ, wZ, t)));
+                }
+                enemyDeploymentZoneLine.SetPoints(points);
+                enemyDeploymentZoneLine.gameObject.SetActive(true);
+            }
+            else
+            {
+                points = new Vector3[80];
+                //make 20 points along each side
+                for (int i = 0; i < 20; i++)
+                {
+                    Vector3 pointA = new Vector3(math.lerp(enemyDeploymentZone.max.x, enemyDeploymentZone.min.x, i / 20f), 0, enemyDeploymentZone.min.z);
+                    points[i] = GetPointOnTerrain(pointA);
+                    Vector3 pointB = new Vector3(enemyDeploymentZone.min.x, 0, math.lerp(enemyDeploymentZone.min.z, enemyDeploymentZone.max.z, i / 20f));
+                    points[i + 20] = GetPointOnTerrain(pointB);
+                    Vector3 pointC = new Vector3(math.lerp(enemyDeploymentZone.min.x, enemyDeploymentZone.max.x, i / 20f), 0, enemyDeploymentZone.max.z);
+                    points[i + 40] = GetPointOnTerrain(pointC);
+                    Vector3 pointD = new Vector3(enemyDeploymentZone.max.x, 0, math.lerp(enemyDeploymentZone.max.z, enemyDeploymentZone.min.z, i / 20f));
+                    points[i + 60] = GetPointOnTerrain(pointD);
+                }
+                enemyDeploymentZoneLine.SetPoints(points);
+                enemyDeploymentZoneLine.gameObject.SetActive(true);
+            }
 
             points = new Vector3[80];
             //make 20 points along each side
@@ -380,40 +429,45 @@ namespace TJ
 
             if (preBattleOutrider || garrisonBattlePhase)
             {
-                SpawnBox enemyBox = _team != Team.Player ? playerDeploymentZone : enemyDeploymentZone;
-
                 foreach (UnitPrefabPoint point in unitPoints)
                 {
-                    if (point.gameObject.activeSelf)
+                    if (!point.gameObject.activeSelf) continue;
+
+                    Vector3 pos = point.transform.position;
+
+                    bool inEnemyZone;
+                    if (_hasGarrisonZone && _team == Team.Player && (garrisonBattlePhase || preBattleOutrider))
+                        inEnemyZone = _garrisonZone.IsInsideEnemyZone(pos.x, pos.z);
+                    else
                     {
-                        if (IsPositionInsideBox(point.transform.position, enemyBox))
+                        SpawnBox enemyBox = _team != Team.Player ? playerDeploymentZone : enemyDeploymentZone;
+                        inEnemyZone = IsPositionInsideBox(pos, enemyBox);
+                    }
+
+                    if (inEnemyZone)
+                    {
+                        if (validPositions)
                         {
-                            if (validPositions)
-                            {
-                                // Debug.Log("Invalid positions");
-                                ColorPoints(invalidColor);
-                                validPositions = false;
-                                BattleManager.Instance.UIManager.ShowPositionError(true, positionError3);
-                            }
-                            return;
+                            ColorPoints(invalidColor);
+                            validPositions = false;
+                            BattleManager.Instance.UIManager.ShowPositionError(true, positionError3);
                         }
-                        if (!IsPositionInsideBox(point.transform.position, battleZone))
+                        return;
+                    }
+                    if (!IsPositionInsideBox(pos, battleZone))
+                    {
+                        if (validPositions)
                         {
-                            if (validPositions)
-                            {
-                                // Debug.Log("Invalid positions");
-                                ColorPoints(invalidColor);
-                                validPositions = false;
-                                BattleManager.Instance.UIManager.ShowPositionError(true, positionError2);
-                            }
-                            return;
+                            ColorPoints(invalidColor);
+                            validPositions = false;
+                            BattleManager.Instance.UIManager.ShowPositionError(true, positionError2);
                         }
+                        return;
                     }
                 }
 
                 if (!validPositions)
                 {
-                    // Debug.Log("Valid positions due to outrider");
                     ColorPoints(validColor);
                     validPositions = true;
                     BattleManager.Instance.UIManager.ShowPositionError(false, "");

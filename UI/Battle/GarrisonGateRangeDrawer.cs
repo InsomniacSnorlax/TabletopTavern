@@ -3,6 +3,7 @@ using System.Collections;
 using Shapes;
 using TJ.Shapes;
 using Memori.Input;
+using Memori.SaveData;
 
 namespace TJ
 {
@@ -32,6 +33,8 @@ namespace TJ
             rightLineBloom = rightLine  != null ? rightLine.GetComponent<ShapesBloom>()  : null;
 
             range = _squadData.stats.BaseRange;
+            if (SaveDataHandler.Load().battleFieldPreset.weather == Weather.Fog)
+                range *= 0.5f;
             Apply();
 
             if (_arc != null)

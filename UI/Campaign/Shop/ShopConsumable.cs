@@ -60,7 +60,7 @@ public class ShopConsumable : MonoBehaviour
         IAudioRequester.Instance.PlaySFX(SFXData.Drink);
 
         string consumableNameLocalized = LocalizationManager.Instance.GetText(_consumableType.ToString()+"Name");
-        string consumableDescriptionLocalized = LocalizationManager.Instance.GetText(_consumableType.ToString()+"Desc");
+        string consumableDescriptionLocalized = CampaignManager.Instance.ConsumableManager.GetConsumableDescription(_consumableType);
         shopItemInfoCanvas.SetUp(consumableNameLocalized, consumableDescriptionLocalized);
     }
     private IEnumerator OutlinePulse()

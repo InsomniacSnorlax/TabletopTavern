@@ -85,6 +85,24 @@ namespace TJ.Event
                             string RecruitUnitLocalized = LocalizationManager.Instance.GetText("Recruit Unit");
                             void recruitUnitAction()
                             {
+                                if (aquireUnitButton.CanCombine)
+                                {
+                                    var army = CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy;
+                                    string uid1 = string.Empty, uid2 = string.Empty;
+                                    for (int i = 0; i < army.Length; i++)
+                                    {
+                                        if (army[i].UnitIndex == -1 || army[i].UnitName != unitNames[0] || army[i].UnitPrestige != 0) continue;
+                                        if (uid1 == string.Empty) uid1 = army[i].UniqueID;
+                                        else { uid2 = army[i].UniqueID; break; }
+                                    }
+                                    if (uid1 != string.Empty && uid2 != string.Empty)
+                                    {
+                                        IAudioRequester.Instance.PlaySFX(SFXData.RecruitUnit);
+                                        CampaignManager.Instance.CampaignSaveManager.PrestigeAndCombineWithRecruit(uid1, uid2);
+                                        Destroy(aquireUnitButton.gameObject);
+                                    }
+                                    return;
+                                }
                                 RecruitUnit(unitNames[0], aquireUnitButton.gameObject);
                             }
 
@@ -92,6 +110,7 @@ namespace TJ.Event
                                 $"{RecruitUnitLocalized} ({LocalizationManager.Instance.GetText(unitNames[0].ToString())})",
                                 recruitUnitAction
                             );
+                            aquireUnitButton.SetUpCombineCheck(unitNames[0]);
                             eventAquireRewardButtons.Add(aquireUnitButton);
                             
                             break;

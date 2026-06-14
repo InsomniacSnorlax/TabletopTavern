@@ -66,7 +66,7 @@ public class GearCardTreasurePanel : MonoBehaviour, IPointerEnterHandler, IPoint
             _consumableEnum = consumableEnum;
 
             string nameLocalized = LocalizationManager.Instance.GetText(consumableEnum + "Name");
-            string descLocalized = LocalizationManager.Instance.GetText(consumableEnum + "Desc");
+            string descLocalized = CampaignManager.Instance.ConsumableManager.GetConsumableDescription(consumableEnum);
             ColorData.XMLTagColorApplicator(ref descLocalized);
             gearImage.sprite = SpriteData.GetSprite(consumableEnum.ToString());
             _gearNameText.text = nameLocalized;

@@ -1133,7 +1133,7 @@ public class SquadManager : MonoBehaviour
         );
         int ammunition = squadStats.Ammunition;
         // if hero is 14 and is artillery // Supply Lines
-        if(HeroBonusManager.Instance.ActiveHeroID == 14 && squadStats.unitType == UnitType.Artillery)
+        if(HeroBonusManager.Instance.ActiveHeroID == 14 && (squadStats.unitType == UnitType.Artillery || squadStats.unitType == UnitType.Ranged))
         {
             ammunition = (int)(ammunition * 1.5f);
         }

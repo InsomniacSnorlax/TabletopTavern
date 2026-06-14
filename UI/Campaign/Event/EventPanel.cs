@@ -11,10 +11,8 @@ using TJ.Map;
 using Memori.Audio;
 using Memori.Notifications;
 using Memori.Scenes;
-using InnerDriveStudios.DiceCreator;
 using Memori.SaveData;
 using Unity.Mathematics;
-using Unity.VisualScripting;
 using Memori.Localization;
 using Memori.Steamworks;
 using Memori.Tooltip;
@@ -46,6 +44,7 @@ namespace TJ.Event
         [SerializeField] private EventRollOutcome eventRollOutcome;
         [SerializeField] private ReputationModificationSlider reputationSlider;
         [SerializeField] private GameObject rerollButtonGameObject;
+        [SerializeField] private LockedButton rerollLockedButton;
 
         [Header("Camera")]
         [SerializeField] private Camera eventCamera;
@@ -138,7 +137,8 @@ namespace TJ.Event
             if (_eventScenePrefab != null && _eventScenePrefab.RuntimeKeyIsValid())
             {
                 GameObject prefab = await AddressablesManager.Instance.LoadAsync<GameObject>(_eventScenePrefab);
-                _eventSceneInstance = Instantiate(prefab);
+                if (prefab != null)
+                    _eventSceneInstance = Instantiate(prefab);
             }
 
             menuCameraRotator.enabled = true;
@@ -320,8 +320,10 @@ namespace TJ.Event
             continueButtonText.text = acceptLocalized;
 
             //DifficultyMod 8
-            bool isAllowed = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel <= TT_Difficulty.Baron ? true : false;
-            rerollButtonGameObject.SetActive(isAllowed);
+            bool rerollLocked = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel > TT_Difficulty.Baron;
+            string difficultyLocalized = LocalizationManager.Instance.GetText("Difficulty");
+            string difficultyLevelLocalized = LocalizationManager.Instance.GetText("difficultyName" + (int)CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel);
+            rerollLockedButton.SetLockedState(rerollLocked, $"{difficultyLocalized}: {difficultyLevelLocalized}");
 
             reputationSlider.LoadReputationSlider(roll, this);
             ShowRowResult();

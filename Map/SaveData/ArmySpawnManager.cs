@@ -51,6 +51,7 @@ namespace Memori.SaveData
             random = new Unity.Mathematics.Random(1);
             BattleManager.Instance.SquadManager.OnSquadUpdated += OnSquadUpdated;
         }
+
         public async Task ClearBothArmies()
         {
             BattleManager.Instance.UnitSelectionManager.DeselectSquadsBeforeDeletionOrSpawning();

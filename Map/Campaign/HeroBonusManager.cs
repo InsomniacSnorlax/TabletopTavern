@@ -187,7 +187,7 @@ namespace TJ
                     }
                     if (_unitStat == UnitStat.MeleeAttack && (_requestingUnit == UnitName.Bloodsworn || _requestingUnit == UnitName.BloodswornKnights))
                     {
-                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle19"), 4));
+                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle19"), 8));
                     }
                     break;
                 case 11: //Oda Nobukage
@@ -227,7 +227,7 @@ namespace TJ
                     {
                         unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle27"), 10));
                     }
-                    if (_unitStat == UnitStat.Ammunition && UnitType.Artillery == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
+                    if (_unitStat == UnitStat.MissileStrength && UnitType.Artillery == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
                     {
                         unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle27"), 4));
                     }

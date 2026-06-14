@@ -263,9 +263,9 @@ namespace TJ.Map
         }
         public void HoverNode(bool _hover)
         {
-            if(!surprise)
+            if(!surprise && (_mapNodeData.type == NodeType.Skirmish || _mapNodeData.type == NodeType.Horde)) {
                 CampaignManager.Instance.MapSceneUIManager.HUDPanel.ShowWeatherHover(_weather, _hover);
-            
+            }
             if(completed) return;
 
             // iconHover.gameObject.SetActive(_hover);

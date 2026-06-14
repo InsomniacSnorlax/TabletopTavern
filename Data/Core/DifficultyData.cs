@@ -46,7 +46,7 @@ public static class DifficultyData
             case TT_Difficulty.Imperator://15,16
                 return Imperator;
             case TT_Difficulty.Overlord://17,18
-                return Primarch;
+                return Overlord;
             case TT_Difficulty.Godking://19,20
                 return Godking;
             default:
@@ -144,7 +144,7 @@ public static class DifficultyData
         difficultyName = "difficultyName8",
         difficultyModifiers = new string[] { "difficultyModifier15", "difficultyModifier16" },
     };
-    public static DifficultyLevel Primarch = new ()
+    public static DifficultyLevel Overlord = new ()
     {
         difficulty = TT_Difficulty.Overlord,
         difficultyName = "difficultyName9",

@@ -244,7 +244,7 @@ public class SquadDisplayCardBattle : SquadDisplayCard, IDragHandler, IEndDragHa
         // RemoveSquad, the flag is set and we skip to avoid SetParent on a destroying object.
         if (RemovedByUIManager) return;
         RemovedByUIManager = true;
-        if(BattleManager.Instance != null && BattleManager.Instance.UIManager != null)
+        if(BattleManager.HasInstance && BattleManager.Instance.UIManager != null)
             BattleManager.Instance.UIManager.RemoveSquad(squadId);
     }
     public void SetBroken(bool isBroken)

@@ -146,6 +146,7 @@ namespace TJ.Recruit
             skipButton.onClick.AddListener(CloseRecruitPanel);
 
             GearID[] recruitableGear = campaignSaveManager.SaveData.recruitableGear;
+            if (recruitableGear == null) return;
 
             memoriCanvasGroup.CGEnable();
 

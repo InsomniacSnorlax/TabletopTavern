@@ -154,6 +154,12 @@ namespace TJ
                                     description += $"\n<color {ColorData.Error}>{localisedBonusName}: {totalBonus} </color>";
 
                                 }
+                                else if (bonus.Value.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog)
+                                {
+                                    totalBonus -= (int)(amount * 0.5f);
+                                    string localisedBonusName = LocalizationManager.Instance.GetText(bonus.Value.BattlefieldBonusEnum.ToString());
+                                    description += $"\n<color {ColorData.Error}>{localisedBonusName}: -50% </color>";
+                                }
                                 else
                                 {
                                     totalBonus += (int)bonus.Value.Value;
@@ -215,7 +221,7 @@ namespace TJ
                     if(unitStat == UnitStat.Ammunition && entityManager.HasComponent<RangedSquad>(squadEntity.SelfEntity))
                     {
                         RangedSquad rangedSquadComponent = entityManager.GetComponentData<RangedSquad>(squadEntity.SelfEntity);
-                        int ammunitionLost = (int)(amount - rangedSquadComponent.Ammunition);
+                        int ammunitionLost = (int)(amount + totalBonus - rangedSquadComponent.Ammunition);
                         if(ammunitionLost > 0)
                         {
                             totalBonus -= ammunitionLost;

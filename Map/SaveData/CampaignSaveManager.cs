@@ -9,7 +9,7 @@ using Memori.Scenes;
 using System.Linq;
 using Memori.Steamworks;
 using Memori.Metaprogression;
-using TabletopAnalytics;
+// using TabletopAnalytics;
 using Memori.Localization;
 
 #if UNITY_EDITOR
@@ -170,13 +170,13 @@ namespace TJ
                 playerSaveData.lastStartingGold
             );
 
-            AnalyticsManager.Instance.LogRunStart(
-                runUUID.ToString(),
-                playerSaveData.lastHeroID,
-                (int)playerSaveData.lastDifficultyLevelSelected,
-                playerSaveData.lastStartingGearId.ToString(),
-                playerSaveData.lastArmySaveData
-            );
+            // AnalyticsManager.Instance.LogRunStart(
+            //     runUUID.ToString(),
+            //     playerSaveData.lastHeroID,
+            //     (int)playerSaveData.lastDifficultyLevelSelected,
+            //     playerSaveData.lastStartingGearId.ToString(),
+            //     playerSaveData.lastArmySaveData
+            // );
             
             saveData = SaveDataHandler.Load();
             playerSaveData.campaignsStarted++;
@@ -374,22 +374,26 @@ namespace TJ
         {
             // Debug.Log($"Removing squads with 0 health from player and enemy armies");
             //filter out any squads with 0 unit count
-            for (int i = 0; i < saveData.playerArmy.Length; i++)
+            if (saveData.playerArmy != null)
             {
-                if (saveData.playerArmy[i].SquadCurrentHealth == 0)
+                for (int i = 0; i < saveData.playerArmy.Length; i++)
                 {
-                    saveData.playerArmy[i] = new SquadToLoad
+                    if (saveData.playerArmy[i].SquadCurrentHealth == 0)
                     {
-                        UnitIndex = -1
-                    };
+                        saveData.playerArmy[i] = new SquadToLoad
+                        {
+                            UnitIndex = -1
+                        };
+                    }
+                    else
+                    {
+                        // Debug.Log($"Keeping squad {saveData.playerArmy[i].UnitName} with {saveData.playerArmy[i].SquadCurrentHealth} health");
+                    }
                 }
-                else
-                {
-                    // Debug.Log($"Keeping squad {saveData.playerArmy[i].UnitName} with {saveData.playerArmy[i].SquadCurrentHealth} health");
-                }
+                saveData.playerArmy = ResetIndexes(saveData.playerArmy);
             }
-            saveData.playerArmy = ResetIndexes(saveData.playerArmy);
 
+            if (saveData.enemyArmy != null)
             for (int i = 0; i < saveData.enemyArmy.Length; i++)
             {
                 if (saveData.enemyArmy[i].SquadCurrentHealth == 0)
@@ -486,17 +490,29 @@ namespace TJ
                     if (saveData.playerArmy[i].UnitIndex == -1) continue;
                     if (saveData.playerArmy[i].SquadCurrentHealth == 0) continue;
 
-                    //Sister Morvayne: Common Units gain 3x Healing from all sources
-                    // if (HeroBonusManager.Instance.ActiveHeroID == 9 && TabletopTavernData.Instance.GetUnitTierFromUnitName(saveData.playerArmy[i].UnitName) == 1)
-                    // {
-                    //     modificationAmount = _modificationAmount * 3f;
-                    // }
-
                     int troopsToHeal = (int)(saveData.playerArmy[i].SquadMaxHealth * modificationAmount);
                     // Debug.Log($"Healing {saveData.playerArmy[i].UnitName} for {troopsToHeal} health.");
                     int clampedHealth = math.clamp(saveData.playerArmy[i].SquadCurrentHealth + troopsToHeal, 0, saveData.playerArmy[i].SquadMaxHealth);
                     saveData.playerArmy[i].SquadCurrentHealth = clampedHealth;
                 } 
+            OnUnitHealthChanged?.Invoke();
+        }
+        public void ModifyGruntkinTroopHealth(float _modificationAmount)
+        {
+            float modificationAmount = _modificationAmount;
+            for (int i = 0; i < saveData.playerArmy.Length; i++)
+            {
+                if (saveData.playerArmy[i].UnitIndex == -1) continue;
+                if (saveData.playerArmy[i].SquadCurrentHealth == 0) continue;
+
+                //Only modify Gruntkin units
+                if(TabletopTavernData.Instance.GetRaceFromUnitName(saveData.playerArmy[i].UnitName) != Race.Gruntkin) continue;
+
+                int troopsToHeal = (int)(saveData.playerArmy[i].SquadMaxHealth * modificationAmount);
+                // Debug.Log($"Healing {saveData.playerArmy[i].UnitName} for {troopsToHeal} health.");
+                int clampedHealth = math.clamp(saveData.playerArmy[i].SquadCurrentHealth + troopsToHeal, 0, saveData.playerArmy[i].SquadMaxHealth);
+                saveData.playerArmy[i].SquadCurrentHealth = clampedHealth;
+            } 
             OnUnitHealthChanged?.Invoke();
         }
         public void ModifyTroopHealth(float _modificationAmount, Race race)
@@ -1330,20 +1346,22 @@ namespace TJ
         {
             System.Random random = new(Seed: _seed + (bookNumber * 13));
             int randomInt = random.Next(0, 100);
-            if (randomInt < 15) {
+            if (randomInt < 13) {
                 return Race.IronLegion;
-            } else if (randomInt < 30) {
+            } else if (randomInt < 25) {
                 return Race.Gruntkin;
-            } else if (randomInt < 45) {
+            } else if (randomInt < 37) {
                 return Race.RavenHost;
-            } else if (randomInt < 60) {
+            } else if (randomInt < 50) {
+                return Race.TaelindorForest;
+            } else if (randomInt < 62) {
                 return Race.SanguineCourt;
             } else if (randomInt < 75) {
-                return Race.TaelindorForest;
-            } else if (randomInt < 90) {
+                return Race.SakuraDynasty;
+            } else if (randomInt < 87) {
                 return Race.DeepstoneHold;
             } else {
-                return Race.IronLegion;
+                return Race.DrakosaurBrood;
             }
         }
         public static Weather GenerateNodeWeather(int nodeIndex, int campaignSeed, int bookNumber, MapRegion mapRegion)

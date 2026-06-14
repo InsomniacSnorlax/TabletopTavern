@@ -95,6 +95,38 @@ public enum UnitName
     public float3 min;
     public float3 max;
 }
+public struct GarrisonConcaveZone
+{
+    public float wallZ;          // Z of the flank wall segments
+    public float middleZ;        // Z of the recessed middle section (= wallZ when flat)
+    public float leftConnectorX; // X boundary between left flank and middle
+    public float rightConnectorX;// X boundary between middle and right flank
+    public float battleMinX;     // left edge of the battle zone
+    public float battleMaxX;     // right edge of the battle zone
+    public float battleMaxZ;     // back edge of the battle zone (enemy far side)
+    public bool isFlat;          // true when inwardDepth <= 0 or wall too narrow for sections
+
+    public bool IsInsideEnemyZone(float x, float z)
+    {
+        if (isFlat) return z >= wallZ;
+        bool inMiddle = x > leftConnectorX && x < rightConnectorX;
+        return z >= (inMiddle ? middleZ : wallZ);
+    }
+
+    public float GetSectionZ(float x)
+    {
+        if (isFlat) return wallZ;
+        return (x > leftConnectorX && x < rightConnectorX) ? middleZ : wallZ;
+    }
+
+    public (float minX, float maxX) GetSectionXRange(float x)
+    {
+        if (isFlat) return (battleMinX, battleMaxX);
+        if (x <= leftConnectorX) return (battleMinX, leftConnectorX);
+        if (x >= rightConnectorX) return (rightConnectorX, battleMaxX);
+        return (leftConnectorX, rightConnectorX);
+    }
+}
 [System.Serializable] public struct SquadBounds
 {
     public float3 bottomLeft;

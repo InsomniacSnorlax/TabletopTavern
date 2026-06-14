@@ -91,6 +91,14 @@ partial struct RangedUnitAttackSystem : ISystem
                 continue;
             }
 
+            Unit targetUnitData = entityManager.GetComponentData<Unit>(unitsTarget.ValueRO.targetEntity);
+            if (entityManager.Exists(targetUnitData.squadEntity) &&
+                entityManager.HasComponent<BrokenSquadTag>(targetUnitData.squadEntity))
+            {
+                unitsTarget.ValueRW.targetEntity = Entity.Null;
+                continue;
+            }
+
             LocalTransform targetLocalTransform = SystemAPI.GetComponent<LocalTransform>(unitsTarget.ValueRO.targetEntity);
             float3 aimDirection = targetLocalTransform.Position - localTransform.ValueRO.Position;
             aimDirection.y = 0;

@@ -77,6 +77,7 @@ namespace TJ
             squadToLoad = _squadToLoad;
             team = _team;
             currentEntityCount = squadToLoad.SquadCurrentHealth / squadToLoad.HitPointsPerUnit;
+            if (squadToLoad.SquadCurrentHealth > 0 && currentEntityCount == 0) currentEntityCount = 1;
             maxEntityCount = squadToLoad.maxUnitCount;
             prestige = squadToLoad.UnitPrestige;
             healthBarFillImage.color = friendlyColor;
@@ -85,7 +86,9 @@ namespace TJ
             squadStats = TabletopTavernData.Instance.GetSquadStats(squadToLoad.UnitName);
             health = squadToLoad.SquadCurrentHealth;
             maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
-            unitCount.text = $"{health / squadStats.HitPointsPerUnit} ({maxEntityCount})";
+            int displayCount = health / squadStats.HitPointsPerUnit;
+            if (health > 0 && displayCount == 0) displayCount = 1;
+            unitCount.text = $"{displayCount} ({maxEntityCount})";
 
             GetHistoricalSquadKillCount();
             Load();

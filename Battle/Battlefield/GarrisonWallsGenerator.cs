@@ -15,6 +15,8 @@ namespace TJ
         private int _gateCount = 0;
         [SerializeField] private GarrisonWallsSO _activeConfig;
         private readonly List<(Vector3 pos, int index, GameObject gateGO)> _pendingGates = new();
+        private GarrisonConcaveZone _concaveZone;
+        public GarrisonConcaveZone ConcaveZone => _concaveZone;
 
         private struct WallSegmentData
         {
@@ -57,6 +59,22 @@ namespace TJ
 
             float usedWidth = (totalSegments - 2) * config.wallSegmentWidth;
             float startX = minX + (totalWidth - usedWidth) / 2f - config.wallSegmentWidth;
+
+            bool flat = config.wallInwardDepth <= 0f || totalSegments < 4;
+            int lc = totalSegments / 3;
+            int mc = totalSegments / 3;
+            float segW = config.wallSegmentWidth;
+            _concaveZone = new GarrisonConcaveZone
+            {
+                wallZ          = config.wallLineZ,
+                middleZ        = config.wallLineZ + config.wallInwardDepth,
+                leftConnectorX = startX + lc * segW,
+                rightConnectorX= startX + (lc + mc) * segW,
+                battleMinX     = minX,
+                battleMaxX     = maxX,
+                battleMaxZ     = battleZone.max.z,
+                isFlat         = flat,
+            };
 
             List<WallSegmentData> segments = BuildWallSegmentList(
                 startX, totalSegments, config.wallSegmentWidth, wallZ, config.wallInwardDepth,

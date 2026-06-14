@@ -291,7 +291,6 @@ namespace TJ.Engagement
             }
             else
             {
-                int chapter = campaignSaveManager.SaveData.activeMapLayer;
                 int heroID = campaignSaveManager.SaveData.heroID;
                 Race heroRace = HeroData.GetRaceFromHero(heroID);
                 Race race = TabletopTavernData.Instance.GenerateRaceForMap(campaignSaveManager.SaveData.bookNumber, campaignSaveManager.SaveData.seed, heroRace);
@@ -360,8 +359,8 @@ namespace TJ.Engagement
 
                     // Debug.Log($"Selected Biome: {biome}, Weather: {weather}");
 
-                    // override weather for chapter 0 or if player has specific gear
-                    if (chapter == 0 || CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess)) weather = Weather.ClearSkies;
+                    // override weather if player has specific gear
+                    if (CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess)) weather = Weather.ClearSkies;
 
                     string localizedWeather = LocalizationManager.Instance.GetText(weather.ToString());
                     battlefieldWeatherText.text = localizedWeather;
@@ -422,6 +421,7 @@ namespace TJ.Engagement
             }
 
             enemySquadsCards = new ();
+            if (campaignSaveManager.SaveData.enemyArmy == null || campaignSaveManager.SaveData.enemyArmy.Length == 0) return;
             foreach (SquadToLoad squad in campaignSaveManager.SaveData.enemyArmy)
             {
                 // Debug.Log($"squad: {squad.UnitName} - {squad.currentUnitCount}");
@@ -488,7 +488,7 @@ namespace TJ.Engagement
                         squadDisplayCardMenu.ShowPotentialHealthLoss(predictedPlayerSquads[i]);
                     }
                 }
-                if(squadDisplayCardMenu.InReserve) {
+                if(squadDisplayCardMenu.InReserve && !garrisonFight) {
                     squadDisplayCardMenu.ShowPotentialHealthRecovery();
                 }
             }
@@ -559,7 +559,8 @@ namespace TJ.Engagement
                 string consumableNameLocalized = LocalizationManager.Instance.GetText(consumableData.ConsumableEnum.ToString() + "Name");
                 consumableText.text = consumableNameLocalized;
                 consumableIcon.sprite = SpriteData.GetSprite(consumableEnum.ToString());
-                string consumableDescriptionLocalized = LocalizationManager.Instance.GetText(consumableData.ConsumableEnum.ToString() + "Desc");
+                
+                string consumableDescriptionLocalized = CampaignManager.Instance.ConsumableManager.GetConsumableDescription(consumableData.ConsumableEnum);
                 consumableTooltip.SetUpToolTip(consumableNameLocalized, consumableDescriptionLocalized);
             }
 
@@ -599,6 +600,7 @@ namespace TJ.Engagement
             }           
 
             //conscript survivors
+            if (campaignSaveManager.SaveData.enemyArmy == null || campaignSaveManager.SaveData.enemyArmy.Length == 0) return;
             int maxTier = 0; //get highest tier unit in enemy army
             foreach (SquadToLoad squad in campaignSaveManager.SaveData.enemyArmy) {
                 int tier = TabletopTavernData.Instance.GetUnitTierFromUnitName(squad.UnitName);
@@ -947,31 +949,21 @@ namespace TJ.Engagement
         }
         public void RaiseDeadButtonClicked()
         {
-            if (campaignSaveManager.CheckForRoomToRecruit())
-            {
-                SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(raiseDeadUnitList[0]);
-                campaignSaveManager.RecruitSquad(squadStats, 1);
-
-                if (campaignSaveManager.CheckForRoomToRecruit())
-                {
-                    SquadStats squadStats2 = TabletopTavernData.Instance.GetSquadStats(raiseDeadUnitList[1]);
-                    campaignSaveManager.RecruitSquad(squadStats2, 1);
-
-                    if (campaignSaveManager.CheckForRoomToRecruit())
-                    {
-                        SquadStats squadStats3 = TabletopTavernData.Instance.GetSquadStats(raiseDeadUnitList[2]);
-                        campaignSaveManager.RecruitSquad(squadStats3, 1);
-                    }
-                }
-
-                IAudioRequester.Instance.PlaySFX(SFXData.RecruitUnit);
-            }
-            else
+            if (!campaignSaveManager.CheckForRoomToRecruit())
             {
                 string notEnoughGoldLocalized = LocalizationManager.Instance.GetText("NoRoomForUnit");
                 NotificationManager.Instance.ErrorNotification(notEnoughGoldLocalized);
                 return;
             }
+
+            foreach (UnitName unitName in raiseDeadUnitList)
+            {
+                if (!campaignSaveManager.CheckForRoomToRecruit()) break;
+                SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(unitName);
+                campaignSaveManager.RecruitSquad(squadStats, 1);
+            }
+
+            IAudioRequester.Instance.PlaySFX(SFXData.RecruitUnit);
             raiseDeadButton.enabled = false;
             raiseDeadCard1.gameObject.SetActive(false);
             raiseDeadCard2.gameObject.SetActive(false);
@@ -981,34 +973,60 @@ namespace TJ.Engagement
         public void ShowRaiseDeadButton()
         {
             raiseDeadButton.enabled = true;
-            raiseDeadCard1.gameObject.SetActive(true);
-            raiseDeadCard2.gameObject.SetActive(true);
-            raiseDeadCard3.gameObject.SetActive(true);
-
-            //get 3 random units that are tier 1 from sanguine court
-            UnitName[] tier1Units = new UnitName[] {
-                UnitName.BoneclatterSpears, 
-                UnitName.UndeadLevies, 
-                UnitName.GravestoneImps,
-                UnitName.FeralHounds
-            };
             raiseDeadUnitList.Clear();
-            //get 3 random units from tier1Units, duplicates are ok
-            for(int i = 0; i < 3; i++)
-            {
-                int randomIndex = SeededRandom.Range(0, tier1Units.Length);
-                raiseDeadUnitList.Add(tier1Units[randomIndex]);
-            }
 
-            raiseDeadCard1.SetUp(new SquadToLoad(
-                raiseDeadUnitList[0]
-            ), false, mapSceneUIManager.HUDPanel, true);
-            raiseDeadCard2.SetUp(new SquadToLoad(
-                raiseDeadUnitList[1]
-            ), false, mapSceneUIManager.HUDPanel, true);
-            raiseDeadCard3.SetUp(new SquadToLoad(
-                raiseDeadUnitList[2]
-            ), false, mapSceneUIManager.HUDPanel, true);
+            int bookNumber = campaignSaveManager.SaveData.bookNumber;
+
+            if (bookNumber <= 1)
+            {
+                UnitName[] pool = new UnitName[] {
+                    UnitName.BoneclatterSpears,
+                    UnitName.UndeadLevies,
+                    UnitName.GravestoneImps,
+                    UnitName.FeralHounds
+                };
+                for (int i = 0; i < 3; i++)
+                    raiseDeadUnitList.Add(pool[SeededRandom.Range(0, pool.Length)]);
+
+                raiseDeadCard1.gameObject.SetActive(true);
+                raiseDeadCard2.gameObject.SetActive(true);
+                raiseDeadCard3.gameObject.SetActive(true);
+                raiseDeadCard1.SetUp(new SquadToLoad(raiseDeadUnitList[0]), false, mapSceneUIManager.HUDPanel, true);
+                raiseDeadCard2.SetUp(new SquadToLoad(raiseDeadUnitList[1]), false, mapSceneUIManager.HUDPanel, true);
+                raiseDeadCard3.SetUp(new SquadToLoad(raiseDeadUnitList[2]), false, mapSceneUIManager.HUDPanel, true);
+            }
+            else if (bookNumber == 2)
+            {
+                UnitName[] pool = new UnitName[] {
+                    UnitName.DeathhavenFiends,
+                    UnitName.Nightriders,
+                    UnitName.BoneshardArchers,
+                    UnitName.MistWraiths
+                };
+                for (int i = 0; i < 2; i++)
+                    raiseDeadUnitList.Add(pool[SeededRandom.Range(0, pool.Length)]);
+
+                raiseDeadCard1.gameObject.SetActive(true);
+                raiseDeadCard2.gameObject.SetActive(true);
+                raiseDeadCard3.gameObject.SetActive(false);
+                raiseDeadCard1.SetUp(new SquadToLoad(raiseDeadUnitList[0]), false, mapSceneUIManager.HUDPanel, true);
+                raiseDeadCard2.SetUp(new SquadToLoad(raiseDeadUnitList[1]), false, mapSceneUIManager.HUDPanel, true);
+            }
+            else
+            {
+                UnitName[] pool = new UnitName[] {
+                    UnitName.BlackWardens,
+                    UnitName.Bloodsworn,
+                    UnitName.CorpseClaws,
+                    UnitName.BloodswornKnights
+                };
+                raiseDeadUnitList.Add(pool[SeededRandom.Range(0, pool.Length)]);
+
+                raiseDeadCard1.gameObject.SetActive(true);
+                raiseDeadCard2.gameObject.SetActive(false);
+                raiseDeadCard3.gameObject.SetActive(false);
+                raiseDeadCard1.SetUp(new SquadToLoad(raiseDeadUnitList[0]), false, mapSceneUIManager.HUDPanel, true);
+            }
 
             raiseDeadButton.gameObject.SetActive(true);
         }
@@ -1048,7 +1066,7 @@ namespace TJ.Engagement
             else if(HeroBonusManager.Instance.ActiveHeroID == 3 
                 || HeroBonusManager.Instance.ActiveHeroID == 4) {
                 //Endless Hordes
-                campaignSaveManager.ModifyTroopHealth(TabletopTavernConstants.ENDLESS_HORDES_HEAL_AMOUNT);
+                campaignSaveManager.ModifyGruntkinTroopHealth(TabletopTavernConstants.ENDLESS_HORDES_HEAL_AMOUNT);
             }
             else if(HeroBonusManager.Instance.ActiveHeroID == 15 
                 || HeroBonusManager.Instance.ActiveHeroID == 16) {
@@ -1063,7 +1081,7 @@ namespace TJ.Engagement
                 string consumableNameLocalized = LocalizationManager.Instance.GetText(consumableData.ConsumableEnum.ToString() + "Name");
                 _generatedConsumbaleText.text = consumableNameLocalized;
                 _generatedConsumbaleImage.sprite = SpriteData.GetSprite(_generatedConsumbale.ToString());
-                string consumableDescriptionLocalized = LocalizationManager.Instance.GetText(consumableData.ConsumableEnum.ToString() + "Desc");
+                string consumableDescriptionLocalized = CampaignManager.Instance.ConsumableManager.GetConsumableDescription(consumableData.ConsumableEnum);
                 _generatedConsumbaleTooltip.SetUpToolTip(consumableNameLocalized, consumableDescriptionLocalized);
                 ShowRaiseDeadButton();
                 ShowForbiddenRitualsButton();
@@ -1119,9 +1137,10 @@ namespace TJ.Engagement
                 raiseDeadHiddenByRecruit = false;
                 raiseDeadButton.gameObject.SetActive(true);
                 raiseDeadButton.enabled = true;
+                int bookNumber = campaignSaveManager.SaveData.bookNumber;
                 raiseDeadCard1.gameObject.SetActive(true);
-                raiseDeadCard2.gameObject.SetActive(true);
-                raiseDeadCard3.gameObject.SetActive(true);
+                raiseDeadCard2.gameObject.SetActive(bookNumber <= 2);
+                raiseDeadCard3.gameObject.SetActive(bookNumber <= 1);
             }
             ForceContinueIfAllRewardsClaimed();
         }

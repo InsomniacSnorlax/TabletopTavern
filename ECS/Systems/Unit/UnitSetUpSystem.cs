@@ -141,7 +141,7 @@ partial struct UnitSetUpSystem : ISystem
                     case 10:
                         // Bloodsworn Prince: Bloodsworn and Bloodsworn Knights gain +15 [Leadership] and +4 [Melee Attack]
                         if(unit.ValueRO.unitName == UnitName.Bloodsworn || unit.ValueRO.unitName == UnitName.BloodswornKnights) {
-                            meleeAttack += 4;
+                            meleeAttack += 8;
                         }
                         break;
                     case 11:

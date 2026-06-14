@@ -204,6 +204,12 @@ namespace TJ
                 if (unitType == UnitType.Ranged)
                 {
                     int ammunition = squadStats.Ammunition;
+
+                    // if hero is Bertha (14) Supply Lines
+                    if(HeroBonusManager.Instance.ActiveHeroID == 14)
+                    {
+                        ammunition = (int)(ammunition * 1.5f);
+                    }
                     ecb.AddComponent(entity, new RangedSquad() { Ammunition = ammunition });
 
                     ecb.AddComponent(entity, new RangedFireModeSquadComponent() { FireMode = RangedFireMode.Volley, SwitchRequested = false });
@@ -218,6 +224,7 @@ namespace TJ
                 else if (unitType == UnitType.Artillery)
                 {
                     int ammunition = squadStats.Ammunition;
+                    // if hero is Bertha (14) Supply Lines
                     if(HeroBonusManager.Instance.ActiveHeroID == 14)
                     {
                         ammunition = (int)(ammunition * 1.5f);
