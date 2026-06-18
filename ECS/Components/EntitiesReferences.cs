@@ -34,7 +34,7 @@ public struct EntitiesReferences : IComponentData {
             UnitName.DraugrBoltThrowers => ballistaBoltPrefabEntity,
             UnitName.GrimfireGuns => cannonBallPrefabEntity,
             UnitName.StormForgedBattery => cannonBallPrefabEntity,
-            UnitName.JoseonHwacha => flamingArrowPrefabEntity,
+            UnitName.JoseonHwacha => cannonBallPrefabEntity,
             UnitName.ArchersOfApollo => flamingArrowPrefabEntity,
             UnitName.Siegeclaws => siegeclawProjectilePrefabEntity,
             UnitName.TriceraPlatform => cannonBallPrefabEntity,

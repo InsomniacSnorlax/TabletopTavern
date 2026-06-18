@@ -198,7 +198,7 @@ namespace TJ
                 }
             }
             string[] unitStats = new string[] { "MeleeAttack", "MeleeDefense", "WeaponStrength", "Accuracy", "Range", "MissileStrength", "HitPoints", "None", "Speed", "Armor", "ChargeBonus", "Leadership", "Ammunition", "ChargeImpactDamage", "Ranged" };
-            string[] damageAttributes = new string[] { "None", "ArmorPiercing", "AntiInfantry", "AntiLarge", "ArmorPiercingAntiInfantry", "ArmorPiercingAntiLarge", "Terror", "Outrider", "Rage", "StandardShields", "Terrifying", "Stalwart", "Ethereal", "SwampCreature", "ForestDweller", "ChickenFlight", "BloodFrenzy", "Emblazing", "Unstoppable", "HeavyShields", "TowerShields", "ThrowingAxes", "ArmorSundering", "ForgefuryTempering", "FlamingAmmo", "MonsterSlayer", "DragonsHoard", "BackStabbers" };
+            string[] damageAttributes = new string[] { "None", "ArmorPiercing", "AntiInfantry", "AntiLarge", "ArmorPiercingAntiInfantry", "ArmorPiercingAntiLarge", "Terror", "Outrider", "Rage", "StandardShields", "Terrifying", "Stalwart", "Ethereal", "SwampCreature", "ForestDweller", "ChickenFlight", "BloodFrenzy", "Emblazing", "Unstoppable", "HeavyShields", "ThrowingAxes", "ArmorSundering", "ForgefuryTempering", "FlamingAmmo", "MonsterSlayer", "DragonsHoard", "BackStabbers" };//"TowerShields",
 
             string[] unitStatLocalized = new string[unitStats.Length];
             for (int i = 0; i < unitStats.Length; i++)

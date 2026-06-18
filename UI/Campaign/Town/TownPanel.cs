@@ -99,7 +99,6 @@ namespace TJ.Town
 
             lootGoldButton.gameObject.SetActive(false);
             economyManager = CampaignManager.Instance.EconomyManager;
-            economyManager.OnGoldAmountChangedEconomyManager += UpdateAffordability;
 
             string depositGoldTitleLocalized = LocalizationManager.Instance.GetText("Deposit Gold");
             string depositGoldDescLocalized = LocalizationManager.Instance.GetText("depositGoldDesc");
@@ -108,6 +107,8 @@ namespace TJ.Town
         }
         public void LoadTownPanel(int _selectedNodeIndex, int level)
         {
+            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
+            economyManager.OnGoldAmountChangedEconomyManager += UpdateAffordability;
             _depositGoldPopup.ResetSession();
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0.5f, 0.25f));
             if (!campaignSaveManager.SaveData.nodeGenerated) {
@@ -413,6 +414,7 @@ namespace TJ.Town
         public override void ClosePanel()
         {
             Debug.Log("[Map] Closing TownPanel");
+            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0f, 0.25f));
             lootGearButton.gameObject.SetActive(false);
             lootGoldButton.gameObject.SetActive(false);
@@ -425,6 +427,7 @@ namespace TJ.Town
         }
         public void DisableTownCanvasesOnLoss()
         {
+            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
             lootGearButton.gameObject.SetActive(false);
             lootGoldButton.gameObject.SetActive(false);
             HideEnemyCompany();
@@ -441,12 +444,21 @@ namespace TJ.Town
         public void UpdateAffordability(int _goldAmount)
         {
             int modifiedRecruitmentCost = recruitmentCost;
+            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.JailersKey))
+            {
+                recruitmentCost = townSaveData.townSize switch
+                {
+                    TownSize.Castle => recruitmentCost - 5,
+                    TownSize.City => recruitmentCost - 10,
+                    _ => recruitmentCost - 15,
+                };
+            }
+
             //DifficultyMod 9
             if(CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Duke) {
                 modifiedRecruitmentCost += 2;
             }
 
-            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.JailersKey)) modifiedRecruitmentCost -= 2;
 
             string colorString = _goldAmount >= modifiedRecruitmentCost ? ColorData.Primary : ColorData.Negative;
 

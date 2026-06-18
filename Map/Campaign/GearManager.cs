@@ -60,6 +60,12 @@ namespace TJ
                     unitStatBonuses.Add(new UnitStatBonus(_unitStat, gearNameLocalized, GearData.ArmingSwords.GearModifierValue));
                 }
             }
+            if(activeGearItems.Contains(GearID.BucklerShields)) {
+                if(_unitStat == UnitStat.MeleeDefense && (squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields)) {
+                    string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.BucklerShields.ToString()+"Name");
+                    unitStatBonuses.Add(new UnitStatBonus(_unitStat, gearNameLocalized, GearData.BucklerShields.GearModifierValue));
+                }
+            }
             if(activeGearItems.Contains(GearID.Longbows)) {
                 if(_unitStat == UnitStat.Range && TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit) == UnitType.Ranged) {
                     string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.Longbows.ToString()+"Name");
@@ -149,6 +155,7 @@ namespace TJ
                     string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.DiamondTippedArrows.ToString()+"Name");
 
                     unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.ArmorPiercing, gearNameLocalized, GearData.DiamondTippedArrows.GearModifierValue));
+                    squadStats.SquadAttributes.ArmorPiercing = true;
                 }
             }
             if(activeGearItems.Contains(GearID.Turkey)) {
@@ -156,6 +163,7 @@ namespace TJ
                     string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.Turkey.ToString()+"Name");
 
                     unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.AntiLarge, gearNameLocalized, GearData.Turkey.GearModifierValue));
+                    squadStats.SquadAttributes.AntiLarge = true;
                 }
             }
             if(activeGearItems.Contains(GearID.HeavyWeapons)) {
@@ -163,6 +171,7 @@ namespace TJ
                     string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.HeavyWeapons.ToString()+"Name");
 
                     unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.ArmorPiercing, gearNameLocalized, GearData.HeavyWeapons.GearModifierValue));
+                    squadStats.SquadAttributes.ArmorPiercing = true;
                 }
             }
 

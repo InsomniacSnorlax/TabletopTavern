@@ -159,6 +159,11 @@ namespace TJ
             SquadStats squadStats = GetSquadStats(_unitName);
             return squadStats.unitType;
         }
+        public bool IsMeleeInfantry(UnitName _unitName)
+        {
+            SquadStats squadStats = GetSquadStats(_unitName);
+            return squadStats.unitType == UnitType.Melee && squadStats.unitSize == UnitSize.Infantry;
+        }
         public int GetUnitTierFromUnitName(UnitName _unitName)
         {
             SquadStats squadStats = GetSquadStats(_unitName);
@@ -207,6 +212,8 @@ namespace TJ
             int currentUnitCount = (int)(squadToLoad.SquadCurrentHealth / squadStats.HitPointsPerUnit);
             // If squadCurrentHealth is above 0, currentUnitCount is at least 1
             if (squadToLoad.SquadCurrentHealth > 0 && currentUnitCount == 0) currentUnitCount = 1;
+            // Guard against drift between the squad's saved HitPointsPerUnit and the live squadStats value (e.g. after a balance change)
+            currentUnitCount = Mathf.Min(currentUnitCount, squadToLoad.maxUnitCount);
             return currentUnitCount.ToString();
         }
         public int GetUnitCost(UnitName _unitName)
@@ -582,7 +589,7 @@ namespace TJ
             if (squadStats.SquadAttributes.ThrowingAxes) unitAttributes.Add(UnitAttribute.ThrowingAxes);
             if (squadStats.SquadAttributes.ArmorSundering) unitAttributes.Add(UnitAttribute.ArmorSundering);
             if (squadStats.SquadAttributes.MonsterSlayer) unitAttributes.Add(UnitAttribute.MonsterSlayer);
-            if (squadStats.SquadAttributes.TowerShields) unitAttributes.Add(UnitAttribute.TowerShields);
+            // if (squadStats.SquadAttributes.TowerShields) unitAttributes.Add(UnitAttribute.TowerShields);
             if( squadStats.SquadAttributes.ForgefuryTempering) unitAttributes.Add(UnitAttribute.ForgefuryTempering);
             if( squadStats.SquadAttributes.FlamingAmmo) unitAttributes.Add(UnitAttribute.FlamingAmmo);
             if( squadStats.SquadAttributes.BackStabbers) unitAttributes.Add(UnitAttribute.BackStabbers);

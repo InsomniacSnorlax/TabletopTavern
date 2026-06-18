@@ -100,9 +100,19 @@ partial struct SquadDisengageJob : IJobEntity
 
         if (disengage.newTargetSquad != Entity.Null)
         {
-            squad.TargetSquadEntity = disengage.newTargetSquad;
+            bool newTargetValid = false;
+            for (int i = 0; i < AllSquadData.Length; i++)
+            {
+                if (AllSquadData[i].SelfEntity == disengage.newTargetSquad) { newTargetValid = true; break; }
+            }
+
+            if (newTargetValid)
+            {
+                squad.TargetSquadEntity = disengage.newTargetSquad;
+                disengage.newTargetSquad = Entity.Null;
+                return;
+            }
             disengage.newTargetSquad = Entity.Null;
-            return;
         }
 
         if (BrokenSquadLookup.HasComponent(squad.SelfEntity))

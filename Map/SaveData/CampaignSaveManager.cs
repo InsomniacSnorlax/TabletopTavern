@@ -303,6 +303,7 @@ namespace TJ
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.ThePotato))
             {
                 saveData.turnsSincePotato++;
+                saveData.turnsSincePotato++;
                 OnGearChanged?.Invoke();
             }
 
@@ -464,12 +465,6 @@ namespace TJ
                 modifiedHealAmount *= 0.5f;
             }
 
-            //The Potato: Units heal to full health after entering a town
-            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.ThePotato))
-            {
-                modifiedHealAmount = 1f;
-            }
-
             //The Pumpkin Pie: Units heal to full health after entering a town
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.PumpkinPie))
             {
@@ -542,8 +537,9 @@ namespace TJ
             public void ModifySpecificUnitHealth(float _modificationAmount, string _uniqueID)
             {
                 SquadToLoad squadToModify = Array.Find(saveData.playerArmy, x => x.UniqueID == _uniqueID);
+                if (squadToModify.UniqueID == null) return;
+
                 int healthToChange = (int)(_modificationAmount * squadToModify.SquadMaxHealth);
-                int origionalTroopCount = squadToModify.SquadCurrentHealth / squadToModify.HitPointsPerUnit;
                 int clampedTroops = math.clamp(squadToModify.SquadCurrentHealth + healthToChange, 0, squadToModify.SquadMaxHealth);
                 Debug.Log($"Modifying {squadToModify.UnitName} health from {squadToModify.SquadCurrentHealth} to {clampedTroops}");
                 squadToModify.SquadCurrentHealth = clampedTroops;

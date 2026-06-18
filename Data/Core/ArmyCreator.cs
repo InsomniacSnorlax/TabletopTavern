@@ -194,19 +194,19 @@ namespace TJ
                             }
                             else if (_battlesFought < 5)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                             }
                             else if (_battlesFought < 7)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
                             }
                             else
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
                             }
                         }
@@ -282,14 +282,15 @@ namespace TJ
                         {
                             if (_battlesFought < 3)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
                             }
                             else if (_battlesFought < 5)
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 6 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
                             }
                             else if (_battlesFought < 7)
                             {

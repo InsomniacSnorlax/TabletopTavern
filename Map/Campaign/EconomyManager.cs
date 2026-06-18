@@ -36,7 +36,7 @@ public class EconomyManager : MonoBehaviour
         int interest = GetBaseInterest();
         if(CampaignManager.Instance.GearManager.CheckForGear(GearID.OmenofFamine)) {
             List<GearID> gearIDs = campaignSaveManager.SaveData.Gear;
-            int bonus = campaignSaveManager.MaxGear - gearIDs.Count;
+            int bonus = 2 * (campaignSaveManager.MaxGear - gearIDs.Count);
             interest += bonus;
         }
         if(CampaignManager.Instance.GearManager.CheckForGear(GearID.IronBank))  interest *= 2;

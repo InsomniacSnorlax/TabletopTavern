@@ -50,6 +50,7 @@ public class SquadGroup
             InputHandler.Instance.OnSelectedGroup5 -= SelectGroup5;
             InputHandler.Instance.OnSelectedGroup6 -= SelectGroup6;
             InputHandler.Instance.OnSelectAll -= SelectAllSquads;
+
             BattleManager.Instance.UIManager.OnSquadDisplaysChanged -= OnSquadDisplaysChanged;
             BattleManager.Instance.SquadManager.OnDestroyedSquad -= RemoveSquadFromGroups;
             BattleManager.Instance.UnitSelectionManager.OnSelectedSquadsChanged -= OnSelectedSquadsChanged;
@@ -62,6 +63,7 @@ public class SquadGroup
             InputHandler.Instance.OnSelectedGroup5 += SelectGroup5;
             InputHandler.Instance.OnSelectedGroup6 += SelectGroup6;
             InputHandler.Instance.OnSelectAll += SelectAllSquads;
+
             BattleManager.Instance.UIManager.OnSquadDisplaysChanged += OnSquadDisplaysChanged;
             BattleManager.Instance.SquadManager.OnDestroyedSquad += RemoveSquadFromGroups;
             BattleManager.Instance.UnitSelectionManager.OnSelectedSquadsChanged += OnSelectedSquadsChanged;
@@ -239,6 +241,8 @@ public class SquadGroup
         }
         public void TryToSelectGroup(int _groupNumber)
         {
+            if (SettingsManager.Instance.SettingsPanelOpen) return;
+
             // Debug.Log($"Trying to select Group {_groupNumber}...");
             if(InputHandler.Instance.ControlInput)
             {

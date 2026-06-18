@@ -226,6 +226,7 @@ namespace Memori.SaveData
             squadIndex                 = 0;
             PlayerArmyDeployed         = false;
             EnemyArmyDeployed          = false;
+            _deferredEnemyArmy         = null;
             _deferredOutriderSquads    = null;
         }
 
@@ -267,6 +268,7 @@ namespace Memori.SaveData
             uniqueIDToSquadId = new();
             
             selectedTeam = Team.Player;
+        bool isGarrisonBattle = BattleManager.Instance.BattleSaveManager.IsGarrisonBattle;
 
 #if UNITY_EDITOR
             if (BattleManager.Instance.BattleSaveManager.IsCustomBattle)
@@ -276,7 +278,7 @@ namespace Memori.SaveData
             }
             else
 #endif
-            if(playerSquadBattlePositions.Count == 0)
+            if(playerSquadBattlePositions.Count == 0 || isGarrisonBattle)
             {
                 if (playerArmy != null && playerArmy.Length != 0) {
                     AssignSpawnPositionsNormalBattle(playerArmy, playerArmyCenter);
@@ -285,15 +287,8 @@ namespace Memori.SaveData
             else
             {
                 List<SquadToLoad> newSquads = new();
-                bool isGarrisonBattle = BattleManager.Instance.BattleSaveManager.IsGarrisonBattle;
                 for (int i = 0; i < playerArmy.Length; i++)
                 {
-                    bool isOutrider = TabletopTavernData.Instance.GetSquadStats(playerArmy[i].UnitName).SquadAttributes.Outrider;
-                    if (isGarrisonBattle && isOutrider)
-                    {
-                        newSquads.Add(playerArmy[i]);
-                        continue;
-                    }
                     //check playerSquadBattlePositions for matching UniqueID
                     if (playerSquadBattlePositions.TryGetValue(playerArmy[i].UniqueID, out SquadBattlePosition battlePosition))
                     {

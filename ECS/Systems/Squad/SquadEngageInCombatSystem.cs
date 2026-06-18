@@ -54,7 +54,7 @@ partial struct SquadEngageInCombatSystem : ISystem
                 continue;
             }
 
-            //if hitting a ranged squad 
+            //if hitting a ranged squad
             if(entityManager.HasComponent<RangedSquad>(FormationEngagedInCombat.ValueRO.EngagementEntity))
             {
                 // Debug.Log($"SquadEngageInCombatSystem: squad {squad.ValueRO.SquadId} is engaging a ranged squad");

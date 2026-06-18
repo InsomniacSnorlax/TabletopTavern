@@ -122,8 +122,8 @@ namespace TJ.Games
 
             while (elapsed < spinTime)
             {
-                model.Rotate(spinAxis * (_spinSpeed * Time.deltaTime), Space.World);
-                elapsed += Time.deltaTime;
+                model.Rotate(spinAxis * (_spinSpeed * Time.unscaledDeltaTime), Space.World);
+                elapsed += Time.unscaledDeltaTime;
                 await Task.Yield();
             }
 
@@ -132,7 +132,7 @@ namespace TJ.Games
             while (elapsed < settleTime)
             {
                 model.rotation = Quaternion.Lerp(preSettleRotation, targetRotation, elapsed / settleTime);
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 await Task.Yield();
             }
 
@@ -148,7 +148,7 @@ namespace TJ.Games
             while (elapsed < halfDuration)
             {
                 _outline.OutlineWidth = Mathf.Lerp(0f, targetWidth, elapsed / halfDuration);
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 await Task.Yield();
             }
 
@@ -156,7 +156,7 @@ namespace TJ.Games
             while (elapsed < halfDuration)
             {
                 _outline.OutlineWidth = Mathf.Lerp(targetWidth, 0f, elapsed / halfDuration);
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 await Task.Yield();
             }
 
@@ -180,8 +180,8 @@ namespace TJ.Games
             float speed = _spinSpeed * 0.25f;
             while (_prespinning)
             {
-                model.Rotate(_prespinAxis  * (speed        * Time.deltaTime/10), Space.World);
-                model.Rotate(_prespinAxis2 * (speed * 0.7f * Time.deltaTime/10), Space.World);
+                model.Rotate(_prespinAxis  * (speed        * Time.unscaledDeltaTime/10), Space.World);
+                model.Rotate(_prespinAxis2 * (speed * 0.7f * Time.unscaledDeltaTime/10), Space.World);
                 await Task.Yield();
             }
         }

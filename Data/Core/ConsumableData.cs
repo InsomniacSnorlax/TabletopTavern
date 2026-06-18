@@ -117,7 +117,7 @@ namespace TJ
         {
             return GetAllConsumableEnums()[Random.Range(0, GetAllConsumableEnums().Length)];
         }
-        public static ConsumableEnum GetWeightedConsumable()
+        public static ConsumableEnum GetWeightedConsumable(bool hasLuckyHorseshoe = false)
         {
             ConsumableEnum GetRandomWeightedItem(ConsumableEnum[] items, float[] weights)
             {
@@ -142,11 +142,14 @@ namespace TJ
                 return items[items.Length - 1]; // Fallback in case of rounding errors
             }
             ConsumableEnum[] allConsumables = GetAllConsumableEnums();
+            if (hasLuckyHorseshoe)
+                allConsumables = System.Array.FindAll(allConsumables, c => GetConsumable(c).ConsumableRarity != ConsumableRarity.Common);
             float[] weights = new float[allConsumables.Length];
             for (int i = 0; i < allConsumables.Length; i++)
             {
                 weights[i] = ConsumableDropChance(GetConsumable(allConsumables[i]).ConsumableRarity);
             }
+
             return GetRandomWeightedItem(allConsumables, weights);
         }
         public static ConsumableEnum GetWeightedConsumable(int seed)

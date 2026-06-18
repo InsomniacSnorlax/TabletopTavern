@@ -104,13 +104,13 @@ namespace TJ.MainMenu
         }
         private void Load()
         {
-            bool firstBoot = SceneHandler.Instance.IsFirstBoot;
+            bool isNewPlayer = !SaveDataHandler.PlayerSaveDataExists();
             mainMenuCanvas.enabled = true;
             mainMenuPanel.OpenPanel();
             currentPanel = mainMenuPanel;
             SceneHandler.Instance.AlertOfSceneSetUpComlete();
 
-            if (firstBoot)
+            if (isNewPlayer)
             {
                 roadmapCanvasGroup.CGEnable();
                 EventSystem.current.SetSelectedGameObject(closeRoadmapCanvasButton.gameObject);

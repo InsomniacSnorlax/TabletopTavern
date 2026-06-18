@@ -66,10 +66,10 @@ partial struct UnitSetUpSystem : ISystem
                 {
                     return 0.70f; // 70% base block chance for heavy shielded units
                 }
-                else if (squadStats.SquadAttributes.TowerShields)
-                {
-                    return 1f; // 100% block chance for tower shielded units
-                }
+                // else if (squadStats.SquadAttributes.TowerShields)
+                // {
+                //     return 1f; // 100% block chance for tower shielded units
+                // }
 
                 return 0;
             }
@@ -199,8 +199,10 @@ partial struct UnitSetUpSystem : ISystem
 
                 if(Contains(GearID.ArmingSwords) && squadStats.unitType == UnitType.Melee)
                     meleeAttack += GearData.GEAR_ARMINGSWORDS_MODIFIER;
-                if(Contains(GearID.BucklerShields))
-                    shieldBlockChance = (float)GearData.GEAR_BUCKLERSHIELDS_MODIFIER/100f;
+                if(Contains(GearID.BucklerShields) && (squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields))
+                    meleeDefense += GearData.GEAR_BUCKLERSHIELDS_MODIFIER;
+                if(Contains(GearID.TowerShields) && (squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields))
+                    shieldBlockChance = (float)GearData.GEAR_TOWERSHIELDS_MODIFIER/100f;
                 if(Contains(GearID.Longbows) && squadStats.unitType == UnitType.Ranged)
                     range += GearData.GEAR_LONGBOWS_MODIFIER;
                 if(Contains(GearID.Glaives) && squadStats.SquadAttributes.AntiLarge)
@@ -214,7 +216,9 @@ partial struct UnitSetUpSystem : ISystem
                     meleeDefense += GearData.GEAR_CONSCRIPTIONORDERS_MODIFIER;
                 }
                 if(Contains(GearID.JoustingLances) && squadStats.unitSize == UnitSize.Cavalry)
+                {
                     weaponStrength += GearData.GEAR_JOUSTINGLANCES_MODIFIER;
+                }
                 if(Contains(GearID.GnomishArmorers) && squadStats.RarityTier == UnitRarity.Rare)
                     meleeDefense += GearData.GEAR_GNOMISHARMORERS_MODIFIER;
                 if(Contains(GearID.WellHonedAxes) && unitAttributes.ArmorPiercing) //must be after diamond tipped arrows
@@ -299,7 +303,8 @@ partial struct UnitSetUpSystem : ISystem
                 entityCommandBuffer.AddComponent<InfantryTag>(entity);
             }
 
-            if(squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields || squadStats.SquadAttributes.TowerShields) {
+            if(squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields)//|| squadStats.SquadAttributes.TowerShields
+            {
                 entityCommandBuffer.AddComponent(entity, new Shield {
                     ShieldBlockChance = shieldBlockChance,
                 });

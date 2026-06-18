@@ -42,6 +42,8 @@ public class BattleInputManager : MonoBehaviour
     [SerializeField] bool minimumDistanceFromInitialClickHit;
     public bool MinimumDistanceFromInitialClickHit => minimumDistanceFromInitialClickHit;
     public void SetMinimumDistanceFromInitialClickHit(bool value) => minimumDistanceFromInitialClickHit = value;
+    [SerializeField] private float reformSelectionRotationDeadzone = 15f;
+    public float ReformSelectionRotationDeadzone => reformSelectionRotationDeadzone;
     [SerializeField] bool settingInitialSquadPosition;
     public bool SettingInitialSquadPosition => settingInitialSquadPosition;
     public void SetInitialSquadPosition(bool value) => settingInitialSquadPosition = value;
@@ -140,9 +142,9 @@ public class BattleInputManager : MonoBehaviour
     {
         Cursor.SetCursor(null, Vector2.zero, UnityEngine.CursorMode.Auto);
     }
-    public bool MinimumDistanceFromInitialClick()
+    public bool MinimumDistanceFromInitialClick(float minimumDistance = 150f)
     {
-        return Vector3.Distance(initialMouseScreenPosition, Input.mousePosition) > 75;
+        return Vector3.Distance(initialMouseScreenPosition, Input.mousePosition) > minimumDistance;
     }
     bool selectionAreaStarted = false;
     public void HandleSelectionArea()
@@ -713,6 +715,14 @@ public class BattleInputManager : MonoBehaviour
                     hitPlayerTeam = newHoverSquadId > 0;
                 }
             }
+        }
+
+        // If right-click just went down and the raycast missed, preserve the previous enemy hover
+        // for one frame so the attack block in UnitSelectionManager can still fire.
+        if (_rightClickDownThisFrame && newHoverSquadId == 0 && unitSelectionManager.PreviousHoveredSquad < 0)
+        {
+            entityQuery.Dispose();
+            return;
         }
 
         if (newHoverSquadId != 0 && newHoverSquadId != unitSelectionManager.PreviousHoveredSquad)

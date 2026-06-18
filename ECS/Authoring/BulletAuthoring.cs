@@ -51,6 +51,7 @@ public struct Bullet : IComponentData
     public DamageAttributes damageAttributes;
     public bool shotIntoFlanks;
     public bool flaming;
+    public bool sourceIsArtillery;
 }
 public struct NewArrowTag : IComponentData 
 { 

@@ -48,6 +48,7 @@ partial struct UnitThrownSystem : ISystem
                     DamageType = DamageType.Physical,
                     TeamOfSource = ThrowUnit.ValueRO.HittingEntityTeam,
                     DamageSourceSquadId = ThrowUnit.ValueRO.HittingEntitySquad,
+                    SourceIsArtillery = true,
                 });
                 //set damage to 0 so it only applies on the first frame of the throw
                 ThrowUnit.ValueRW.Damage = 0;

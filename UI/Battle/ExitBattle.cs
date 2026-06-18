@@ -14,8 +14,7 @@ public class ExitBattle : MonoBehaviour
 {
     [SerializeField] private Button returnToMainMenuButton, cancelExitButton;
     MemoriCanvasGroup panelCanvasGroup;
-    float cachedTimeScale;
-    
+
     private void Awake()
     {
         panelCanvasGroup = GetComponent<MemoriCanvasGroup>();
@@ -48,7 +47,6 @@ public class ExitBattle : MonoBehaviour
     }
     private void CancelExit()
     {
-        Time.timeScale = cachedTimeScale;
         panelCanvasGroup.CGDisable();
     }
     

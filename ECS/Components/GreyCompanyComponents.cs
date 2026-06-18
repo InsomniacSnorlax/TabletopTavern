@@ -257,6 +257,7 @@ public struct BattleOver : IComponentData {public bool PlayerWon; }
     public DamageAttributes DamageAttributes;
     public bool FlankAttack;
     public bool Flaming;
+    public bool SourceIsArtillery;
 }
 #endregion
 public struct CavalryFlankingTag : IComponentData { }

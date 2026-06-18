@@ -251,7 +251,7 @@ namespace TJ
                 ecb.AddComponent<FormationNeedsToBeProcessed>(entity);
                 ecb.AddComponent<FormationShapeChanged>(entity);
 
-                if(squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields || squadStats.SquadAttributes.TowerShields)
+                if(squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields)// || squadStats.SquadAttributes.TowerShields)
                 {
                     ecb.AddComponent(entity, new ShieldedStanceSquadComponent { Stance = ShieldedStance.Balanced });
                 }

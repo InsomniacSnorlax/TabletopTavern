@@ -51,7 +51,7 @@ namespace TJ
         bool isBelowMoraleThreshold = false;
 
         private MaterialPropertyBlock _block;
-        bool isRanged, isArtillery;
+        bool isRanged, isArtillery, isGate;
 
         private static readonly int LowMoraleID = Shader.PropertyToID("_LowMorale");
         private static readonly int AlphaID = Shader.PropertyToID("_Alpha");
@@ -88,6 +88,7 @@ namespace TJ
             if(unitName == UnitName.Gate)
             {
                 offset = new Vector3(0, 1, 0);
+                isGate = true;
             }
 
             animator = GetComponent<Animator>();
@@ -408,6 +409,7 @@ namespace TJ
             updateTimer = 0f;
 
             HandleHealthBar();
+            if (isGate) return;
             HandleMoraleBar();
             HandleAmmoBar();
             HandleExhausted();
@@ -519,12 +521,12 @@ namespace TJ
         }
         private void OnChargingSquadsChanged(List<int> _squads)
         {
-            if (healthBarGO == null) return;
+            if (healthBarGO == null || isGate) return;
             healthBarGO.SetCharge(_squads.Contains(squadId));
         }
         private void OnTerrifiedSquadsChanged(List<int> _squads)
         {
-            if (healthBarGO == null) return;
+            if (healthBarGO == null || isGate) return;
             healthBarGO.SetTerrified(_squads.Contains(squadId));
         }
         public void OnDestroyedSquad(int _destroyedSquadId)

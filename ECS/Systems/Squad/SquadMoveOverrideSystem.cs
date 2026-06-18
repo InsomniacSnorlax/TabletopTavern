@@ -60,7 +60,11 @@ partial struct SquadMoveOverrideSystem : ISystem
                 // Debug.Log($"SquadMoveOverrideSystem: Cancelling move override for squad {squad.ValueRO.SquadId}");
                 entityCommandBuffer.RemoveComponent<CancelSquadMoveOverrideTag>(squad.ValueRO.SelfEntity);
                 entityCommandBuffer.RemoveComponent<SquadMoveOverrideTag>(squad.ValueRO.SelfEntity);
-                entityCommandBuffer.SetComponentEnabled<JustFollowingOrders>(squad.ValueRO.SelfEntity, false);
+                // Only clear JustFollowingOrders when completing a Move. If the queue was
+                // replaced with an Attack, the attack is still in progress and this flag
+                // should not be cleared until that order resolves.
+                if (orderQueue.Length == 0 || orderQueue[0].Type == QueuedOrderType.Move)
+                    entityCommandBuffer.SetComponentEnabled<JustFollowingOrders>(squad.ValueRO.SelfEntity, false);
 
                 // Only pop the queued order if it's still a Move — if the queue was replaced
                 // with an Attack order, completing it here would immediately consume that order

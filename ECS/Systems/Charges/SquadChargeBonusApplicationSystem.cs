@@ -32,11 +32,17 @@ partial struct SquadChargeBonusApplicationSystem : ISystem
         {
             entityCommandBuffer.RemoveComponent<ApplyChargeBonusTag>(squad.SelfEntity);
             // Debug.Log($"SquadChargeBonusApplicationSystem: applying charge bonus to squad {squad.SquadId}");
-            if (SystemAPI.HasComponent<InForestTag>(squad.SelfEntity) || 
-                SystemAPI.HasComponent<InSwampTag>(squad.SelfEntity) || 
+            if (SystemAPI.HasComponent<InForestTag>(squad.SelfEntity) ||
+                SystemAPI.HasComponent<InSwampTag>(squad.SelfEntity) ||
                 SystemAPI.HasComponent<InRainTag>(squad.SelfEntity))
             {
                 Debug.LogWarning($"SquadChargeBonusApplicationSystem: Squad {squad.SquadId} is in forest or swamp or rain, dont apply charge bonus.");
+                continue;
+            }
+
+            if (squad.TargetSquadEntity != Entity.Null && SystemAPI.HasComponent<GarrisonGateSquadTag>(squad.TargetSquadEntity))
+            {
+                Debug.LogWarning($"SquadChargeBonusApplicationSystem: Squad {squad.SquadId} is charging a gate, dont apply charge bonus.");
                 continue;
             }
 

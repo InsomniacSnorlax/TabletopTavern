@@ -335,7 +335,7 @@ public class UnitPositioningManager : MonoBehaviour
             return;
         }
 
-        if(entityManager.HasComponent<FormationEngagedInRangedCombat>(squadReceivingAttackOrder.SelfEntity)) 
+        if(entityManager.HasComponent<FormationEngagedInRangedCombat>(squadReceivingAttackOrder.SelfEntity))
         {
             if(!entityManager.HasComponent<InCombat>(squadReceivingAttackOrder.SelfEntity))
             {
@@ -346,7 +346,7 @@ public class UnitPositioningManager : MonoBehaviour
                 Debug.Log($"Squad {squadReceivingAttackOrder.SquadId} is in ranged combat, disengaging before new attack");
             }
         }
-        else if(entityManager.HasComponent<InCombat>(squadReceivingAttackOrder.SelfEntity)) 
+        if(entityManager.HasComponent<InCombat>(squadReceivingAttackOrder.SelfEntity))
         {
             DisengageFromCombat disengageFromCombat = entityManager.GetComponentData<DisengageFromCombat>(squadReceivingAttackOrder.SelfEntity);
             disengageFromCombat.newTargetSquad = targetSquad.SelfEntity;

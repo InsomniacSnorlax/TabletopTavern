@@ -30,7 +30,7 @@ partial struct SquadHaltCommandSystem : ISystem
                 // Debug.Log($"SquadHaltCommandSystem: squad {squadEntity.ValueRO.SquadId} is halting charge");
             }
 
-            if(haltCommandTag.ValueRO.DropTarget) 
+            if(haltCommandTag.ValueRO.DropTarget)
             {
                 squadEntity.ValueRW.TargetSquadEntity = Entity.Null;
                 entityCommandBuffer.SetComponentEnabled<DisengageFromCombat>(squadEntity.ValueRO.SelfEntity, true);

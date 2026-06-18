@@ -6,7 +6,7 @@ namespace TJ
     public enum GearRarity { Common, Uncommon, Rare }
     public enum GearID { None,
         ArmingSwords, Longbows, Glaives, ConscriptionOrders, TexanBBQ, BallisticCharts, DiamondTippedArrows, WellHonedAxes, RingoftheElvenKing, RiverTrout, RavensEye, Turkey, HeavyWeapons,
-        BucklerShields, IronBank, OmenofFamine, QuantitativeEasingPolicy, Mitre, MichaelsSecretStuff, ChugJug, EnronAccounting, OrnateRing, JailersKey, BraceletoftheSunGoddess, ThePotato, Cauldron, Shungite, CommonBuilder, UncommonBuilder, RareBuilder, JoustingLances, BearSpray, CookieAndFowlCard, GnomishArmorers, PrivateeringPapers, NorthernLooters, PumpkinPie, AuraFarming, DwarvenTaxCollectors, LuckyHorseshoe,}
+        BucklerShields, IronBank, OmenofFamine, QuantitativeEasingPolicy, Mitre, MichaelsSecretStuff, ChugJug, TowerShields, OrnateRing, JailersKey, BraceletoftheSunGoddess, ThePotato, Cauldron, Shungite, CommonBuilder, UncommonBuilder, RareBuilder, JoustingLances, BearSpray, CookieAndFowlCard, GnomishArmorers, PrivateeringPapers, NorthernLooters, PumpkinPie, AuraFarming, DwarvenTaxCollectors, LuckyHorseshoe,}
 
     /// <summary>
     /// How Gear is named in the localization table:
@@ -24,9 +24,10 @@ namespace TJ
     public static class GearData
     {
         public const int GEAR_ARMINGSWORDS_MODIFIER         = 6;
-        public const int GEAR_BUCKLERSHIELDS_MODIFIER       = 100;
+        public const int GEAR_BUCKLERSHIELDS_MODIFIER       = 5;
+        public const int GEAR_TOWERSHIELDS_MODIFIER        = 100;
         public const int GEAR_GLAIVES_MODIFIER              = 10;
-        public const int GEAR_CONSCRIPTIONORDERS_MODIFIER   = 4;
+        public const int GEAR_CONSCRIPTIONORDERS_MODIFIER   = 6;
         public const int GEAR_TEXANBBQ_MODIFIER             = 6;
         public const int GEAR_JOUSTINGLANCES_MODIFIER       = 8;
         public const int GEAR_GNOMISHARMORERS_MODIFIER      = 8;
@@ -35,14 +36,14 @@ namespace TJ
         public const int GEAR_RINGOFTHEELVENKING_MODIFIER   = 4;
         public const int GEAR_RAVENSEY_MODIFIER             = 20;
         public const int GEAR_BALLISTICCHARTS_MODIFIER      = 10;
-        public const int GEAR_OMENOFFAMINE_MODIFIER         = 1;
+        public const int GEAR_OMENOFFAMINE_MODIFIER         = 2;
         public const int GEAR_QUANTITATIVEEASINGPOLICY_MODIFIER = 10;
         public const int GEAR_DWARVANTAXCOLLECTORS_MODIFIER = 10;
         public const int GEAR_COMMONBUILDER_MODIFIER        = 3;
         public const int GEAR_UNCOMMONBUILDER_MODIFIER      = 10;
         public const int GEAR_RAREBUILDER_MODIFIER          = 30;
         public const int GEAR_SHUNGITE_MODIFIER             = 8;
-        public const int GEAR_ENRONACCOUNTING_MODIFIER      = 2;
+        // public const int GEAR_ENRONACCOUNTING_MODIFIER      = 2;
         public const int GEAR_JAILERSKEY_MODIFIER           = 2;
 
         public static GearID[] GetGearIDs()
@@ -62,6 +63,7 @@ namespace TJ
             {
                 //unit stats
                 GearID.ArmingSwords => ArmingSwords,//melee attack melee
+                GearID.BucklerShields => BucklerShields,//melee defense melee
                 GearID.Longbows => Longbows,//ranged range
                 GearID.Glaives => Glaives,//anti large weapon strength
                 GearID.ConscriptionOrders => ConscriptionOrders, //melee attack and defense common
@@ -95,14 +97,14 @@ namespace TJ
 
                 //battle
                 GearID.BraceletoftheSunGoddess => BraceletoftheSunGoddess,
-                GearID.BucklerShields => BucklerShields,
+                GearID.TowerShields => TowerShields,
                 GearID.BearSpray => BearSpray,
                 GearID.LuckyHorseshoe => LuckyHorseshoe,
                 GearID.RiverTrout => RiverTrout,
 
                 //event
                 GearID.MichaelsSecretStuff => MichaelsSecretStuff,
-                GearID.EnronAccounting => EnronAccounting,
+                // GearID.EnronAccounting => EnronAccounting,
 
                 //unit prestige and health
                 GearID.Mitre => Mitre,
@@ -142,7 +144,7 @@ namespace TJ
         public static Gear BucklerShields = new ()
         {
             GearName = "Buckler Shields",
-            GearRarity = GearRarity.Rare,
+            GearRarity = GearRarity.Common,
             GearModifierValue = GEAR_BUCKLERSHIELDS_MODIFIER,
         };
 
@@ -269,7 +271,7 @@ namespace TJ
         public static Gear IronBank = new ()
         {
             GearName = "Iron Bank",
-            GearRarity = GearRarity.Uncommon,
+            GearRarity = GearRarity.Rare,
         };
 
         //Desc: "Earn 1 <sprite name=GoldSprite> bonus interest for every empty gear slot"
@@ -391,11 +393,16 @@ namespace TJ
 
         //Desc: "Each gold spent on modifying rolls give +{0} to the dice value"
         //Flavor: "It's only fraud if you get caught"
-        public static Gear EnronAccounting = new ()
+        //Old Enron Accounting: 
+
+
+        //Desc: "[Shielded] units are now Invulnerable to ranged attacks"
+        //Flavor: "The best defense is a good defense"
+        public static Gear TowerShields = new ()
         {
-            GearName = "Enron Accounting",
-            GearRarity = GearRarity.Common,
-            GearModifierValue = GEAR_ENRONACCOUNTING_MODIFIER,
+            GearName = "Tower Shields",
+            GearRarity = GearRarity.Rare,
+            GearModifierValue = GEAR_TOWERSHIELDS_MODIFIER,
         };
 
         //Desc: "Reduces cost of recruiting from towns by {0} gold"
@@ -522,6 +529,7 @@ namespace TJ
                 HeavyWeapons,
                 Shungite,
                 QuantitativeEasingPolicy,
+                TowerShields,
 
                 //gold
                 IronBank,
@@ -546,7 +554,7 @@ namespace TJ
 
                 //events
                 MichaelsSecretStuff,
-                EnronAccounting,
+                // EnronAccounting,
 
                 //prestige and health
                 Mitre,

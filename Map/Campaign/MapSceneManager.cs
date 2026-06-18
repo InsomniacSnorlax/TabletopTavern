@@ -378,7 +378,11 @@ namespace TJ.Map
             CampaignManager.Instance.CampaignSaveManager.RemoveZeroHealthSquads();
             CampaignManager.Instance.CampaignSaveManager.HandleSpecialSquadsOnChapterEnd();
 
-            CampaignManager.Instance.CampaignSaveManager.RecordSelectedNode(selectedNode.Value.index);
+            // OverrideSelectedNodeBeforeBattle already recorded the node (and added it to nodePath)
+            // before the battle started. Only call RecordSelectedNode if it wasn't pre-recorded,
+            // otherwise nodePath ends up with the same index twice.
+            if (CampaignManager.Instance.CampaignSaveManager.SaveData.GetSelectedNodeIndex() != selectedNode.Value.index)
+                CampaignManager.Instance.CampaignSaveManager.RecordSelectedNode(selectedNode.Value.index);
             UpdateNodePath();
             CampaignManager.Instance.CampaignSaveManager.CompleteChapter();
             activeChapterIndex = CampaignManager.Instance.CampaignSaveManager.SaveData.activeMapLayer;

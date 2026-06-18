@@ -139,7 +139,6 @@ namespace TJ
                 cachedTimeValue = Time.timeScale;
                 Time.timeScale = 0;
             }
-            InputHandler.Instance.SetSettingsPanelOpen(true);
             OnSettingsPanelToggled?.Invoke(true);
         }
         public void CloseSettingsPanel()
@@ -152,7 +151,6 @@ namespace TJ
             {
                 Time.timeScale = cachedTimeValue;
             }
-            InputHandler.Instance.SetSettingsPanelOpen(false);
             OnSettingsPanelToggled?.Invoke(false);
         }
         public void AbandonRunConfirmationPopUp()

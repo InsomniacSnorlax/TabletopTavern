@@ -79,13 +79,12 @@ namespace TJ
                             }
 
                             if(armored) {
-                                if( damageElement.DamageAttributes != DamageAttributes.ArmorPiercing &&
-                                    damageElement.DamageAttributes != DamageAttributes.ArmorPiercingAntiInfantry &&
-                                    damageElement.DamageAttributes != DamageAttributes.ArmorPiercingAntiLarge) {
-                                    // Debug.Log($"Physical hit points before mitigation: {physicalHitPoints}");
-                                    physicalHitPoints -= (int)(physicalHitPoints * SystemAPI.GetComponent<ArmoredTag>(damageReceivingEntity).ArmorMitigation);
-                                    // Debug.Log($"Physical hit points after mitigation: {physicalHitPoints}");
-                                }
+                                float armorMitigation = SystemAPI.GetComponent<ArmoredTag>(damageReceivingEntity).ArmorMitigation;
+                                bool isArmorPiercing = damageElement.DamageAttributes == DamageAttributes.ArmorPiercing ||
+                                                       damageElement.DamageAttributes == DamageAttributes.ArmorPiercingAntiInfantry ||
+                                                       damageElement.DamageAttributes == DamageAttributes.ArmorPiercingAntiLarge;
+                                if (isArmorPiercing) armorMitigation *= 0.5f;
+                                physicalHitPoints -= (int)(physicalHitPoints * armorMitigation);
                             }
                             if(infantry) {
                                 if( damageElement.DamageAttributes == DamageAttributes.AntiInfantry ||

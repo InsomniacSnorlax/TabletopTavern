@@ -62,12 +62,17 @@ public static class TabletopTavernConstants
     public const float MELEE_TOTAL_DAMAGE_MODIFIER = 0.25f;
     public const float RANGED_TOTAL_DAMAGE_MODIFIER = 1.10f;
     public const float MORALE_LOSS_MODIFIER = 0.75f;
+    public const float ARTILLERY_VS_ARTILLERY_DAMAGE_MODIFIER = 0.5f;
 
     // Campaign
     public const float RESERVES_HEAL_AMOUNT = 0.5f;
     public const float ENDLESS_HORDES_HEAL_AMOUNT = 0.30f;
     public const float CONSUME_CAPTIVES_HEAL_AMOUNT = 0.33f;
+
+    //Prestige + Melee attack by 10, + Speed +5, + Charge Bonus +5, 
     public const int PRESTIGE_BONUS = 10;
+
+
     public const int VILLAGE_RECRUIT_COST = 10;
     public const int CASTLE_RECRUIT_COST = 20;
     public const int CITY_RECRUIT_COST = 40;

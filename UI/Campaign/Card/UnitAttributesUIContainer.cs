@@ -56,16 +56,16 @@ namespace TJ
                 List<UnitAttributeBonus> bonusAttributes = gearManager.GetGearAttributeBonus(_unitName);
                 foreach (UnitAttributeBonus bonus in bonusAttributes)
                 {
-                    unitAttributes.Add(bonus.UnitAttribute);
+                    if (!unitAttributes.Contains(bonus.UnitAttribute)) unitAttributes.Add(bonus.UnitAttribute);
                 }
             }
-    
+
             if(_applyGearBonuses)
             {
                 //get heroes bonuses
                 List<UnitAttributeBonus> heroBonuses = HeroBonusManager.Instance.GetHeroAttributeBonus(_unitName);
                 foreach(UnitAttributeBonus bonus in heroBonuses) {
-                    unitAttributes.Add(bonus.UnitAttribute);
+                    if (!unitAttributes.Contains(bonus.UnitAttribute)) unitAttributes.Add(bonus.UnitAttribute);
                 }
             }
 

@@ -106,7 +106,8 @@ partial struct BulletDestructionSystem : ISystem {
                     DamageSourceSquadId = arrow.ValueRO.squadId,
                     DamageAttributes = arrow.ValueRO.damageAttributes,
                     FlankAttack = arrow.ValueRO.shotIntoFlanks,
-                    Flaming = arrow.ValueRO.flaming
+                    Flaming = arrow.ValueRO.flaming,
+                    SourceIsArtillery = arrow.ValueRO.sourceIsArtillery
                 });
                 
                 entityCommandBuffer.DestroyEntity(entity);

@@ -126,7 +126,9 @@ namespace TJ
 
         public override void OnPointerExit(PointerEventData eventData)
         {
-        base.OnPointerExit(eventData);
+            base.OnPointerExit(eventData);
+            if (gearSellTag.activeSelf)
+                CloseGearSellTag();
         }
         public void OnGearDisplaySelected()
         {

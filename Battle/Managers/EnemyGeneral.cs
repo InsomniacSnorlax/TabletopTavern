@@ -367,7 +367,7 @@ namespace TJ
                 _entityManager.SetComponentEnabled<WaitingForCommand>(entity, false);
 
                 SquadAttributes attrs = TabletopTavernData.Instance.GetSquadStats(squadEntity.UnitName).SquadAttributes;
-                if (attrs.StandardShields || attrs.HeavyShields || attrs.TowerShields)
+                if (attrs.StandardShields || attrs.HeavyShields )//|| attrs.TowerShields
                     _shieldedEnemySquads.Add(entity);
             }
             enemyEntities.Dispose();

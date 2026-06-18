@@ -48,7 +48,7 @@ namespace TJ.Event
         } else {
             sliderValueText.color = defaultColor;
         }
-        if(CampaignManager.Instance.GearManager.CheckForGear(GearID.EnronAccounting)) modificationAmount *= 2;
+        if(CampaignManager.Instance.GearManager.CheckForGear(GearID.TowerShields)) modificationAmount *= 2;
         eventPanel.ModifyRoll(modificationAmount);
         TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.ModifyRoll);
     }

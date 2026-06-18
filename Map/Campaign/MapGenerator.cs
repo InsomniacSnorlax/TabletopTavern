@@ -227,7 +227,7 @@ namespace TJ.Map
                 };
 
                 //25% chance to add 1 connection, 75% chance to add 2 connections
-                int connectionCount = SeededRandom.Range(0, 1f) < 0.25f ? 2 : 2;
+                int connectionCount = SeededRandom.Range(0, 1f) < 0.25f ? 1 : 2;
 
                 // Shuffle the possible connections to pick randomly
                 var shuffledConnections = possibleConnections.OrderBy(x => SeededRandom.Range(0, 1f)).ToList();
@@ -315,6 +315,37 @@ namespace TJ.Map
 
                 int indexToRemove = SeededRandom.Range(0, mapLayers[i].LayerNodes.Count);
                 var nodeToRemove = mapLayers[i].LayerNodes[indexToRemove];
+
+                // Before removing, fix incoming connections from the previous layer.
+                // ConnectLayers stored positions (0,1,2) into connectedNodeIndexes. After
+                // removal the list compacts, so those positions must be updated now while
+                // they still correspond 1-to-1 with the current layer's node positions.
+                if (i > 0)
+                {
+                    var prevLayer = mapLayers[i - 1];
+                    for (int n = 0; n < prevLayer.LayerNodes.Count; n++)
+                    {
+                        // connectedNodeIndexes is a List<int> (reference type), so edits
+                        // here apply to the original even though LayerNodes is a struct list.
+                        List<int> conns = prevLayer.LayerNodes[n].connectedNodeIndexes;
+                        for (int c = conns.Count - 1; c >= 0; c--)
+                        {
+                            if (conns[c] == indexToRemove)
+                            {
+                                // Redirect to nearest surviving neighbor
+                                int redirect = indexToRemove > 0 ? indexToRemove - 1 : indexToRemove + 1;
+                                if (conns.Contains(redirect))
+                                    conns.RemoveAt(c);   // already connected there — drop duplicate
+                                else
+                                    conns[c] = redirect;
+                            }
+                            else if (conns[c] > indexToRemove)
+                            {
+                                conns[c]--;              // shift down to match post-removal positions
+                            }
+                        }
+                    }
+                }
 
                 TransferConnections(mapLayers[i], nodeToRemove, indexToRemove);
                 mapLayers[i].LayerNodes.RemoveAt(indexToRemove);

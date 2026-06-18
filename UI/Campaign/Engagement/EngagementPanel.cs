@@ -545,16 +545,15 @@ namespace TJ.Engagement
 
             //consumable
             generateConsumable = Random.Range(0, 100) < CampaignManager.Instance.EconomyManager.PotionRewardsOdds;
-            // generateConsumable = true; //testing
-            if(CampaignManager.Instance.GearManager.CheckForGear(GearID.LuckyHorseshoe)) {
-                generateConsumable = true;
-            }
+
             if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_postBattleConsumableMetaprogressionModel)) {
                 generateConsumable = true;
             }
+
             if (generateConsumable)
             {
-                consumableEnum = ConsumableData.GetWeightedConsumable();
+                bool hasLuckyHorseshoe = CampaignManager.Instance.GearManager.CheckForGear(GearID.LuckyHorseshoe);
+                consumableEnum = ConsumableData.GetWeightedConsumable(hasLuckyHorseshoe);
                 Consumable consumableData = ConsumableData.GetConsumable(consumableEnum);
                 string consumableNameLocalized = LocalizationManager.Instance.GetText(consumableData.ConsumableEnum.ToString() + "Name");
                 consumableText.text = consumableNameLocalized;
@@ -723,10 +722,18 @@ namespace TJ.Engagement
                 halfHealthHealing = true;
             }
 
-            if(!garrisonFight)          
+            if(!garrisonFight)
+            {
                 campaignSaveManager.HealTroopsInReserve(halfHealthHealing);
+            }          
             else
+            {
                 campaignSaveManager.NonHealReserves();
+
+                //Endless Hordes
+                if(HeroBonusManager.Instance.ActiveHeroID == 3|| HeroBonusManager.Instance.ActiveHeroID == 4)
+                    campaignSaveManager.ModifyGruntkinTroopHealth(TabletopTavernConstants.ENDLESS_HORDES_HEAL_AMOUNT);
+            }
 
             HideAutoResolvePrediction();
             campaignSaveManager.PrestigeUnitsOnKills();

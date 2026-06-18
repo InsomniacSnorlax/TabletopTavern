@@ -159,14 +159,16 @@ namespace TJ.Engagement
 
             if(_team == Team.Player)
             {
+                if(campaignSaveManager.CheckForGear(GearID.ArmingSwords) && unitType == UnitType.Melee) 
+                    meleeAttack += GearData.GetGear(GearID.ArmingSwords).GearModifierValue;
+                if(campaignSaveManager.CheckForGear(GearID.BucklerShields) && (squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields))
+                    meleeDefense += GearData.GetGear(GearID.BucklerShields).GearModifierValue;
                 if(campaignSaveManager.CheckForGear(GearID.DiamondTippedArrows) && unitType == UnitType.Ranged) 
                     squadStats.SquadAttributes.ArmorPiercing = true;
                 if(campaignSaveManager.CheckForGear(GearID.HeavyWeapons) && squadStats.RarityTier == UnitRarity.Rare) 
                     squadStats.SquadAttributes.ArmorPiercing = true; 
                 if(campaignSaveManager.CheckForGear(GearID.Turkey) && unitType == UnitType.Ranged) 
                     squadStats.SquadAttributes.AntiLarge = true;
-                if(campaignSaveManager.CheckForGear(GearID.ArmingSwords) && unitType == UnitType.Melee) 
-                    meleeAttack += GearData.GetGear(GearID.ArmingSwords).GearModifierValue;
                 if(campaignSaveManager.CheckForGear(GearID.Longbows) && unitType == UnitType.Ranged) 
                     range += GearData.GetGear(GearID.Longbows).GearModifierValue;
                 if(campaignSaveManager.CheckForGear(GearID.Glaives) && squadStats.SquadAttributes.AntiLarge) 
@@ -189,10 +191,9 @@ namespace TJ.Engagement
                     accuracy += (GearData.GetGear(GearID.RavensEye).GearModifierValue/100f);
                 if(campaignSaveManager.CheckForGear(GearID.RingoftheElvenKing) && squadStats.unitType == UnitType.Ranged)
                     missileStrength += GearData.GetGear(GearID.RingoftheElvenKing).GearModifierValue;
-
-                if(squadStats.SquadAttributes.StandardShields) {
-                    if(campaignSaveManager.CheckForGear(GearID.BucklerShields)) {
-                        shieldBlockChance = GearData.GetGear(GearID.BucklerShields).GearModifierValue/100f;
+                if(squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields) {
+                    if(campaignSaveManager.CheckForGear(GearID.TowerShields)) {
+                        shieldBlockChance = GearData.GetGear(GearID.TowerShields).GearModifierValue/100f;
                     } else {
                         shieldBlockChance = 0.5f;
                     }
@@ -409,8 +410,9 @@ namespace TJ.Engagement
     }
     private void ModifyDamageDealt(ref int _damageDealt, AutoResolveSquad _defendingSquad, SquadStats _attackingSquad)
     {
-        if(_defendingSquad.armorMitigation > 0 && !_attackingSquad.SquadAttributes.ArmorPiercing) {
+        if(_defendingSquad.armorMitigation > 0) {
             float effectiveMitigation = _defendingSquad.armorMitigation;
+            if (_attackingSquad.SquadAttributes.ArmorPiercing) effectiveMitigation *= 0.5f;
             if (_attackingSquad.SquadAttributes.ArmorSundering || _attackingSquad.SquadAttributes.Emblazing)
                 effectiveMitigation *= 0.5f;
             _damageDealt -= (int)(_damageDealt * effectiveMitigation);
@@ -425,6 +427,12 @@ namespace TJ.Engagement
 
         if (_attackingSquad.SquadAttributes.Terrifying && !_defendingSquad.squadStats.SquadAttributes.Stalwart)
             _damageDealt = (int)(_damageDealt * 1.2f);
+
+        if (_defendingSquad.squadStats.unitSize == UnitSize.Cavalry)
+            _damageDealt = (int)(_damageDealt * 0.5f);
+
+        if (_attackingSquad.unitSize == UnitSize.Cavalry)
+            _damageDealt = (int)(_damageDealt * 1.5f);
     }
     private void HandleRangedUnits()
     {
@@ -686,15 +694,17 @@ namespace TJ.Engagement
         }
 
         // Zero out the defeated side's health to avoid confusion from retreating squads with remaining health
-        if (playerArmyIsDefeated)
-        {
-            for (int i = 0; i < playerArmy.Length; i++)
-                playerArmy[i].SquadCurrentHealth = 0;
-        }
-        else if (enemyArmyIsDefeated)
+        // Check enemyArmyIsDefeated first — simultaneous defeat in one round sets both flags true,
+        // and the game reports a player win (AlertOfBattleResults uses enemyArmyIsDefeated), so enemy should be zeroed.
+        if (enemyArmyIsDefeated)
         {
             for (int i = 0; i < enemyArmy.Length; i++)
                 enemyArmy[i].SquadCurrentHealth = 0;
+        }
+        else if (playerArmyIsDefeated)
+        {
+            for (int i = 0; i < playerArmy.Length; i++)
+                playerArmy[i].SquadCurrentHealth = 0;
         }
 
         if(Application.isPlaying) {

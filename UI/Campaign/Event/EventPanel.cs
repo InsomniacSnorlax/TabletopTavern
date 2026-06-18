@@ -247,7 +247,7 @@ namespace TJ.Event
             IAudioRequester.Instance.PlaySFX(SFXData.EventOptionLoad);
             EventReward eventReward = GenerateReward(selectedChoice, eventRollOutcome);
 
-            if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_eventDoubleRewardsMetaprogressionModel)) {
+            if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_eventDoubleRewardsMetaprogressionModel) && eventRollOutcome is EventRollOutcome.CriticalSuccess or EventRollOutcome.Success) {
                 EventReward extraEventReward = GenerateReward(selectedChoice, eventRollOutcome);
                 var nonGearModifiers = extraEventReward.EventOutcome.EventOutcomeModifiers
                     .Where(m => m.EventOutcomeModifierEnum != EventOutcomeModifierEnum.GearDrop)
@@ -379,7 +379,7 @@ namespace TJ.Event
             outcomeDescriptionText.enabled = true;
             uiBackgroundCanvasGroup.FadeInAsync(0.25f);
             rollAccepted = true;
-            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.EnronAccounting)) rollBonus /= 2;
+            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.TowerShields)) rollBonus /= 2;
             CampaignManager.Instance.CampaignSaveManager.ModifyGold(-rollBonus);
             rerollButton.gameObject.SetActive(false);
             acceptRollButton.Button.onClick.RemoveAllListeners();

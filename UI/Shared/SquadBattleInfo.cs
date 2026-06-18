@@ -48,7 +48,9 @@ namespace TJ
         [SerializeField] private UnitAttributesUI inForestAttribute;
         [SerializeField] private UnitAttributesUI inSwampAttribute, isChargingAttribute, inCombatAttribute, isTerrifiedAttribute, isExhaustedAttribute, isOutOfAmmoAttribute, bloodFrenzyAttribute, rageAttribute, armorSunderedAttribute, isOnFireAttribute;
 
-        int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1;
+        int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1, lastAmmunition = -1;
+        const float AMMO_REFRESH_INTERVAL = 0.5f;
+        float ammoRefreshTimer;
         SquadToLoad squadToLoad;
         SquadEntity squadEntity;
         public SquadEntity SquadEntity => squadEntity;
@@ -88,6 +90,8 @@ namespace TJ
             maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
             int displayCount = health / squadStats.HitPointsPerUnit;
             if (health > 0 && displayCount == 0) displayCount = 1;
+            // Guard against drift between the squad's saved HitPointsPerUnit and the live squadStats value (e.g. after a balance change)
+            displayCount = Mathf.Min(displayCount, maxEntityCount);
             unitCount.text = $"{displayCount} ({maxEntityCount})";
 
             GetHistoricalSquadKillCount();
@@ -250,6 +254,22 @@ namespace TJ
                 {
                     lastApexHuntersStacks = currentStacks;
                     unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                }
+            }
+
+            //ranged/artillery ammo only needs to be checked a couple times a second, not every frame
+            ammoRefreshTimer += Time.deltaTime;
+            if (ammoRefreshTimer >= AMMO_REFRESH_INTERVAL)
+            {
+                ammoRefreshTimer = 0f;
+                if (entityManager.HasComponent<RangedSquad>(squadEntity.SelfEntity))
+                {
+                    int currentAmmunition = entityManager.GetComponentData<RangedSquad>(squadEntity.SelfEntity).Ammunition;
+                    if (lastAmmunition != currentAmmunition)
+                    {
+                        lastAmmunition = currentAmmunition;
+                        unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    }
                 }
             }
 

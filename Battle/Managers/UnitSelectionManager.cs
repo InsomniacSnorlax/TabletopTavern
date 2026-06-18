@@ -144,6 +144,8 @@ public class UnitSelectionManager : MonoBehaviour
 
         HandleHoverBattlefieldBonus();
     }
+
+
     private void HandleWaitForDrag()
     {
         if (battleInputManager.MinimumDistanceFromInitialClick())
@@ -156,7 +158,8 @@ public class UnitSelectionManager : MonoBehaviour
                     battleInputManager.InitialMouseWorldPosition,
                     selectedSquadEntityAndEntitiesCountDict
                 );
-                battleInputManager.SetMinimumDistanceFromInitialClickHit(true);battleInputManager.SetInitialSquadPosition(true);
+                battleInputManager.SetMinimumDistanceFromInitialClickHit(true);
+                battleInputManager.SetInitialSquadPosition(true);
             }
         }
     }
@@ -250,7 +253,7 @@ public class UnitSelectionManager : MonoBehaviour
                 // Debug.Log($"Moving position to mouse: {GetMousePositionOffsetByFormationCenter()}");
             }
 
-            if (battleInputManager.MinimumDistanceFromInitialClick())
+            if (battleInputManager.MinimumDistanceFromInitialClick(battleInputManager.ReformSelectionRotationDeadzone))
             {
                 if (!battleInputManager.MinimumDistanceFromInitialClickHit)
                 {

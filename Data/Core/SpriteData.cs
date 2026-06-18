@@ -42,6 +42,7 @@ public static class SpriteData
             //gear
             "Arming Swords" => "Sprites/Gear/Arming Swords",
             "Buckler Shields" => "Sprites/Gear/Buckler Shields",
+            "Tower Shields" => "Sprites/Gear/Tower Shields",
             "Longbows" => "Sprites/Gear/Longbows",
             "Glaives" => "Sprites/Gear/Glaives",
             "Conscription Orders" => "Sprites/Gear/Conscription Orders",

@@ -135,11 +135,11 @@ namespace TJ
                     break;
                 case 5:
                     //Ironskin: Melee Infantry gain +4 [Melee Defense], Armored Units gain +10 [Armor]
-                    if (_unitStat == UnitStat.MeleeDefense && UnitType.Melee == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
+                    if (_unitStat == UnitStat.MeleeDefense && TabletopTavernData.Instance.IsMeleeInfantry(_requestingUnit))
                     {
                         unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle9"), 4));
                     }
-                    if (_unitStat == UnitStat.Armor && UnitType.Melee == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
+                    if (_unitStat == UnitStat.Armor && TabletopTavernData.Instance.IsMeleeInfantry(_requestingUnit))
                     {
                         unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle9"), 10));
                     }
@@ -192,7 +192,7 @@ namespace TJ
                     break;
                 case 11: //Oda Nobukage
                     //Nagoya Steel: All melee units gain +4 [Weapon Strength]
-                    if (_unitStat == UnitStat.WeaponStrength)
+                    if (_unitStat == UnitStat.MeleeAttack)
                     {
                         unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle21"), 4));
                     }
@@ -282,25 +282,31 @@ namespace TJ
 
             if(activeHeroID == -1) return unitAttributeBonuses;
 
+            SquadAttributes squadAttributes = TabletopTavernData.Instance.GetSquadStats(_requestingUnit).SquadAttributes;
+
             switch(activeHeroID)
             {
-                case 4: 
-                    // Orc Ravagers cause [Terror] 
-                    if(_requestingUnit == UnitName.OrcRavagers) {
+                case 4:
+                    // Orc Ravagers cause [Terror]
+                    if(_requestingUnit == UnitName.OrcRavagers && !squadAttributes.Terrifying) {
                         unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.Terrifying, LocalizationManager.Instance.GetText("heroBonusTitle7"), 0));
                     }
                     break;
                 case 6:
                     // All units are immune to Terror
-                    unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.Stalwart, LocalizationManager.Instance.GetText("heroBonusTitle12"), 0));
+                    if(!squadAttributes.Stalwart) {
+                        unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.Stalwart, LocalizationManager.Instance.GetText("heroBonusTitle12"), 0));
+                    }
                     break;
                 case 9: //Sister Morvayne
                     //Unbound by Chivalry: All units gain the [Outrider] ability
-                    unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.Outrider, LocalizationManager.Instance.GetText("heroBonusTitle18"), 0));
+                    if(!squadAttributes.Outrider) {
+                        unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.Outrider, LocalizationManager.Instance.GetText("heroBonusTitle18"), 0));
+                    }
                     break;
                 case 13: //Hrothgar Goblinslayer
                     //Swarm Breaker: Cragflayers gain the [Rage] ability
-                    if(_requestingUnit == UnitName.Cragflayers) {
+                    if(_requestingUnit == UnitName.Cragflayers && !squadAttributes.Rage) {
                         unitAttributeBonuses.Add(new UnitAttributeBonus(UnitAttribute.Rage, LocalizationManager.Instance.GetText("heroBonusTitle26"), 0));
                     }
                     break;

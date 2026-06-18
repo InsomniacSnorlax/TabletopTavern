@@ -367,7 +367,7 @@ public class SquadManager : MonoBehaviour
             initialSquadSize = initialSquadSize,
         });
 
-        bool isShielded = squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields || squadStats.SquadAttributes.TowerShields;
+        bool isShielded = squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields;// || squadStats.SquadAttributes.TowerShields;
 
         ecb.AddComponent(squadEntity, new SquadOverridesComponent {
             SquadId = squadId,
@@ -471,8 +471,8 @@ public class SquadManager : MonoBehaviour
             ecb.AddComponent<BackStabbersTag>(squadEntity);
         }
 
-        if(_enemyData.Team == Team.Player)
-        {
+        // if(_enemyData.Team == Team.Player)
+        // {
         Race squadRace = TabletopTavernData.Instance.GetRaceFromUnitName(_enemyData.unitName);
         switch (squadRace)
         {
@@ -511,7 +511,7 @@ public class SquadManager : MonoBehaviour
                 ecb.AddComponent(squadEntity, new ApexHuntersComponent());
                 break;
         }
-        }
+        // }
 
         GearIDsSerialized gear = campaignSaveDataHolder.Gear;
 
