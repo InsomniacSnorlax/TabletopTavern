@@ -553,7 +553,8 @@ namespace TJ.Engagement
             if (generateConsumable)
             {
                 bool hasLuckyHorseshoe = CampaignManager.Instance.GearManager.CheckForGear(GearID.LuckyHorseshoe);
-                consumableEnum = ConsumableData.GetWeightedConsumable(hasLuckyHorseshoe);
+                int bookNumber = campaignSaveManager.SaveData.bookNumber;
+                consumableEnum = ConsumableData.GetWeightedConsumable(bookNumber, hasLuckyHorseshoe);
                 Consumable consumableData = ConsumableData.GetConsumable(consumableEnum);
                 string consumableNameLocalized = LocalizationManager.Instance.GetText(consumableData.ConsumableEnum.ToString() + "Name");
                 consumableText.text = consumableNameLocalized;
@@ -982,6 +983,7 @@ namespace TJ.Engagement
             raiseDeadButton.enabled = true;
             raiseDeadUnitList.Clear();
 
+            System.Random random = campaignSaveManager.GetCampaignRandom();
             int bookNumber = campaignSaveManager.SaveData.bookNumber;
 
             if (bookNumber <= 1)
@@ -993,7 +995,7 @@ namespace TJ.Engagement
                     UnitName.FeralHounds
                 };
                 for (int i = 0; i < 3; i++)
-                    raiseDeadUnitList.Add(pool[SeededRandom.Range(0, pool.Length)]);
+                    raiseDeadUnitList.Add(pool[random.Next(pool.Length)]);
 
                 raiseDeadCard1.gameObject.SetActive(true);
                 raiseDeadCard2.gameObject.SetActive(true);
@@ -1011,7 +1013,7 @@ namespace TJ.Engagement
                     UnitName.MistWraiths
                 };
                 for (int i = 0; i < 2; i++)
-                    raiseDeadUnitList.Add(pool[SeededRandom.Range(0, pool.Length)]);
+                    raiseDeadUnitList.Add(pool[random.Next(pool.Length)]);
 
                 raiseDeadCard1.gameObject.SetActive(true);
                 raiseDeadCard2.gameObject.SetActive(true);
@@ -1027,7 +1029,7 @@ namespace TJ.Engagement
                     UnitName.CorpseClaws,
                     UnitName.BloodswornKnights
                 };
-                raiseDeadUnitList.Add(pool[SeededRandom.Range(0, pool.Length)]);
+                raiseDeadUnitList.Add(pool[random.Next(pool.Length)]);
 
                 raiseDeadCard1.gameObject.SetActive(true);
                 raiseDeadCard2.gameObject.SetActive(false);

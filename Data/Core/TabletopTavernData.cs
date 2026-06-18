@@ -592,6 +592,7 @@ namespace TJ
             // if (squadStats.SquadAttributes.TowerShields) unitAttributes.Add(UnitAttribute.TowerShields);
             if( squadStats.SquadAttributes.ForgefuryTempering) unitAttributes.Add(UnitAttribute.ForgefuryTempering);
             if( squadStats.SquadAttributes.FlamingAmmo) unitAttributes.Add(UnitAttribute.FlamingAmmo);
+            if (squadStats.SquadAttributes.ThickScales) unitAttributes.Add(UnitAttribute.ThickScales);
             if( squadStats.SquadAttributes.BackStabbers) unitAttributes.Add(UnitAttribute.BackStabbers);
             if( squadStats.SquadAttributes.DragonsHoard) unitAttributes.Add(UnitAttribute.DragonsHoard);
             return unitAttributes;
@@ -810,7 +811,7 @@ namespace TJ
             "Base Unit Count", "Attack Cooldown", "Ammunition",
             "None", "Standard Shields", "Armor Piercing", "Anti Infantry", "Anti Large", "Terrifying",
             "Stalwart", "Outrider", "Swamp Creature", "Forest Dweller", "Chicken Flight", "Ethereal",
-            "Blood Frenzy", "Rage", "Emblazing", "Unstoppable", "Heavy Shields", "Armor Sundering", "Monster Slayer"
+            "Blood Frenzy", "Rage", "Emblazing", "Unstoppable", "Heavy Shields", "Armor Sundering", "Monster Slayer", "Thick Scales"
         });
 
         // Data rows (sorted by unitName for consistency, optional)
@@ -862,6 +863,7 @@ namespace TJ
                 attr.ArmorSundering ? "Yes" : "No",
                 attr.MonsterSlayer ? "Yes" : "No",
                 attr.FlamingAmmo ? "Yes" : "No",
+                attr.ThickScales ? "Yes" : "No",
             });
             }
         //log the data being sent

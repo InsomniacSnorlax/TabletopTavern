@@ -120,7 +120,8 @@ namespace TJ.Treasure
                 string separatorLocalized = "~ " + LocalizationManager.Instance.GetText("orConsumable") + " ~";
                 _separatorText.text = separatorLocalized;
 
-                ConsumableEnum randomConsumable = ConsumableData.GetWeightedConsumable(campaignSaveManager.GetSeededRandom() + count);
+                int bookNumber = campaignSaveManager.SaveData.bookNumber;
+                ConsumableEnum randomConsumable = ConsumableData.GetWeightedConsumable(bookNumber, campaignSaveManager.GetSeededRandom() + count);
                 _consumableCardReward = Instantiate(consumableCardTreasurePrefab, gearCardTreasureParent);
                 _consumableCardReward.LoadConsumableCardReward(randomConsumable);
                 _consumableCardReward.OnConsumableCardSelected += SelectConsumableReward;

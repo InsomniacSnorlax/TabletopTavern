@@ -70,7 +70,7 @@ namespace TJ
         {
             ConsumableEnum = ConsumableEnum.NewUnit,
             // ConsumableDescription = "Summons a random unit",
-            ConsumableRarity = ConsumableRarity.Rare,
+            ConsumableRarity = ConsumableRarity.Uncommon,
         };
         public static Consumable RunewellNectar = new()
         {
@@ -82,13 +82,13 @@ namespace TJ
         {
             ConsumableEnum = ConsumableEnum.TrialofGrasses,
             // ConsumableDescription = "Presitges a max health unit to level 3 with 10% of its max health",
-            ConsumableRarity = ConsumableRarity.Legendary,
+            ConsumableRarity = ConsumableRarity.Rare,
         };
         public static Consumable DuplicateUnitPotion = new ()
         {
             ConsumableEnum = ConsumableEnum.Duplicate,
             // ConsumableDescription = "Creates a prestige 1 copy of a unit",
-            ConsumableRarity = ConsumableRarity.Legendary,
+            ConsumableRarity = ConsumableRarity.Rare,
         };
         public static Consumable LambSauce = new ()
         {
@@ -105,11 +105,11 @@ namespace TJ
                 ConsumableEnum.Alchemist,//Common
                 ConsumableEnum.MajorHealth,//Uncommon
                 ConsumableEnum.FateshineElixir,//Uncommon
-                ConsumableEnum.Prestige,//Rare
-                ConsumableEnum.NewUnit,//Rare
+                ConsumableEnum.NewUnit,//Uncommon
                 ConsumableEnum.RunewellNectar,//Rare
-                ConsumableEnum.Duplicate,//Legendary
-                ConsumableEnum.TrialofGrasses,//Legendary
+                ConsumableEnum.Prestige,//Rare
+                ConsumableEnum.Duplicate,//Rare
+                ConsumableEnum.TrialofGrasses,//Rare
                 ConsumableEnum.LambSauce //Legendary
             };
         }
@@ -117,7 +117,7 @@ namespace TJ
         {
             return GetAllConsumableEnums()[Random.Range(0, GetAllConsumableEnums().Length)];
         }
-        public static ConsumableEnum GetWeightedConsumable(bool hasLuckyHorseshoe = false)
+        public static ConsumableEnum GetWeightedConsumable(int actNumber, bool hasLuckyHorseshoe = false)
         {
             ConsumableEnum GetRandomWeightedItem(ConsumableEnum[] items, float[] weights)
             {
@@ -147,12 +147,12 @@ namespace TJ
             float[] weights = new float[allConsumables.Length];
             for (int i = 0; i < allConsumables.Length; i++)
             {
-                weights[i] = ConsumableDropChance(GetConsumable(allConsumables[i]).ConsumableRarity);
+                weights[i] = ConsumableDropChance(allConsumables[i], actNumber);
             }
 
             return GetRandomWeightedItem(allConsumables, weights);
         }
-        public static ConsumableEnum GetWeightedConsumable(int seed)
+        public static ConsumableEnum GetWeightedConsumable(int bookNumber, int seed)
         {
             ConsumableEnum GetRandomWeightedItem(ConsumableEnum[] items, float[] weights, System.Random random)
             {
@@ -177,18 +177,80 @@ namespace TJ
             ConsumableEnum[] allConsumables = GetAllConsumableEnums();
             float[] weights = new float[allConsumables.Length];
             for (int i = 0; i < allConsumables.Length; i++)
-                weights[i] = ConsumableDropChance(GetConsumable(allConsumables[i]).ConsumableRarity);
+                weights[i] = ConsumableDropChance(allConsumables[i], bookNumber);
 
             return GetRandomWeightedItem(allConsumables, weights, random);
         }
-        public static float ConsumableDropChance(ConsumableRarity _consumableRarity) => _consumableRarity switch
+        public static float ConsumableDropChance(ConsumableEnum _consumable, int actNumber)
         {
-            ConsumableRarity.Common => 0.5f,
-            ConsumableRarity.Uncommon => 0.25f,
-            ConsumableRarity.Rare => 0.15f,
-            ConsumableRarity.Legendary => 0.1f,
-            _ => 0.2f,
-        };
+            switch (actNumber)
+            {
+                case 1: return _consumable switch
+                {
+                    ConsumableEnum.MinorHealth      => 35f, // Common
+                    ConsumableEnum.Rewind           => 20f, // Common
+                    ConsumableEnum.Alchemist        => 20f, // Common
+                    ConsumableEnum.MajorHealth      => 15f, // Uncommon
+                    ConsumableEnum.FateshineElixir  => 12f, // Uncommon
+                    ConsumableEnum.NewUnit          => 12f, // Uncommon
+                    ConsumableEnum.Prestige         => 8f,  // Rare
+                    ConsumableEnum.RunewellNectar   => 6f,  // Rare
+                    ConsumableEnum.Duplicate        => 6f,  // Rare
+                    ConsumableEnum.TrialofGrasses   => 6f,  // Rare
+                    ConsumableEnum.LambSauce        => 1f,  // Legendary
+                    _ => 5f,
+                };
+                case 2: return _consumable switch
+                {
+                    ConsumableEnum.MinorHealth      => 25f, // Common
+                    ConsumableEnum.Rewind           => 13f, // Common
+                    ConsumableEnum.Alchemist        => 15f, // Common
+                    ConsumableEnum.MajorHealth      => 18f, // Uncommon
+                    ConsumableEnum.FateshineElixir  => 15f, // Uncommon
+                    ConsumableEnum.NewUnit          => 15f, // Uncommon
+                    ConsumableEnum.Prestige         => 12f, // Rare
+                    ConsumableEnum.RunewellNectar   => 10f, // Rare
+                    ConsumableEnum.Duplicate        => 10f, // Rare
+                    ConsumableEnum.TrialofGrasses   => 10f, // Rare
+                    ConsumableEnum.LambSauce        => 5f,  // Legendary
+                    _ => 5f,
+                };
+                case 3: return _consumable switch
+                {
+                    ConsumableEnum.MinorHealth      => 15f, // Common
+                    ConsumableEnum.Rewind           => 5f,  // Common
+                    ConsumableEnum.Alchemist        => 8f,  // Common
+                    ConsumableEnum.MajorHealth      => 18f, // Uncommon
+                    ConsumableEnum.FateshineElixir  => 15f, // Uncommon
+                    ConsumableEnum.NewUnit          => 15f, // Uncommon
+                    ConsumableEnum.Prestige         => 16f, // Rare
+                    ConsumableEnum.RunewellNectar   => 14f, // Rare
+                    ConsumableEnum.Duplicate        => 14f, // Rare
+                    ConsumableEnum.TrialofGrasses   => 14f, // Rare
+                    ConsumableEnum.LambSauce        => 10f, // Legendary
+                    _ => 5f,
+                };
+                default: 
+                {
+                    Debug.LogError($"Invalid act number {actNumber} for consumable drop chance calculation. Defaulting to act 3 weights.");
+                    return _consumable switch
+                    {
+                        ConsumableEnum.MinorHealth      => 15f, // Common
+                        ConsumableEnum.Rewind           => 5f,  // Common
+                        ConsumableEnum.Alchemist        => 8f,  // Common
+                        ConsumableEnum.MajorHealth      => 18f, // Uncommon
+                        ConsumableEnum.FateshineElixir  => 15f, // Uncommon
+                        ConsumableEnum.NewUnit          => 15f, // Uncommon
+                        ConsumableEnum.Prestige         => 16f, // Rare
+                        ConsumableEnum.RunewellNectar   => 14f, // Rare
+                        ConsumableEnum.Duplicate        => 14f, // Rare
+                        ConsumableEnum.TrialofGrasses   => 14f, // Rare
+                        ConsumableEnum.LambSauce        => 10f, // Legendary
+                        _ => 5f,
+                    };
+                };
+            }
+        }
         public static int ConsumableCost(ConsumableRarity _consumableRarity) => _consumableRarity switch
         {
             ConsumableRarity.Common => 4,

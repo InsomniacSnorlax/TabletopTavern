@@ -75,10 +75,11 @@ namespace TJ.Map
                         ConsumableUI consumableUI = CampaignManager.Instance.MapSceneUIManager.HUDPanel.ConsumableUI[i];
                         if (!consumableUI.ConsumableLoaded)
                         {
-                            ConsumableEnum randomConsumable = ConsumableData.GetWeightedConsumable();
+                            int actNumber = CampaignManager.Instance.CampaignSaveManager.SaveData.bookNumber;
+                            ConsumableEnum randomConsumable = ConsumableData.GetWeightedConsumable(actNumber, CampaignManager.Instance.CampaignSaveManager.GetSeededRandom() + i);
                             while (randomConsumable == ConsumableEnum.RunewellNectar)
                             {
-                                randomConsumable = ConsumableData.GetWeightedConsumable();
+                                randomConsumable = ConsumableData.GetWeightedConsumable(actNumber, CampaignManager.Instance.CampaignSaveManager.GetSeededRandom() + i);
                             }
                             CampaignManager.Instance.CampaignSaveManager.AquireConsumable(randomConsumable);
                         }

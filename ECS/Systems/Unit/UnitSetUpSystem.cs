@@ -395,6 +395,15 @@ partial struct UnitSetUpSystem : ISystem
                     ArmorMitigation = armor / (armor + 100f)
                 });
             }
+            if (squadStats.SquadAttributes.Ethereal)
+            {
+                entityCommandBuffer.AddComponent(entity, new PhysicalDamageMultiplier { Value = 0.5f });
+                entityCommandBuffer.AddComponent(entity, new MagicalDamageMultiplier { Value = 0.5f });
+            }
+            if (squadStats.SquadAttributes.ThickScales)
+            {
+                entityCommandBuffer.AddComponent(entity, new MissileResistance { DamageMultiplier = 0.75f });
+            }
 
             if (squadStats.unitType == UnitType.Artillery)
             {

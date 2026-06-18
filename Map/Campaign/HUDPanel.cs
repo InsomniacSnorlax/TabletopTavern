@@ -641,7 +641,7 @@ namespace TJ.Map
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.OmenofFamine))
             {
                 List<GearID> gearIDs = campaignSaveManager.SaveData.Gear;
-                bonusFromOmenOfFamine = campaignSaveManager.MaxGear - gearIDs.Count;
+                bonusFromOmenOfFamine = 2 * (campaignSaveManager.MaxGear - gearIDs.Count);
                 flavorText += $"\n(+{bonusFromOmenOfFamine}) <sprite name=GoldSprite> {bonusLocalized}";
             }
 

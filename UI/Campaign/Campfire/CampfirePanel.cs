@@ -158,7 +158,8 @@ namespace TJ.Campfire
                 return;
             }
 
-            ConsumableEnum consumable = ConsumableData.GetWeightedConsumable();
+            int bookNumber = campaignSaveManager.SaveData.bookNumber;
+            ConsumableEnum consumable = ConsumableData.GetWeightedConsumable(bookNumber, campaignSaveManager.GetSeededRandom());
             string consumableName = LocalizationManager.Instance.GetText(consumable.ToString() + "Name");
             campaignSaveManager.AquireConsumable(consumable);
             ShowResult(

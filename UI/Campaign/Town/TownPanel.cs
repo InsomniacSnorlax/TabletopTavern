@@ -370,7 +370,15 @@ namespace TJ.Town
             }
             int modifiedRecruitmentCost = recruitmentCost;
             if (CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Duke) modifiedRecruitmentCost += 2;
-            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.JailersKey)) modifiedRecruitmentCost -= 2;
+            if (CampaignManager.Instance.GearManager.CheckForGear(GearID.JailersKey))
+            {
+                modifiedRecruitmentCost -= townSaveData.townSize switch
+                {
+                    TownSize.Village => 5,
+                    TownSize.Castle => 10,
+                    _ => 15,
+                };
+            }
 
             if (imperialEdictActive)
             {
@@ -446,11 +454,11 @@ namespace TJ.Town
             int modifiedRecruitmentCost = recruitmentCost;
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.JailersKey))
             {
-                recruitmentCost = townSaveData.townSize switch
+                modifiedRecruitmentCost -= townSaveData.townSize switch
                 {
-                    TownSize.Castle => recruitmentCost - 5,
-                    TownSize.City => recruitmentCost - 10,
-                    _ => recruitmentCost - 15,
+                    TownSize.Village => 5,
+                    TownSize.Castle => 10,
+                    _ => 15,
                 };
             }
 
