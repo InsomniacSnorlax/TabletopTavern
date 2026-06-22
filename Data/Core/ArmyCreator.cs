@@ -120,42 +120,41 @@ namespace TJ
         }
         private static SquadToLoad[] CreateArmyFromUnitsByTier(List<UnitsToGetByTier> _unitsToGetByTier, List<UnitTier> _unitsPool, int _seed)
         {
-            System.Random random = new(Seed: _seed);
+            System.Random random = new(_seed);
             List<SquadToLoad> squads = new();
-            foreach (UnitsToGetByTier unit in _unitsToGetByTier) {
-                for (int i = 0; i < unit.unitsToGet; i++) {
-                    //shoudl get a new random index for each unit
-                    int randomIndex = random.Next(0, _unitsPool.Count);
-                    UnitName unitName = GetUnitOfTier(unit.unitTier, randomIndex, _unitsPool);
-                    squads.Add(new SquadToLoad(unitName));
+
+            Dictionary<int, List<UnitName>> decksByTier = new();
+            foreach (UnitsToGetByTier entry in _unitsToGetByTier)
+            {
+                if (decksByTier.ContainsKey(entry.unitTier)) continue;
+                List<UnitName> deck = new();
+                foreach (UnitTier u in _unitsPool)
+                    if (u.tier == entry.unitTier) deck.Add(u.unitName);
+                if (deck.Count == 0)
+                {
+                    Debug.LogError($"ArmyCreator: No unit found for tier {entry.unitTier} in the provided pool.");
+                    continue;
+                }
+                for (int i = deck.Count - 1; i > 0; i--)
+                {
+                    int j = random.Next(0, i + 1);
+                    (deck[j], deck[i]) = (deck[i], deck[j]);
+                }
+                decksByTier[entry.unitTier] = deck;
+            }
+
+            foreach (UnitsToGetByTier entry in _unitsToGetByTier)
+            {
+                if (!decksByTier.TryGetValue(entry.unitTier, out List<UnitName> deck)) continue;
+                for (int i = 0; i < entry.unitsToGet; i++)
+                {
+                    UnitName chosen = random.NextDouble() < 0.35
+                        ? deck[random.Next(deck.Count)]
+                        : deck[i % deck.Count];
+                    squads.Add(new SquadToLoad(chosen));
                 }
             }
             return squads.ToArray();
-        }
-        private static UnitName GetUnitOfTier(int _unitTier, int _randomIndex, List<UnitTier> unitsPool)
-        {
-            System.Random random = new(_randomIndex);
-            UnitTier selectedUnit = null;
-            // work on a local copy so the caller's list is not mutated
-            List<UnitTier> shuffled = new(unitsPool);
-            for (int i = 0; i < shuffled.Count; i++) {
-                int randomIndex = random.Next(i, shuffled.Count);
-                (shuffled[randomIndex], shuffled[i]) = (shuffled[i], shuffled[randomIndex]);
-            }
-            foreach (UnitTier unit in shuffled)
-            {
-                if (unit.tier == _unitTier)
-                {
-                    selectedUnit = unit;
-                    break;
-                }
-            }
-            if (selectedUnit == null)
-            {
-                Debug.LogError($"ArmyCreator: No unit found for tier {_unitTier} in the provided pool.");
-                return default;
-            }
-            return selectedUnit.unitName;
         }
         // NOTE: CustomBattleGeneratorEditor mirrors this switch — update both when changing tier tables.
         public static SquadToLoad[] GenerateEnemyArmy(int _boardNumber, int _battlesFought, int _seed, bool _finalBattle, List<UnitTier> unitsPool, bool knightDifficulty)
@@ -221,12 +220,14 @@ namespace TJ
                         {
                             if(knightDifficulty)
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
                             }
                             else
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
@@ -236,21 +237,25 @@ namespace TJ
                         {
                             if (_battlesFought < 3)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 4 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
                             }
                             else if (_battlesFought < 5)
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
                             }
                             else if (_battlesFought < 7)
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
                             }
                             else
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
                             }
@@ -294,6 +299,7 @@ namespace TJ
                             }
                             else if (_battlesFought < 7)
                             {
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 6 });
                             }

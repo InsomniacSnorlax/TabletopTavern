@@ -118,7 +118,7 @@ namespace TJ
                 }
             }
             if(activeGearItems.Contains(GearID.RavensEye)) {
-                if(_unitStat == UnitStat.Accuracy && squadStats.RarityTier != UnitRarity.Common) {
+                if(_unitStat == UnitStat.Accuracy && squadStats.RarityTier != UnitRarity.Common && squadStats.unitType == UnitType.Ranged) {
                     string gearNameLocalized = LocalizationManager.Instance.GetText(GearID.RavensEye.ToString()+"Name");
                     unitStatBonuses.Add(new UnitStatBonus(_unitStat, gearNameLocalized, GearData.RavensEye.GearModifierValue));
                 }

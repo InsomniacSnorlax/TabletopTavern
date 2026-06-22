@@ -709,9 +709,8 @@ namespace Memori.SaveData
 
         private void TeleportOutridersToSpawnPoints(SquadToLoad[] outriders)
         {
-            Quaternion outriderRotation = enemyArmyCenter.rotation * Quaternion.Euler(0f, 180f, 0f);
-            for (int i = 0; i < outriders.Length && i < enemyOutriderSpawnPointsShuffled.Count; i++)
-                TeleportSquadUnits(outriders[i], enemyOutriderSpawnPointsShuffled[i], outriderRotation);
+            for (int i = 0; i < outriders.Length && i < enemyOutriderSpawnPoints.Count; i++)
+                TeleportSquadUnits(outriders[i], enemyOutriderSpawnPoints[i].position, enemyOutriderSpawnPoints[i].rotation);
         }
         private void AssignSpawnPositionsGarrisionBattle(SquadToLoad[] squadsToLoad, Transform spawnPointTransform)
         {

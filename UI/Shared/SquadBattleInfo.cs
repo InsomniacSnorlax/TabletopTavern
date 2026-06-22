@@ -42,13 +42,12 @@ namespace TJ
         [SerializeField] private Image raceColorImage1;
         [SerializeField] private Image raceColorImage2;
         [SerializeField] private MemoriTooltipTrigger passiveTooltipTrigger;
-        [SerializeField] private float raceColorAlpha = 25f;
 
         [Header("Battlefield Attributes")]
         [SerializeField] private UnitAttributesUI inForestAttribute;
         [SerializeField] private UnitAttributesUI inSwampAttribute, isChargingAttribute, inCombatAttribute, isTerrifiedAttribute, isExhaustedAttribute, isOutOfAmmoAttribute, bloodFrenzyAttribute, rageAttribute, armorSunderedAttribute, isOnFireAttribute;
 
-        int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1, lastAmmunition = -1;
+        int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1, lastAmmunition = -1, lastHealth = -1, lastEntityCount = -1;
         const float AMMO_REFRESH_INTERVAL = 0.5f;
         float ammoRefreshTimer;
         SquadToLoad squadToLoad;
@@ -179,8 +178,7 @@ namespace TJ
         private void Update()
         {
             if (squadEntity.SquadId == 0) return;
-
-            applyGearBonuses = team == Team.Player && !isCustomBattle;
+            if (tooltipCanvasGroup.alpha == 0) return;
 
             EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             if (!entityManager.Exists(squadEntity.SelfEntity))
@@ -195,7 +193,11 @@ namespace TJ
             SquadStateComponent squadTotalHealth = entityManager.GetComponentData<SquadStateComponent>(squadEntity.SelfEntity);
             squadEntity = entityManager.GetComponentData<SquadEntity>(squadEntity.SelfEntity);
             currentEntityCount = entityManager.GetBuffer<EntityReferenceBufferElement>(squadEntity.SelfEntity).Length;
-            unitCount.text = $"{currentEntityCount} ({maxEntityCount})";
+            if (currentEntityCount != lastEntityCount)
+            {
+                lastEntityCount = currentEntityCount;
+                unitCount.text = $"{currentEntityCount} ({maxEntityCount})";
+            }
             int currentBonusBufferSize = entityManager.GetBuffer<BattlefieldBonusBufferElement>(squadEntity.SelfEntity).Length;
             if (battlefieldBonusCount != currentBonusBufferSize)
             {
@@ -274,8 +276,12 @@ namespace TJ
             }
 
             health = squadTotalHealth.CurrentHealthValue;
-            healthBarSlider.value = health;
-            healthbarText.text = $"{health}";
+            if (health != lastHealth)
+            {
+                lastHealth = health;
+                healthBarSlider.value = health;
+                healthbarText.text = $"{health}";
+            }
         }
         private void Load()
         {

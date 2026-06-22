@@ -167,11 +167,20 @@ namespace TJ.Map
                     break;
 
                 indexHovered = CampaignManager.Instance.MapSceneUIManager.HUDPanel.HoveredSquadIndex;
-                if (Input.GetMouseButtonDown(0) && indexHovered != -1)
+                if (Input.GetMouseButtonDown(0))
                 {
-                    targetUnitIndex = indexHovered;
-                    DrinkConsumable();
-                    break;
+                    if(indexHovered != -1)
+                    {
+                        targetUnitIndex = indexHovered;
+                        DrinkConsumable();
+                        break;
+                    }
+                    else
+                    {
+                        string selectTargetText = LocalizationManager.Instance.GetText("consumable_must_select_target");
+                        NotificationManager.Instance.ErrorNotification(selectTargetText);
+                        break;
+                    }
                 }
 
                 yield return null;
@@ -189,6 +198,7 @@ namespace TJ.Map
         {
             if (!CampaignManager.Instance.ConsumableManager.AttemptToUseConsumable(consumable.ConsumableEnum, targetUnitIndex))
             {
+                CloseConsumableOptions();
                 return;
             }
 

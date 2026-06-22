@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-
+using Memori.Localization;
 namespace TJ
 {
     public class DepositGoldPopup : MonoBehaviour
@@ -174,7 +174,7 @@ namespace TJ
             PlayerSaveData playerSaveData = SaveDataHandler.LoadPlayerSaveData();
             _initialDepositAmount = playerSaveData.depositedGold + playerSaveData.goldToDeposit - _sessionDepositedAmount;
 
-            int currentGold = CampaignManager.Instance.EconomyManager.CurrentGoldAmount;
+            int currentGold = CampaignManager.Instance.GoldManager.CurrentGoldAmount;
             // Budget = gold on hand now plus what was already confirmed this visit
             _initialStartAmount = currentGold + _sessionDepositedAmount;
             _startAmount = currentGold;
@@ -184,16 +184,17 @@ namespace TJ
             UpdateDepositAmountText();
             UpdateStartAmountText();
             UpdateCanvasGroupInteractivity();
-            CampaignManager.Instance.EconomyManager.OnGoldAmountChangedEconomyManager += UpdateInitialStartAmount;
+            CampaignManager.Instance.GoldManager.OnGoldAmountChanged += UpdateInitialStartAmount;
         }
 
         private void ConfirmDeposit()
         {
             int delta = _depositAmount - _sessionDepositedAmount;
+            string localizedString = LocalizationManager.Instance.GetText("Deposited Gold");
             if (delta > 0)
-                CampaignManager.Instance.EconomyManager.SpendGold(delta);
+                CampaignManager.Instance.GoldManager.ModifyGold(-delta, localizedString);
             else if (delta < 0)
-                CampaignManager.Instance.CampaignSaveManager.ModifyGold(-delta);
+                CampaignManager.Instance.GoldManager.ModifyGold(-delta, localizedString);
 
             CampaignSaveData campaignSaveData = CampaignManager.Instance.CampaignSaveManager.SaveData;
             campaignSaveData.RunStats.goldDeposited += delta;
@@ -205,7 +206,7 @@ namespace TJ
 
             _sessionDepositedAmount = _depositAmount;
 
-            CampaignManager.Instance.EconomyManager.OnGoldAmountChangedEconomyManager -= UpdateInitialStartAmount;
+            CampaignManager.Instance.GoldManager.OnGoldAmountChanged -= UpdateInitialStartAmount;
             gameObject.SetActive(false);
         }
 
@@ -226,7 +227,7 @@ namespace TJ
 
         public void CancelDeposit()
         {
-            CampaignManager.Instance.EconomyManager.OnGoldAmountChangedEconomyManager -= UpdateInitialStartAmount;
+            CampaignManager.Instance.GoldManager.OnGoldAmountChanged -= UpdateInitialStartAmount;
             gameObject.SetActive(false);
         }
 

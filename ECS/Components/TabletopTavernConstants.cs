@@ -114,4 +114,7 @@ public static class TabletopTavernConstants
     // Hybrid units that are typed as Ranged but should receive melee prestige bonuses
     public static bool UsesMeleePrestige(UnitName unitName) =>
         unitName == UnitName.Cragflayers || unitName == UnitName.Berserkers || unitName == UnitName.KunoichiInfiltrators;
+
+    public static bool IsAGoblinUnit(UnitName unitName) =>
+        unitName == UnitName.GoblinRabble || unitName == UnitName.GoblinScrapShooters || unitName == UnitName.StonegulletEnforcers;
 }

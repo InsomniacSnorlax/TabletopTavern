@@ -55,6 +55,22 @@ namespace TJ.Engagement
         private readonly Dictionary<string, CachedBattleResult> _resultCache = new();
         private string _currentBattleKey = string.Empty;
 
+        private void Start()
+        {
+            CampaignManager.Instance.ConsumableManager.OnConsumableUsed += OnConsumableUsed;
+        }
+        private void OnDestroy()
+        {
+            if(CampaignManager.HasInstance && CampaignManager.Instance.ConsumableManager != null)
+                CampaignManager.Instance.ConsumableManager.OnConsumableUsed -= OnConsumableUsed;
+        }
+        private void OnConsumableUsed()
+        {
+            Debug.Log("[AutoResolve] Consumable used — clearing cache and re-running simulation.");
+            _resultCache.Clear();
+            Load(_isGarrisonBattle);
+        }
+
         private string GetPlayerArmyKey()
         {
             if (playerArmy == null) return string.Empty;
@@ -187,7 +203,7 @@ namespace TJ.Engagement
                     meleeDefense += GearData.GetGear(GearID.GnomishArmorers).GearModifierValue;
                 if(campaignSaveManager.CheckForGear(GearID.WellHonedAxes) && squadStats.SquadAttributes.ArmorPiercing) //must apply after diamond tipped arrows
                     meleeAttack += GearData.GetGear(GearID.WellHonedAxes).GearModifierValue;
-                if(campaignSaveManager.CheckForGear(GearID.RavensEye) && squadStats.RarityTier != UnitRarity.Common) 
+                if(campaignSaveManager.CheckForGear(GearID.RavensEye) && squadStats.RarityTier != UnitRarity.Common && unitType == UnitType.Ranged) 
                     accuracy += (GearData.GetGear(GearID.RavensEye).GearModifierValue/100f);
                 if(campaignSaveManager.CheckForGear(GearID.RingoftheElvenKing) && squadStats.unitType == UnitType.Ranged)
                     missileStrength += GearData.GetGear(GearID.RingoftheElvenKing).GearModifierValue;
@@ -612,7 +628,7 @@ namespace TJ.Engagement
                 int unitsRemainging = (int)math.ceil(unitsRemaingingFloat);
                 // Debug.Log($"units in squad {enemyAutoResolveStats[i].SquadIndex}: {unitsRemainging}");
 
-                if (unitsRemainging != enemyAutoResolveStats[i].UnitsAlive) {
+                if (unitsRemainging < enemyAutoResolveStats[i].UnitsAlive) {
                     // unitsRemainging = Mathf.Min(enemyAutoResolveStats[i].UnitCount, unitsKilledThisTurn); //only records kills if there are enough units to kill
                     unitsKilledThisTurn = enemyAutoResolveStats[i].UnitsAlive - unitsRemainging;
                     enemyAutoResolveStats[i].UnitsAlive -= unitsKilledThisTurn;
@@ -632,7 +648,7 @@ namespace TJ.Engagement
                 int unitsRemainging = (int)math.ceil(unitsRemaingingFloat);
                 // Debug.Log($"units in squad: {playerAutoResolveStats[i].UnitCount} unitsRemainging: {unitsRemainging}");
 
-                if (unitsRemainging != playerAutoResolveStats[i].UnitsAlive) {
+                if (unitsRemainging < playerAutoResolveStats[i].UnitsAlive) {
                     // unitsRemainging = Mathf.Min(playerAutoResolveStats[i].UnitCount, unitsKilledThisTurn); //only records kills if there are enough units to kill
                     unitsKilledThisTurn = playerAutoResolveStats[i].UnitsAlive - unitsRemainging;
                     playerAutoResolveStats[i].UnitsAlive -= unitsKilledThisTurn;

@@ -376,7 +376,8 @@ namespace Memori.SaveData
                     break;
                 }
             }
-            if (cavOnly)
+
+            if (cavOnly && _playerWon)
             {
                 SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_ONLY_CAV_BATTLE);
             }

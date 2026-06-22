@@ -68,7 +68,7 @@ namespace TJ.Games
 
         private void Start() 
         {
-            CampaignManager.Instance.EconomyManager.OnGoldAmountChangedEconomyManager += UpdateAffordability;
+            CampaignManager.Instance.GoldManager.OnGoldAmountChanged += UpdateAffordability;
         }
 
         public void SetUp(CampaignSaveManager _csm, MapSceneUIManager _msui)
@@ -126,21 +126,22 @@ namespace TJ.Games
         }
         private void UpdateAffordability(int _goldAmount)
         {
-            BetSmallButton.SetButtonAffordability(CampaignManager.Instance.EconomyManager.CheckIfCanAfford(smallBet));
-            BetMediumButton.SetButtonAffordability(CampaignManager.Instance.EconomyManager.CheckIfCanAfford(mediumBet));
-            BetLargeButton.SetButtonAffordability(CampaignManager.Instance.EconomyManager.CheckIfCanAfford(largeBet));
-            BuyARoundButton.SetButtonAffordability(CampaignManager.Instance.EconomyManager.CheckIfCanAfford(BuyARoundCost));
+            BetSmallButton.SetButtonAffordability(CampaignManager.Instance.GoldManager.CheckIfCanAfford(smallBet));
+            BetMediumButton.SetButtonAffordability(CampaignManager.Instance.GoldManager.CheckIfCanAfford(mediumBet));
+            BetLargeButton.SetButtonAffordability(CampaignManager.Instance.GoldManager.CheckIfCanAfford(largeBet));
+            BuyARoundButton.SetButtonAffordability(CampaignManager.Instance.GoldManager.CheckIfCanAfford(BuyARoundCost));
             SkipButton.SetButtonAffordability(true);
         }
 
         private void OnBuyARound()
         {
-            if (!CampaignManager.Instance.EconomyManager.CheckIfCanAfford(BuyARoundCost))
+            if (!CampaignManager.Instance.GoldManager.CheckIfCanAfford(BuyARoundCost))
             {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("NotEnoughGold"));
                 return;
             }
-            CampaignManager.Instance.EconomyManager.SpendGold(BuyARoundCost);
+            string localizedString = LocalizationManager.Instance.GetText("BuyARound");
+            CampaignManager.Instance.GoldManager.ModifyGold(-BuyARoundCost, localizedString);
             campaignSaveManager.ModifyTroopHealth(BuyARoundHealAmount);
             IAudioRequester.Instance.PlaySFX(SFXData.Purchase);
 
@@ -153,7 +154,7 @@ namespace TJ.Games
 
         private void OnDiceTableBet(int bet)
         {
-            if (!CampaignManager.Instance.EconomyManager.CheckIfCanAfford(bet))
+            if (!CampaignManager.Instance.GoldManager.CheckIfCanAfford(bet))
             {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("NotEnoughGoldBet"));
                 return;
@@ -232,8 +233,9 @@ namespace TJ.Games
             );
 
             lastGoldChange = goldChange;
-            if (goldChange > 0) CampaignManager.Instance.EconomyManager.SpendGold(-goldChange);
-            else if (goldChange < 0) CampaignManager.Instance.EconomyManager.SpendGold(Mathf.Abs(goldChange));
+            string gamesDescriptionLocalized = LocalizationManager.Instance.GetText("gamesDesc");
+            if (goldChange > 0) CampaignManager.Instance.GoldManager.ModifyGold(goldChange, gamesDescriptionLocalized);
+            else if (goldChange < 0) CampaignManager.Instance.GoldManager.ModifyGold(-Mathf.Abs(goldChange), gamesDescriptionLocalized);
 
             IAudioRequester.Instance.PlaySFX(SFXData.DiceRoll);
 
@@ -272,7 +274,8 @@ namespace TJ.Games
         {
             diceRolled = false;
             // undo the previous outcome's gold change before rerolling
-            CampaignManager.Instance.EconomyManager.SpendGold(lastGoldChange);
+            string rewindLocalized = LocalizationManager.Instance.GetText("RewindName");
+            CampaignManager.Instance.GoldManager.ModifyGold(-lastGoldChange, rewindLocalized);
             resultsPanel.FadeOutAsync();
             RollDice(lastBet);
         }
@@ -331,8 +334,8 @@ namespace TJ.Games
             if (objectToHide != null) objectToHide.gameObject.SetActive(true);
         }
         private void OnDestroy() {
-            if(CampaignManager.HasInstance && CampaignManager.Instance.EconomyManager != null)
-                CampaignManager.Instance.EconomyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
+            if(CampaignManager.HasInstance && CampaignManager.Instance.GoldManager != null)
+                CampaignManager.Instance.GoldManager.OnGoldAmountChanged -= UpdateAffordability;
         }
         private void OnSkip() 
         {

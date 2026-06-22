@@ -10,19 +10,19 @@ namespace TJ.Shop
         [SerializeField] private TextMeshProUGUI priceText;
         private Outline outline;
         private Canvas canvas;
-        EconomyManager economyManager;
+        GoldManager goldManager;
         private void Start()
         {
             canvas = GetComponent<Canvas>();
             canvas.worldCamera = CampaignManager.Instance.MapCamera.ShopCamera;
-            economyManager = CampaignManager.Instance.EconomyManager;
-            economyManager.OnGoldAmountChangedEconomyManager += UpdateAffordability;
+            goldManager = CampaignManager.Instance.GoldManager;
+            goldManager.OnGoldAmountChanged += UpdateAffordability;
         }
         public void SetUp(string price)
         {
             outline = GetComponentInChildren<Outline>();
             priceText.text = price;
-            bool canAfford = CampaignManager.Instance.EconomyManager.CheckIfCanAfford(int.Parse(priceText.text));
+            bool canAfford = CampaignManager.Instance.GoldManager.CheckIfCanAfford(int.Parse(priceText.text));
             Color color = ColorData.GetColorBasedOnAffordability(canAfford);
             priceText.color = color;
             outline.OutlineColor = color;
@@ -39,15 +39,15 @@ namespace TJ.Shop
         }
         public void UpdateAffordability(int _goldAmount)
         {
-            bool canAfford = CampaignManager.Instance.EconomyManager.CheckIfCanAfford(int.Parse(priceText.text));
+            bool canAfford = CampaignManager.Instance.GoldManager.CheckIfCanAfford(int.Parse(priceText.text));
             Color color = ColorData.GetColorBasedOnAffordability(canAfford);
             priceText.color = color;
             outline.OutlineColor = color;
         }
         public void OnDestroy()
         {
-            if(economyManager != null) {
-                economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
+            if(goldManager != null) {
+                goldManager.OnGoldAmountChanged -= UpdateAffordability;
             }
         }
     }

@@ -7,7 +7,7 @@ namespace TJ
     public class CampaignManager : Singleton<CampaignManager>
     {
         [SerializeField] private CampaignSaveManager campaignSaveManager;
-        [SerializeField] private EconomyManager economyManager;
+        [SerializeField] private GoldManager goldManager;
         [SerializeField] private MapSceneUIManager mapSceneUIManager;
         [SerializeField] private MapCamera mapCamera;
         [SerializeField] private ConsumableManager consumableManager;
@@ -15,7 +15,7 @@ namespace TJ
         [SerializeField] private ArmyJuiceManager armyJuiceManager;
 
         public CampaignSaveManager CampaignSaveManager => campaignSaveManager;
-        public EconomyManager EconomyManager => economyManager;
+        public GoldManager GoldManager => goldManager;
         public MapSceneUIManager MapSceneUIManager => mapSceneUIManager;
         public MapCamera MapCamera => mapCamera;
         public ConsumableManager ConsumableManager => consumableManager;
@@ -28,7 +28,7 @@ namespace TJ
         }
         private void Start()
         {
-            economyManager.SetUp();
+            goldManager.SetUp();
         }
 }
 }

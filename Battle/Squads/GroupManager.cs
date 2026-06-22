@@ -308,10 +308,10 @@ public class SquadGroup
         public void ToggleLockGroup(int groupNumber)
         {
             return; // Feature disabled — locking not yet implemented
-            if (groupNumber < 1 || groupNumber > squadGroups.Length) return;
-            SquadGroup group = squadGroups[groupNumber - 1];
-            if (group.IsLocked) UnlockGroup(groupNumber);
-            else LockGroup(groupNumber);
+            // if (groupNumber < 1 || groupNumber > squadGroups.Length) return;
+            // SquadGroup group = squadGroups[groupNumber - 1];
+            // if (group.IsLocked) UnlockGroup(groupNumber);
+            // else LockGroup(groupNumber);
         }
         private void LockGroup(int groupNumber)
         {

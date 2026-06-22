@@ -99,7 +99,7 @@ namespace TJ
         {
             if (!CampaignManager.HasInstance) return;
             Debug.Log("[DevPanel] GiveGold: +500");
-            CampaignManager.Instance.EconomyManager.SpendGold(-500);
+            CampaignManager.Instance.GoldManager.ModifyGold(500, "Dev Panel");
             SaveAndSnapshot();
         }
         public void HealAllUnits()

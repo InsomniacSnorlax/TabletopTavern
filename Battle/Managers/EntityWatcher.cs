@@ -210,7 +210,11 @@ namespace TJ
                     {
                         ammunition = (int)(ammunition * 1.5f);
                     }
-                    ecb.AddComponent(entity, new RangedSquad() { Ammunition = ammunition });
+                    ecb.AddComponent(entity, new RangedSquad() 
+                    { 
+                        // AttackRange = squadStats.BaseRange,
+                        Ammunition = ammunition 
+                    });
 
                     ecb.AddComponent(entity, new RangedFireModeSquadComponent() { FireMode = RangedFireMode.Volley, SwitchRequested = false });
                     BattleManager.Instance.SquadManager.CreateArcherRangeDrawer(squadEntity);

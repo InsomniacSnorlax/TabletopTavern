@@ -33,10 +33,13 @@ namespace TJ.Engagement
         [SerializeField] private AutoResolvePreview autoResolvePreview;
         [SerializeField] private MemoriTooltipTrigger autoResolveTooltipTrigger, manuallyFightTooltipTrigger;
         [SerializeField] private AutoResolveBattleManager autoResolveBattleManager;
-        [SerializeField] private TMP_Text battlefieldWeatherText;
+        [SerializeField] private TMPSpawnScaler battlefieldWeatherText;
         [SerializeField] private MemoriTooltipTrigger battlefieldWeatherTooltip;
         [SerializeField] private TMP_Text battlefieldBiomeText;
         [SerializeField] private TMP_Text autoresolveResultText;
+        [SerializeField] private Button heavensongButton;
+        [SerializeField] private TMP_Text heavensongButtonText;
+        [SerializeField] private MemoriTooltipTrigger heavensongTooltip;
 
         [Header("Post Battle")]
         [SerializeField] private MemoriCanvasGroup postBattleTotalCanvasGroup;
@@ -148,6 +151,7 @@ namespace TJ.Engagement
         private bool recruitButtonHiddenByConscript;
         private bool raiseDeadHiddenByRecruit;
         List<UnitName> raiseDeadUnitList = new ();
+        private Dictionary<Weather, string> _cachedWeatherNames;
 
         #region SetUp
         public void SetUp(CampaignSaveManager _campaignSaveManager, MapSceneUIManager _mapSceneUIManager)
@@ -196,6 +200,10 @@ namespace TJ.Engagement
             purgeTheBlightButton.onClick.AddListener(() => PurgeTheBlightButtonClicked());
             forbiddenRitualsButton.onClick.AddListener(() => ForbiddenRitualsButtonClicked());
             hourOfDestinyButton.onClick.AddListener(() => HourOfDestinyButtonClicked());
+
+            heavensongButton.onClick.AddListener(HeavensongButtonClicked);
+            heavensongButtonText.text = LocalizationManager.Instance.GetText("Reroll") + " " + LocalizationManager.Instance.GetText("Weather");
+            heavensongTooltip.SetUpToolTip(LocalizationManager.Instance.GetText("Campaign Bonus"), LocalizationManager.Instance.GetText("TaelindorForestBonusDescription"));
 
             //DifficultyMod 20
             if (campaignSaveManager.SaveData.difficultyLevel == TT_Difficulty.Godking)
@@ -272,6 +280,7 @@ namespace TJ.Engagement
             consumeSurvivorsButton.gameObject.SetActive(false);
             purgeTheBlightButton.gameObject.SetActive(false);
             autoresolveResultText.text = "";
+            heavensongButton.gameObject.SetActive(false);
 
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0.5f, 0.25f));
             continueButton.gameObject.SetActive(false);
@@ -363,7 +372,7 @@ namespace TJ.Engagement
                     if (CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess)) weather = Weather.ClearSkies;
 
                     string localizedWeather = LocalizationManager.Instance.GetText(weather.ToString());
-                    battlefieldWeatherText.text = localizedWeather;
+                    battlefieldWeatherText.SetText(localizedWeather);
 
                     battlefieldWeatherTooltip.gameObject.SetActive(weather != Weather.ClearSkies);
                     string localizedDescription = LocalizationManager.Instance.GetText(weather.ToString() + "Desc");
@@ -393,6 +402,15 @@ namespace TJ.Engagement
                 runLostCanvasGroup.CGDisable();
                 GenerateBattlefield();
                 await GenerateEnemyArmy();
+                bool isTaelindorHero = heroID == 7 || heroID == 8;
+                heavensongButton.gameObject.SetActive(isTaelindorHero);
+                if(isTaelindorHero)
+                {
+                    MapRegion region = campaignSaveManager.SaveData.battleFieldPreset.mapRegion;
+                    _cachedWeatherNames = new Dictionary<Weather, string>();
+                    foreach (var w in region.possibleWeathers)
+                        _cachedWeatherNames[w.weather] = LocalizationManager.Instance.GetText(w.weather.ToString());
+                }
             }
             if(campaignSaveManager.SaveData != null)
             {
@@ -429,10 +447,7 @@ namespace TJ.Engagement
                 // Debug.Log($"loading enemy squad with current unit count: {squad.currentUnitCount}");
                 if (campaignSaveManager.SaveData.playerWonBattle && campaignSaveManager.SaveData.battleCompleted)
                 {
-                    SquadToLoad squadModified = new(
-                        squad.UnitName,
-                        _modifiedHealthValueByAmount: 0
-                    );
+                    SquadToLoad squadModified = new(squad.UnitName, _modifiedHealthValueByAmount: 0) { UniqueID = squad.UniqueID };
                     squadDisplayCardMenu.SetUp(squadModified, false, mapSceneUIManager.HUDPanel, true);
                 }
                 else
@@ -511,6 +526,62 @@ namespace TJ.Engagement
                 return;
             autoResolveBattleManager.Load(garrisonFight);
         }
+        private void HeavensongButtonClicked()
+        {
+            Weather currentWeather = campaignSaveManager.SaveData.battleFieldPreset.weather;
+            MapRegion mapRegion = campaignSaveManager.SaveData.battleFieldPreset.mapRegion;
+            var candidates = mapRegion.possibleWeathers.Where(w => w.weather != currentWeather).ToList();
+            if (candidates.Count == 0) return;
+
+            heavensongButton.gameObject.SetActive(false);
+
+            float total = candidates.Sum(w => w.likelihood);
+            float roll = UnityEngine.Random.Range(0f, total);
+            float cumulative = 0f;
+            Weather newWeather = candidates[candidates.Count - 1].weather;
+            foreach (var c in candidates)
+            {
+                cumulative += c.likelihood;
+                if (roll <= cumulative) { newWeather = c.weather; break; }
+            }
+            StartCoroutine(RollWeatherText(newWeather, mapRegion, currentWeather));
+        }
+        private System.Collections.IEnumerator RollWeatherText(Weather finalWeather, MapRegion mapRegion, Weather excludeWeather)
+        {
+            var possibleWeathers = mapRegion.possibleWeathers.Where(w => w.weather != excludeWeather).ToList();
+            float elapsed = 0f;
+            float duration = 0.35f;
+            float interval = 0.035f;
+            int cycleIndex = 0;
+            IAudioRequester.Instance.PlaySFX(SFXData.Reroll);
+
+            while (elapsed < duration)
+            {
+                battlefieldWeatherText.Target.text = _cachedWeatherNames[possibleWeathers[cycleIndex % possibleWeathers.Count].weather];
+                cycleIndex++;
+                yield return new WaitForSeconds(interval);
+                elapsed += interval;
+            }
+
+            string localizedWeather = _cachedWeatherNames[finalWeather];
+            battlefieldWeatherText.SetText(localizedWeather);
+            battlefieldWeatherTooltip.gameObject.SetActive(finalWeather != Weather.ClearSkies);
+            if (finalWeather != Weather.ClearSkies)
+            {
+                string localizedDescription = LocalizationManager.Instance.GetText(finalWeather.ToString() + "Desc");
+                battlefieldWeatherTooltip.SetUpToolTip(localizedWeather, localizedDescription);
+            }
+
+            BattleFieldPreset preset = campaignSaveManager.SaveData.battleFieldPreset;
+            preset.weather = finalWeather;
+            campaignSaveManager.SaveBattlefieldPreset(preset);
+            mapSceneUIManager.HUDPanel.ShowWeatherHover(finalWeather, finalWeather != Weather.ClearSkies);
+            IAudioRequester.Instance.PlaySFX(SFXData.TinyClick);
+
+            if (finalWeather == Weather.Rain)
+                TutorialManager.Instance.LoadStepsFromRandomSpot(new TutorialStep[1] { TutorialData.RainWeather });
+        }
+
         public void AlertOfBattleResults(bool playerWon)
         {
             if (campaignSaveManager.SaveData.difficultyLevel == TT_Difficulty.Godking) return;
@@ -544,7 +615,7 @@ namespace TJ.Engagement
             }
 
             //consumable
-            generateConsumable = Random.Range(0, 100) < CampaignManager.Instance.EconomyManager.PotionRewardsOdds;
+            generateConsumable = Random.Range(0, 100) < CampaignManager.Instance.GoldManager.PotionRewardsOdds;
 
             if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_postBattleConsumableMetaprogressionModel)) {
                 generateConsumable = true;
@@ -753,6 +824,7 @@ namespace TJ.Engagement
                 battleOutcomeText.text = battleWon ? townGarrisonLocalized + " " + defeatedLocalized : companyShatteredLocalized;
                 if(battleWon) {
                     lootTownButton.gameObject.SetActive(true);
+                    mapSceneUIManager.HUDPanel.ShowConsumablesBlocker();
                 } else {
                     runLostCanvasGroup.FadeInAsync();
                     mapSceneUIManager.GameOverPanel.RecordGameOver(false);
@@ -766,6 +838,7 @@ namespace TJ.Engagement
                     else {
                         GenerateBattleRewards();
                         claimRewardsButton.gameObject.SetActive(true);
+                        mapSceneUIManager.HUDPanel.ShowConsumablesBlocker();
                     }
                 } else {
                     runLostCanvasGroup.FadeInAsync();
@@ -806,8 +879,8 @@ namespace TJ.Engagement
                         }
                     }
                 }
-            } 
-            else 
+            }
+            else
             {
                 List<SquadKillsStored> squadKillsStore = campaignSaveManager.GetSquadIdKillCounter();
                 foreach (SquadDisplayCardMenu squadDisplayCardMenu in mapSceneUIManager.HUDPanel.PlayerSquadsCards) {
@@ -824,7 +897,7 @@ namespace TJ.Engagement
                         }
                     });
                 }
-            }   
+            }
         }
         public void HideUnitsSlain()
         {
@@ -853,7 +926,8 @@ namespace TJ.Engagement
         }
         public void ClaimGoldRewardButtonClicked()
         {
-            campaignSaveManager.ModifyGold(goldRewardAmount);
+            string goldRewardLocalized = LocalizationManager.Instance.GetText("Loot Gold");
+            CampaignManager.Instance.GoldManager.ModifyGold(goldRewardAmount, goldRewardLocalized);
             goldRewardButton.gameObject.SetActive(false);
             goldRewardButton.GetComponent<MemoriButtonV2>().OnPointerExit(null);
             ForceContinueIfAllRewardsClaimed();
@@ -880,7 +954,8 @@ namespace TJ.Engagement
         public void RansomCaptivesButtonClicked()
         {
             HidePostBattleOptionalRewards();
-            campaignSaveManager.ModifyGold(ransomAmount);
+            string ransomLocalized = LocalizationManager.Instance.GetText("Ransom Captives");
+            CampaignManager.Instance.GoldManager.ModifyGold(ransomAmount, ransomLocalized);
             ForceContinueIfAllRewardsClaimed();
         }
         public void ConscriptSurvivorsButtonClicked()
@@ -933,7 +1008,8 @@ namespace TJ.Engagement
                 NotificationManager.Instance.ErrorNotification(errorLocalized);
                 return;
             }
-            campaignSaveManager.ModifyGold(-campaignSaveManager.SaveData.goldAmount);
+            string hourOfDestinyLocalized = LocalizationManager.Instance.GetText("Hour of Destiny");
+            CampaignManager.Instance.GoldManager.ModifyGold(-CampaignManager.Instance.GoldManager.CurrentGoldAmount, hourOfDestinyLocalized);
 
             UnitName[] unitNames = TabletopTavernData.Instance.GetSquadsToRecruitBasedOnReputation(0, 1, CampaignManager.Instance.CampaignSaveManager.GetSeededRandom(), CampaignManager.Instance.CampaignSaveManager.GetHeroID());
             CampaignManager.Instance.CampaignSaveManager.RecruitSquad(TabletopTavernData.Instance.GetSquadStats(unitNames[0]));
@@ -1062,6 +1138,7 @@ namespace TJ.Engagement
         public void ShowPostBattleOptions()
         {
             claimRewardsButton.gameObject.SetActive(false);
+            mapSceneUIManager.HUDPanel.HideConsumablesBlocker();
 
             DisplayBattleRewards();
             postBattleChoicesCanvasGroup.FadeInAsync(0.25f);
@@ -1206,6 +1283,7 @@ namespace TJ.Engagement
         public override void ClosePanel()
         {
             Debug.Log("[Map] Closing EngagementPanel");
+            mapSceneUIManager.HUDPanel.HideConsumablesBlocker();
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0f, 0.25f));
             battleOptionsCanvasGroup.CGDisable();
             postBattleChoicesCanvasGroup.CGDisable();

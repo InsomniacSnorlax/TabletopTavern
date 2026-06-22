@@ -76,6 +76,8 @@ namespace TJ.Map
         public ConsumableUI[] ConsumableUI => consumableUI;
         [SerializeField] private UILineDrawer uILineDrawer;
         public UILineDrawer UILineDrawer => uILineDrawer;
+        [SerializeField] private GameObject consumablesBlocker;
+        private MemoriTooltipTrigger consumablesBlockerTooltip;
 
         [Header("SquadBattleInfo")]
         [SerializeField] private SquadBattleInfo squadBattleInfo;
@@ -139,7 +141,7 @@ namespace TJ.Map
             // testAquireConsumableButton.onClick.AddListener(() => CampaignManager.Instance.CampaignSaveManager.AquireConsumable(ConsumableData.GetRandomConsumable()));
 
             campaignSaveManager.OnChapterCompleted += UpdateChapterText;
-            campaignSaveManager.OnGoldChanged += OnGoldChanged;
+            CampaignManager.Instance.GoldManager.OnGoldAmountChanged += OnGoldChanged;
             campaignSaveManager.OnUnitHealthChanged += ArmyHealthChanged;
             campaignSaveManager.OnGearChanged += ReloadGear;
             campaignSaveManager.OnArmyStructureChanged += ArmyStructureChanged;
@@ -167,6 +169,7 @@ namespace TJ.Map
             chapterTooltipTrigger.SetUpToolTip(_title: GetChapterTooltipTitle(campaignSaveManager.SaveData.bookNumber, campaignSaveManager.SaveData.activeMapLayer));
 
             settingsTooltipTrigger.SetUpToolTip(_title: LocalizationManager.Instance.GetText("Settings"));
+            consumablesBlocker.SetActive(false);
         }
         private void SetUpDifficultyTooltip()
         {
@@ -635,7 +638,7 @@ namespace TJ.Map
             string interestLocalized = LocalizationManager.Instance.GetText("Interest at turn end");
             string maxLocalized = LocalizationManager.Instance.GetText("Max");
 
-            string flavorText = $"(+{CampaignManager.Instance.EconomyManager.GetBaseInterest()}) 1 <sprite name=GoldSprite> {earnedLocalized} {CampaignManager.Instance.CampaignSaveManager.GoldRequiredToGenerateInterest} <sprite name=GoldSprite> ({maxLocalized} {CampaignManager.Instance.EconomyManager.GetMaxInterest()})";
+            string flavorText = $"(+{CampaignManager.Instance.GoldManager.GetBaseInterest()}) 1 <sprite name=GoldSprite> {earnedLocalized} {CampaignManager.Instance.CampaignSaveManager.GoldRequiredToGenerateInterest} <sprite name=GoldSprite> ({maxLocalized} {CampaignManager.Instance.GoldManager.GetMaxInterest()})";
 
             int bonusFromOmenOfFamine = 0;
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.OmenofFamine))
@@ -647,10 +650,10 @@ namespace TJ.Map
 
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.IronBank))
             {
-                flavorText += $"\n(+{CampaignManager.Instance.EconomyManager.GetBaseInterest() + bonusFromOmenOfFamine}) <sprite name=GoldSprite> {ironBankLocalized}";
+                flavorText += $"\n(+{CampaignManager.Instance.GoldManager.GetBaseInterest() + bonusFromOmenOfFamine}) <sprite name=GoldSprite> {ironBankLocalized}";
             }
 
-            goldTooltipTrigger.SetUpToolTip(_description: $"+{CampaignManager.Instance.EconomyManager.GetTotalInterest()} <sprite name=GoldSprite> {interestLocalized}", _flavorText: flavorText);
+            goldTooltipTrigger.SetUpToolTip(_description: $"+{CampaignManager.Instance.GoldManager.GetTotalInterest()} <sprite name=GoldSprite> {interestLocalized}", _flavorText: flavorText);
 
             ReloadGear();
         }
@@ -673,6 +676,22 @@ namespace TJ.Map
             }
             Debug.LogError($"GetGuidFormHoveredUnit({_index}) - No squad found");
             return null;
+        }
+        public void ShowConsumablesBlocker()
+        {
+            if (consumablesBlocker == null) return;
+            if (consumablesBlockerTooltip == null)
+                consumablesBlockerTooltip = consumablesBlocker.GetComponent<MemoriTooltipTrigger>();
+            if (consumablesBlockerTooltip != null)
+            {
+                string lockedText = LocalizationManager.Instance.GetText("Locked");
+                consumablesBlockerTooltip.SetUpToolTip(_description: lockedText);
+            }
+            consumablesBlocker.SetActive(true);
+        }
+        public void HideConsumablesBlocker()
+        {
+            if (consumablesBlocker != null) consumablesBlocker.SetActive(false);
         }
         public void CloseNonSquadPopUps()
         {
@@ -713,7 +732,9 @@ namespace TJ.Map
 
             if (campaignSaveManager == null) return;
             campaignSaveManager.OnChapterCompleted -= UpdateChapterText;
-            campaignSaveManager.OnGoldChanged -= OnGoldChanged;
+            if(CampaignManager.HasInstance && CampaignManager.Instance.GoldManager != null)
+                CampaignManager.Instance.GoldManager.OnGoldAmountChanged -= OnGoldChanged;
+
             campaignSaveManager.OnUnitHealthChanged -= ArmyHealthChanged;
             campaignSaveManager.OnGearChanged -= ReloadGear;
             campaignSaveManager.OnArmyStructureChanged -= ArmyStructureChanged;

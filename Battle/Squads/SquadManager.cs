@@ -343,9 +343,6 @@ public class SquadManager : MonoBehaviour
             if(campaignSaveDataHolder.ActiveHeroID == 2 && TabletopTavernData.Instance.GetUnitTierFromUnitName(squadStats.unitName) == 1) {
                 leadership +=10;
             }
-            if(campaignSaveDataHolder.ActiveHeroID == 3 && (squadStats.unitName == UnitName.GoblinRabble || squadStats.unitName == UnitName.GoblinScrapShooters)) {
-                leadership +=10;
-            }
             if(campaignSaveDataHolder.ActiveHeroID == 4 && squadStats.unitName == UnitName.OrcRavagers){
                 ecb.AddComponent<CausesTerrorTag>(squadEntity);
             }
@@ -354,6 +351,9 @@ public class SquadManager : MonoBehaviour
             }
             if(campaignSaveDataHolder.ActiveHeroID == 6 && squadStats.unitName == UnitName.Shieldmaidens) {
                 leadership +=10;
+            }
+            if((campaignSaveDataHolder.ActiveHeroID == 11 || campaignSaveDataHolder.ActiveHeroID == 12) && campaignSaveDataHolder.OnlySakuraUnits) {
+                leadership += 20;
             }
         }
 

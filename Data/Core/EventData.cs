@@ -91,7 +91,7 @@ public static class EventData
                     OutcomeDescription = "psych, thats the wrong village",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.5f,
+                            Value = -0.25f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -193,10 +193,6 @@ public static class EventData
                 criticalFailureOutcome = new () {
                     OutcomeDescription = "Your efforts to treat the sick are unsuccessful, and the disease spreads",
                     EventOutcomeModifiers = new () {
-                        new () {
-                            Value = -1f,
-                            EventOutcomeModifierEnum = EventOutcomeModifierEnum.ConsumableDrop
-                        },
                         new () {
                             Value = -0.2f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
@@ -457,7 +453,7 @@ public static class EventData
                     OutcomeDescription = "A cold wind blows through the chapel, Your troops are uneasy and begin to desert",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.3f,
+                            Value = -0.25f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -559,7 +555,7 @@ public static class EventData
                     OutcomeDescription = "Without somewhere to sleep, your troops are tired and grumpy. There is talk about mutiny.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -2f,
+                            Value = -0.2f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         },
                     }
@@ -568,7 +564,7 @@ public static class EventData
                     OutcomeDescription = "You avoid the chapel and make it to the next town by nightfall. Your troops are grateful for your leadership and caution.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = 1f,
+                            Value = 0.5f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -609,7 +605,7 @@ public static class EventData
                     OutcomeDescription = "The priest exorcises the chapel, and the ghost of the sorcerer is put to rest. Confident in your leadership, your troops are ready for the next challenge.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = 1f,
+                            Value = 0.5f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -725,9 +721,6 @@ public static class EventData
                     OutcomeDescription = "You pointlessly rob the merchant but find nothing of value.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            EventOutcomeModifierEnum = EventOutcomeModifierEnum.None
-                        },
-                        new () {
                             Value = -0.05f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
@@ -789,7 +782,7 @@ public static class EventData
                     OutcomeDescription = "You attempt to raise the alarm, but the enemy is already upon you. Your troops are take heavy casualties.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.5f,
+                            Value = -0.35f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -838,7 +831,7 @@ public static class EventData
                     OutcomeDescription = "Your attempt to flee is cut short by the sound of arrows in the night. Your troops are forced to fight in disarray.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.5f,
+                            Value = -0.35f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -1379,7 +1372,7 @@ public static class EventData
                     OutcomeDescription = "You decline the villagers' plea and continue on your journey, but the beast attacks regardless. Your troops are caught off guard and take heavy casualties.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.5f,
+                            Value = -0.35f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     }
@@ -1532,7 +1525,7 @@ public static class EventData
                     OutcomeDescription = "You decline the invitation and continue on your journey. The chieftains are insulted by your lack of respect and some of your troops desert to join their noble cause.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.3f,
+                            Value = -0.2f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         }
                     },
@@ -1684,7 +1677,7 @@ public static class EventData
                     OutcomeDescription = "Your troops train with the monster hunters, but the training is too intense. Many die in the process, and they question your leadership.",
                     EventOutcomeModifiers = new () {
                         new () {
-                            Value = -0.5f,
+                            Value = -0.25f,
                             EventOutcomeModifierEnum = EventOutcomeModifierEnum.UnitHealth
                         },
                     }

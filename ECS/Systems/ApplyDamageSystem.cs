@@ -33,13 +33,16 @@ namespace TJ
             {
                 var damageHitPoints = 0;
                 var healingHitPoints = 0;
-                int sourceSquadId = 100;
+                int maxDamageSquadId = 100;
+                int maxDamageAmount = 0;
 
                 Unit unitTakingDamage = SystemAPI.GetComponent<Unit>(damageReceivingEntity);
                 bool infantry = SystemAPI.HasComponent<InfantryTag>(damageReceivingEntity);
                 bool large = SystemAPI.HasComponent<LargeTag>(damageReceivingEntity);
                 bool armored = SystemAPI.HasComponent<ArmoredTag>(damageReceivingEntity);
                 bool artillery = SystemAPI.HasComponent<ArtilleryUnit>(damageReceivingEntity);
+
+                bool hasDamageBuffer = SystemAPI.TryGetSingletonBuffer<SquadDamageBufferElement>(out var globalDamageBuffer);
 
                 foreach (var damageElement in damageBuffer)
                 {
@@ -170,8 +173,17 @@ namespace TJ
 
 
                     damageHitPoints += attackHitPoints;
-                    // ecb.SetComponent(damageReceivingEntity, new DamageRecievedFrom { SquadId = damageElement.DamageSourceSquadId });
-                    sourceSquadId = damageElement.DamageSourceSquadId;
+
+                    if (attackHitPoints > 0)
+                    {
+                        if (attackHitPoints > maxDamageAmount)
+                        {
+                            maxDamageAmount = attackHitPoints;
+                            maxDamageSquadId = damageElement.DamageSourceSquadId;
+                        }
+                        if (hasDamageBuffer)
+                            globalDamageBuffer.Add(new SquadDamageBufferElement { SquadId = damageElement.DamageSourceSquadId, DamageAmount = attackHitPoints });
+                    }
                 }
 
                 damageBuffer.Clear();
@@ -186,29 +198,16 @@ namespace TJ
                 health.ValueRW.Value = math.min(health.ValueRO.Value, maxHealth.Value);
                 health.ValueRW.onHealthChanged = true;
 
-                if (sourceSquadId == 100)
+                if (maxDamageSquadId == 100)
                 {
-                    Debug.LogError($"ApplyDamageSystem: sourceSquadId is 100, this means damage was applied without a valid source. Check if damage is being added to the DamageBuffer without setting the DamageSourceSquadId.");
-                }
-
-                //emit an event here for other systems to react to damage
-                if (SystemAPI.TryGetSingletonBuffer<SquadDamageBufferElement>(out var globalDamageBuffer))
-                {
-                    if(sourceSquadId != 100)
-                    {
-                        globalDamageBuffer.Add(new SquadDamageBufferElement
-                        {
-                            SquadId = sourceSquadId,
-                            DamageAmount = -totalHitPoints,
-                        });
-                    }
+                    Debug.LogError($"ApplyDamageSystem: maxDamageSquadId is 100, this means damage was applied without a valid source. Check if damage is being added to the DamageBuffer without setting the DamageSourceSquadId.");
                 }
 
                 if (health.ValueRO.Value <= 0)
                 {
                     // Debug.Log($"Unit {damageReceivingEntity} has been slain");
                     ecb.AddComponent(damageReceivingEntity,
-                        new UnitRemovedFromSquad { Entity = damageReceivingEntity, SquadId = unitTakingDamage.squadId, KilledBySquadId = sourceSquadId });
+                        new UnitRemovedFromSquad { Entity = damageReceivingEntity, SquadId = unitTakingDamage.squadId, KilledBySquadId = maxDamageSquadId });
                 } else if(_random.NextFloat() > 0.5f) {
                     //chance to play damage sfx
                     DynamicBuffer<SFXBufferElement> sfxBuffer = SystemAPI.GetBuffer<SFXBufferElement>(damageReceivingEntity);

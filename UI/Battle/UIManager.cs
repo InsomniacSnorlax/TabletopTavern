@@ -891,12 +891,22 @@ namespace TJ
             switch (BattleManager.Instance.GamePhase)
             {
                 case GamePhase.Deployment:
+                    if (!BattleManager.Instance.BattleSaveManager.IsCustomBattle)
+                    {
+                        NotificationManager.Instance.DisplayNotification(LocalizationManager.Instance.GetText("CannotWithdrawDuringCampaignDeployment"));
+                        break;
+                    } 
                     for (int i = 0; i < BattleManager.Instance.UnitSelectionManager.SelectedSquadIds.Count; i++)
                     {
                         BattleManager.Instance.SquadManager.WithdrawSquad(BattleManager.Instance.UnitSelectionManager.SelectedSquadIds[i]);
                     }
                     break;
                 case GamePhase.Battle:
+                    if (BattleManager.Instance.UnitSelectionManager.SelectedSquadIds.Count > 1) 
+                    {
+                        NotificationManager.Instance.DisplayNotification(LocalizationManager.Instance.GetText("CannotWithdrawMultipleSquadsAtOnce"));
+                        break;
+                    }
                     for (int i = 0; i < BattleManager.Instance.UnitSelectionManager.SelectedSquadIds.Count; i++)
                     {
                         BattleManager.Instance.SquadManager.BreakSelectedSquads();

@@ -391,9 +391,8 @@ namespace TJ.MainMenu
         }
         public void DeleteDemoSave()
         {
+            Debug.Log("[DELETE SAVE DATA] Deleting save data...");
             SaveDataHandler.DeletePlayerSaveData();
-            PlayerPrefs.SetInt(DEMO_SAVE_PROMPT_KEY, 1);
-            PlayerPrefs.Save();
             SceneHandler.Instance.SwitchGameState(GameStateEnum.MainMenu);
         }
         private void OnDestroy()

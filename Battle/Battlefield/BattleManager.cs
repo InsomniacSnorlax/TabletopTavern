@@ -228,8 +228,6 @@ public class BattleManager : Singleton<BattleManager>
     }
     public void StartBattle()
     {
-        amySaveDataManager.SpawnDeferredEnemy();
-        amySaveDataManager.NotifyOutridersIfPresent();
         SetGamePhase(GamePhase.Battle);
 
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -244,6 +242,9 @@ public class BattleManager : Singleton<BattleManager>
 
         Entity squadDamageBufferSingletonEntity = entityManager.CreateEntity();
         entityManager.AddBuffer<SquadDamageBufferElement>(squadDamageBufferSingletonEntity);
+
+        amySaveDataManager.SpawnDeferredEnemy();
+        amySaveDataManager.NotifyOutridersIfPresent();
 
         // if (findTargets) entityManager.CreateEntity(typeof(FindTargets));
 

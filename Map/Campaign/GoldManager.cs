@@ -3,22 +3,49 @@ using TJ.Map;
 using System.Collections.Generic;
 using Memori.SaveData;
 using Memori.Audio;
+using System;
+using Memori.Localization;
 
 namespace TJ
 {
-public class EconomyManager : MonoBehaviour
+public class GoldManager : MonoBehaviour
 {
+    [SerializeField] GoldNotificationSpawner goldNotificationSpawner;
     CampaignSaveManager campaignSaveManager;
-    public event System.Action<int> OnGoldAmountChangedEconomyManager;
+    public event Action<int> OnGoldAmountChanged;
     private int maxInterest = 5;
     private int potionRewardsOdds = 25;
     public int PotionRewardsOdds => potionRewardsOdds;
     private int _currentGoldAmount = 0;
     public int CurrentGoldAmount => _currentGoldAmount;
+
+    public void ModifyGold(int amount, string localizedString, bool silent = false)
+    {
+        if(amount == 0) return;
+
+        campaignSaveManager.ModifyGoldSaveDataValue(amount);
+        _currentGoldAmount = campaignSaveManager.SaveData.goldAmount;
+
+        OnGoldAmountChanged?.Invoke(_currentGoldAmount);
+
+        Debug.Log($"Modified gold by {amount}. for: {localizedString}");
+        if(!silent) 
+        {
+            IAudioRequester.Instance.PlaySFX(SFXData.AquireGold);
+            goldNotificationSpawner.DisplayGoldNotification(_currentGoldAmount, localizedString);
+        }
+    }
+
     public void SetUp()
     {
         campaignSaveManager = CampaignManager.Instance.CampaignSaveManager;
-        campaignSaveManager.OnGoldChanged += OnGoldAmountChanged;
+    }
+
+    public void LoadGold()
+    {
+        _currentGoldAmount = campaignSaveManager.SaveData.goldAmount;
+        goldNotificationSpawner.LoadGold(campaignSaveManager.SaveData.goldAmount);
+        OnGoldAmountChanged?.Invoke(_currentGoldAmount);
     }
     public int GetMaxInterest()
     {
@@ -48,60 +75,29 @@ public class EconomyManager : MonoBehaviour
     public void CollectInterest()
     {
         int interest = GetTotalInterest();
+        int bonus = 0;
 
         for (int i = 0; i < campaignSaveManager.SaveData.playerArmy.Length; i++)
         {
-            if (campaignSaveManager.SaveData.playerArmy[i].UnitName == UnitName.EmeraldAncient)
+            var squad = campaignSaveManager.SaveData.playerArmy[i];
+            if (squad.isEmptySquad) continue;
+            if (TabletopTavernData.Instance.GetSquadStats(squad.UnitName).SquadAttributes.DragonsHoard)
             {
-                Debug.Log($"Collecting interest from Emerald Ancient");
-                interest += 3;
+                bonus += 3;
             }
         }
 
         if(interest == 0) return;
+        string interestLocalized = LocalizationManager.Instance.GetText("Interest at turn end");
+        ModifyGold(interest, interestLocalized);
 
-        campaignSaveManager.ModifyGold(interest);
+        if(bonus > 0) ModifyGold(bonus, LocalizationManager.Instance.GetText("DragonsHoard"));
         // Debug.Log($"Collected {interest} gold in interest");
-    }
-    public void LoseGoldOnTurnEnd()
-    {
-        int goldPenalty = -1;
-        campaignSaveManager.ModifyGold(goldPenalty);
     }
     public bool CheckIfCanAfford(int _cost)
     {
         return campaignSaveManager.SaveData.goldAmount >= _cost;
     }
-    public void OnGoldAmountChanged(int _amount)
-    {
-        IAudioRequester.Instance.PlaySFX(SFXData.AquireGold);
-        _currentGoldAmount = _amount;
-        OnGoldAmountChangedEconomyManager?.Invoke(_amount);
-    }
-    public void SpendGold(int _cost)
-    {
-        campaignSaveManager.ModifyGold(-_cost);
-    }
-    // public int RerollCost()
-    // {
-    //     int rerollCost = 2;
-    //     int rerolls = campaignSaveManager.SaveData.Rolls + 1;
-    //     rerollCost *= rerolls;
-
-    //     if(CampaignManager.Instance.GearManager.CheckForGear(GearID.CostcoCard) && campaignSaveManager.SaveData.Rolls==0) {
-    //         rerollCost = 0;
-    //     }
-    //     return rerollCost;
-    // }
-    [ContextMenu("Give 500 gold")]
-    public void TestEconomyManager()
-    {
-        SpendGold(-500);
-    }
-    private void OnDestroy() 
-    {
-        if(campaignSaveManager != null)
-            campaignSaveManager.OnGoldChanged -= OnGoldAmountChanged;
-    }
+    
 }
 }

@@ -266,8 +266,9 @@ namespace TJ.MainMenu
             battleBonusLocalized = ApplyPrimaryColorToLabel(battleBonusLocalized);
             raceBattleBonusText.text = battleBonusLocalized;
 
-            string starting = LocalizationManager.Instance.GetText("Treasury");
-            heroGoldText.text = $"{starting}:    {_hero.StartingGold} <sprite name=GoldSprite>";
+            string treasuryLocalized = LocalizationManager.Instance.GetText("Treasury");
+            string bonusString = startingArmySection.StartingGoldBonusFromMetaprogression > 0 ? $" <color={ColorData.Green}>(+{startingArmySection.StartingGoldBonusFromMetaprogression})</color>" : "";
+            heroGoldText.text = $"{treasuryLocalized}:    {_hero.StartingGold}{bonusString} <sprite name=GoldSprite>";
 
             uniqueSquad = new SquadToLoad(
                 _hero.SignatureUnit, 
@@ -494,7 +495,8 @@ namespace TJ.MainMenu
             string titleLocalized = LocalizationManager.Instance.GetText("startingGold");
             string desc1Localized = LocalizationManager.Instance.GetText("startingGoldDesc1");
             string desc2Localized = LocalizationManager.Instance.GetText("startingGoldDesc2");
-            string fullDescription = $"{desc1Localized} <color={ColorData.Gold}>[{startingGoldTreasury}]</color> {desc2Localized}";
+            string bonusString = startingArmySection.StartingGoldBonusFromMetaprogression > 0 ? $" <color={ColorData.Green}>(+{startingArmySection.StartingGoldBonusFromMetaprogression})</color>" : "";
+            string fullDescription = $"{desc1Localized} <color={ColorData.Gold}>[{startingGoldTreasury}]</color>{bonusString} {desc2Localized}";
 
             startingGoldTooltipTrigger.SetUpToolTip(titleLocalized, fullDescription);
         }

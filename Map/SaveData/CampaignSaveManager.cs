@@ -22,8 +22,6 @@ namespace TJ
     {
         public delegate void ChapterCompleted(int activeLayerIndex);
         public event ChapterCompleted OnChapterCompleted;
-        public delegate void GoldChanged(int goldAmount);
-        public event GoldChanged OnGoldChanged;
         public delegate void UnitHealthChanged();
         public event UnitHealthChanged OnUnitHealthChanged;
         public delegate void GearChanged();
@@ -87,7 +85,7 @@ namespace TJ
         public void Load()
         {
             // Debug.Log($"Loading campaign save data...");
-            OnGoldChanged?.Invoke(saveData.goldAmount);
+            CampaignManager.Instance.GoldManager.LoadGold();
             OnChapterCompleted?.Invoke(saveData.activeMapLayer);
             OnGearChanged?.Invoke();
             OnArmyStructureChanged += SavePlayerArmy;
@@ -224,7 +222,9 @@ namespace TJ
         }
         public bool CheckForRoomToRecruit()
         {
-            //check if any unit index is -1
+            // Third reserve slot may have been unlocked mid-run; army array hasn't expanded yet
+            if (saveData.playerArmy.Length < 10 + MaxReserveSlots) return true;
+
             for(int i = 0; i < saveData.playerArmy.Length; i++) {
                 if(saveData.playerArmy[i].UnitIndex == -1) {
                     return true;
@@ -557,6 +557,7 @@ namespace TJ
             }
         public void RecruitSquad(SquadStats _squadsStats, float healthOfSquad = 1f)
         {
+            EnsureArmyCapacity();
             int nextEmptyUnitIndex = GetNextEmptyUnitIndex(saveData.playerArmy);
             SquadToLoad newSquad = new (
                 _squadsStats.unitName,
@@ -619,6 +620,7 @@ namespace TJ
         }
         public void UpdateUnitIndexes(List<string> _unitIndexes)
         {
+            EnsureArmyCapacity();
             SquadToLoad[] squadsToMoveTo = saveData.playerArmy;
             SquadToLoad[] updatedSquads = new SquadToLoad[squadsToMoveTo.Length];
 
@@ -661,6 +663,19 @@ namespace TJ
                 }
             }
             return -1;
+        }
+        // Expands playerArmy to 10 + MaxReserveSlots if the third reserve slot was unlocked mid-run.
+        // Does not fire OnArmyStructureChanged — callers handle that themselves.
+        private void EnsureArmyCapacity()
+        {
+            int targetLength = 10 + MaxReserveSlots;
+            if (saveData.playerArmy.Length >= targetLength) return;
+
+            SquadToLoad[] expanded = new SquadToLoad[targetLength];
+            Array.Copy(saveData.playerArmy, expanded, saveData.playerArmy.Length);
+            for (int i = saveData.playerArmy.Length; i < targetLength; i++)
+                expanded[i] = new SquadToLoad { UnitIndex = -1, UniqueID = Guid.NewGuid().ToString() };
+            saveData.playerArmy = expanded;
         }
         public void DisbandMultipleSquads(List<string> _uniqueIDs)
         {
@@ -1121,11 +1136,9 @@ namespace TJ
                 switch (eventOutcomeModifier.EventOutcomeModifierEnum)
                 {
                     case EventOutcomeModifierEnum.Gold:
-                        ModifyGold((int)eventOutcomeModifier.Value);
+                        string localizedString = LocalizationManager.Instance.GetText("Rewards");
+                        CampaignManager.Instance.GoldManager.ModifyGold((int)eventOutcomeModifier.Value, localizedString);
                         break;
-                    // case EventOutcomeModifierEnum.Reputation:
-                    //     ModifyReputation((int)eventOutcomeModifier.Value);
-                    //     break;
                     case EventOutcomeModifierEnum.UnitHealth:
                         if (saveData.Gear.Contains(GearID.MichaelsSecretStuff) && eventOutcomeModifier.Value < 0)
                         {
@@ -1140,16 +1153,10 @@ namespace TJ
         /// Modifies the gold amount by _goldAmount. Can be positive or negative.
         /// </summary>
         /// <param name="_goldAmount"> the amount to increase gold amount by</param>
-        public void ModifyGold(int _goldAmount)
+        public void ModifyGoldSaveDataValue(int _goldAmount)
         {
-            if (_goldAmount == 0)
-            {
-                // Debug.Log($"Gold amount to modify is 0, not modifying gold");
-                return;
-            }
-
-            // saveData = SaveDataHandler.Load();
             saveData.goldAmount += _goldAmount;
+
             //clamp gold to be at least 0
             saveData.goldAmount = math.max(saveData.goldAmount, 0);
             
@@ -1157,11 +1164,7 @@ namespace TJ
             if (!DisableSaving) SaveDataHandler.SaveCampaign(saveData);
 
             if (saveData.goldAmount > 20)
-            {
                 SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_TWENTY_GOLD);
-            }
-            
-            OnGoldChanged?.Invoke(saveData.goldAmount);
         }
 
         #region Gear
@@ -1193,7 +1196,8 @@ namespace TJ
             Debug.Log($"Sold gear {_gearName}");
             saveData.Gear.Remove(_gearName);
             CampaignManager.Instance.GearManager.UnAquireGear(_gearName);
-            ModifyGold(_sellValue);
+            string localizedString = LocalizationManager.Instance.GetText($"{_gearName}Name");
+            CampaignManager.Instance.GoldManager.ModifyGold(_sellValue, localizedString);
             CampaignSaveData tempSaveData = SaveDataHandler.Load();
             tempSaveData.Gear = saveData.Gear;
             // tempSaveData.goldAmount = saveData.goldAmount;
@@ -1219,7 +1223,8 @@ namespace TJ
         }
         public void SellConsumable(Consumable consumable, int sellValue)
         {
-            ModifyGold(sellValue);
+            string localizedString = LocalizationManager.Instance.GetText($"{consumable.ConsumableEnum}Name");
+            CampaignManager.Instance.GoldManager.ModifyGold(sellValue, localizedString);
             RemoveConsumable(consumable.ConsumableEnum);
         }
         public void RemoveConsumable(ConsumableEnum _consumable)
@@ -1399,6 +1404,10 @@ namespace TJ
             saveData.HistoricalKillStore = SaveDataHandler.AddToHistoricalKills(saveData.HistoricalKillStore, _squadIdKillCounter);
             // Debug.Log($"new historical kill store count: {saveData.HistoricalKillStore.Count}");
 
+            int totalKills = 0;
+            foreach (var squadKill in _squadIdKillCounter) totalKills += squadKill.Kills;
+            saveData.RunStats.enemiesSlain += totalKills;
+
             if (!DisableSaving) SaveDataHandler.SaveCampaignSnapshot(saveData);
         }
         public void PrestigeUnitsOnKills()
@@ -1446,7 +1455,12 @@ namespace TJ
         }
         public void CheckPostRunAchievements()
         {
+#if DEMO
             Debug.Log($"Book 2 completed - Demo beaten on {saveData.difficultyLevel}");
+else
+            Debug.Log($"Book 3 completed - Release beaten on {saveData.difficultyLevel}");
+#endif
+
 
             SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_WIN_DEMO);
 

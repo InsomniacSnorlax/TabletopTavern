@@ -97,7 +97,7 @@ namespace TJ.Shop
         }
         public void AttemptPurchase()
         {
-            if(!CampaignManager.Instance.EconomyManager.CheckIfCanAfford(cost)) {
+            if(!CampaignManager.Instance.GoldManager.CheckIfCanAfford(cost)) {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("notEnoughGold"));
                 shopPanel.RenableShopPanel();
                 return;

@@ -102,9 +102,10 @@ partial struct UnitSetUpSystem : ISystem
                         }
                         break;
                     case 3:
-                        //go forth my hordes: Goblins gain +20 [Leadership] and +4 [Melee Attack]
-                        if(unit.ValueRO.unitName == UnitName.GoblinRabble || unit.ValueRO.unitName == UnitName.GoblinScrapShooters) {
-                            meleeAttack += 4;
+                        //go forth my hordes: Goblins gain +6 [Melee Defense] and +6 [Melee Attack]
+                        if(TabletopTavernConstants.IsAGoblinUnit(unit.ValueRO.unitName)) {
+                            meleeDefense += 6;
+                            meleeAttack += 6;
                         }
                         break;
                     case 4:
@@ -147,13 +148,19 @@ partial struct UnitSetUpSystem : ISystem
                     case 11:
                         //Nagoya Steel: All units gain +4 [Weapon Strength]
                         weaponStrength += 4;
+                        //Bushido Discipline: If army contains only Sakura Dynasty units, all units gain +20 [Leadership] and +4 [Melee Attack]
+                        if (campaignSaveDataHolder.OnlySakuraUnits)
+                            meleeAttack += 4;
                         break;
-                    case 12: 
+                    case 12:
                         //Innovator's Legacy: EmperorsArquebusiers Gain +10 [Accuracy] and +4 [Missile Strength]
                         if(unit.ValueRO.unitName == UnitName.EmperorsArquebusiers) {
                             accuracy += 10;
                             missileStrength += 4;
                         }
+                        //Bushido Discipline: If army contains only Sakura Dynasty units, all units gain +20 [Leadership] and +4 [Melee Attack]
+                        if (campaignSaveDataHolder.OnlySakuraUnits)
+                            meleeAttack += 4;
                         break;
                     case 13:
                         // Ancestral Hatred: All units gain +10 [Melee Attack] and +4 [Weapon Strength] when fignting the Gruntkin
@@ -223,7 +230,7 @@ partial struct UnitSetUpSystem : ISystem
                     meleeDefense += GearData.GEAR_GNOMISHARMORERS_MODIFIER;
                 if(Contains(GearID.WellHonedAxes) && unitAttributes.ArmorPiercing) //must be after diamond tipped arrows
                     meleeAttack += GearData.GEAR_WELLHONEDAXES_MODIFIER;
-                if(Contains(GearID.RavensEye) && squadStats.RarityTier != UnitRarity.Common)
+                if(Contains(GearID.RavensEye) && squadStats.RarityTier != UnitRarity.Common && squadStats.unitType == UnitType.Ranged)
                     accuracy += GearData.GEAR_RAVENSEY_MODIFIER;
                 if(Contains(GearID.RingoftheElvenKing) && squadStats.unitType == UnitType.Ranged)
                     missileStrength += GearData.GEAR_RINGOFTHEELVENKING_MODIFIER;

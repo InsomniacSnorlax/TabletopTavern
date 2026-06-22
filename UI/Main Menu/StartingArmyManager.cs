@@ -58,6 +58,8 @@ namespace TJ.MainMenu
         public MonitoredData<int> remainingTreasury = new (0);
         List<UnitName> troopsRecruitied = new ();
         int startingGold;
+        int startingGoldBonusFromMetaprogression;
+        public int StartingGoldBonusFromMetaprogression => startingGoldBonusFromMetaprogression;
         public Action<int> OnStartingArmyLengthChanged;
 
         public void SetUp(PlayPanel _playPanel)
@@ -67,14 +69,17 @@ namespace TJ.MainMenu
             remainingTreasury.OnValueChanged += playPanel.RemainingTreasuryChanged;
             startingGold = playPanel.hero.StartingGold;
             
+            startingGoldBonusFromMetaprogression = 0;
             if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_startingGoldMetaprogressionModel)) {
-                startingGold += _startingGoldMetaprogressionModel.NodeValue;
+                startingGoldBonusFromMetaprogression += _startingGoldMetaprogressionModel.NodeValue;
                 // Debug.Log($"Increased starting gold to: {startingGold}");
             }
             if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_startingGoldMetaprogressionModel2)) {
-                startingGold += _startingGoldMetaprogressionModel2.NodeValue;
+                startingGoldBonusFromMetaprogression += _startingGoldMetaprogressionModel2.NodeValue;
                 // Debug.Log($"Increased starting gold to: {startingGold}");
             }
+            startingGold += startingGoldBonusFromMetaprogression;
+
             remainingTreasury.Value = startingGold;
 
             LoadStartingGear();

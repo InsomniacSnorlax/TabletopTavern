@@ -14,7 +14,7 @@ public struct ArmyLossesTriggeredPlayer : IComponentData { }
 public struct ArmyLossesTriggeredEnemy : IComponentData { }
 public struct ArmyLossesPenaltyTag: IComponentData, IEnableableComponent { }
 
-public struct CampaignSaveDataHolder : IComponentData { public bool IsCustomBattle; public GearIDsSerialized Gear; public int ActiveHeroID; public Race EnemyRace; }
+public struct CampaignSaveDataHolder : IComponentData { public bool IsCustomBattle; public GearIDsSerialized Gear; public int ActiveHeroID; public Race EnemyRace; public bool OnlySakuraUnits; }
 public struct MainCamera : IComponentData { }
 public struct NeedsToBeProcessed : IComponentData { public float Delay; }
 
@@ -30,7 +30,11 @@ public struct ShieldedStanceUnitComponent : IComponentData { public ShieldedStan
 public struct DefensiveStanceTag : IComponentData, IEnableableComponent { }
 
 public struct MeleeSquad : IComponentData { }
-public struct RangedSquad : IComponentData, IEnableableComponent { public float AttackRange; public int Ammunition; }
+public struct RangedSquad : IComponentData, IEnableableComponent 
+{ 
+    public float AttackRange; 
+    public int Ammunition; 
+}
 public struct ArtillerySquad : IComponentData { }
 public struct AmmuntionSpent : IComponentData { public int squadId; }
 public struct RanOutOfAmmoTag : IComponentData { }

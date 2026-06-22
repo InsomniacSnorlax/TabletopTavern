@@ -102,7 +102,7 @@ public class ShopConsumable : MonoBehaviour
     }
     public void AttemptPurchase()
     {
-        if(!CampaignManager.Instance.EconomyManager.CheckIfCanAfford(consumablePrice)) {
+        if(!CampaignManager.Instance.GoldManager.CheckIfCanAfford(consumablePrice)) {
             NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("notEnoughGold"));
             shopPanel.RenableShopPanel();
             return;
@@ -114,7 +114,8 @@ public class ShopConsumable : MonoBehaviour
             return;
         }
         SteamStatic.AddStat(SteamData.SHOP_PURCHASES_STAT, 1);
-        CampaignManager.Instance.EconomyManager.SpendGold(consumablePrice);
+        string localizedString = LocalizationManager.Instance.GetText($"{consumableType}Name");
+        CampaignManager.Instance.GoldManager.ModifyGold(-consumablePrice, localizedString);
         shopPanel.ConsumablePurchased();
         
         CampaignManager.Instance.CampaignSaveManager.AquireConsumable(consumableType);

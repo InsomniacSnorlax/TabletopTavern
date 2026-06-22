@@ -66,7 +66,7 @@ namespace TJ.Town
         TreasurePanel treasurePanel;
         RecruitPanel recruitPanel;
         ShopPanel shopPanel;
-        EconomyManager economyManager;
+        GoldManager goldManager;
         int recruitmentCost;
         bool hasRecruitedMaxUnits = false;
         bool imperialEdictActive = false;
@@ -98,7 +98,7 @@ namespace TJ.Town
             treasurePanel = mapSceneUIManager.TreasurePanel;
 
             lootGoldButton.gameObject.SetActive(false);
-            economyManager = CampaignManager.Instance.EconomyManager;
+            goldManager = CampaignManager.Instance.GoldManager;
 
             string depositGoldTitleLocalized = LocalizationManager.Instance.GetText("Deposit Gold");
             string depositGoldDescLocalized = LocalizationManager.Instance.GetText("depositGoldDesc");
@@ -107,8 +107,8 @@ namespace TJ.Town
         }
         public void LoadTownPanel(int _selectedNodeIndex, int level)
         {
-            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
-            economyManager.OnGoldAmountChangedEconomyManager += UpdateAffordability;
+            goldManager.OnGoldAmountChanged -= UpdateAffordability;
+            goldManager.OnGoldAmountChanged += UpdateAffordability;
             _depositGoldPopup.ResetSession();
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0.5f, 0.25f));
             if (!campaignSaveManager.SaveData.nodeGenerated) {
@@ -354,7 +354,8 @@ namespace TJ.Town
         }
         public void OnLootGoldButtonClicked()
         {
-            campaignSaveManager.ModifyGold(townSaveData.bountyAmount);
+            string localizedString = LocalizationManager.Instance.GetText("Loot Gold");
+            goldManager.ModifyGold(townSaveData.bountyAmount, localizedString);
             townSaveData.bountyAmount = 0;
             campaignSaveManager.SetTownData(townSaveData);
 
@@ -386,13 +387,14 @@ namespace TJ.Town
                 imperialEdictActive = false;
                 UpdateAffordability(campaignSaveManager.SaveData.goldAmount);
             }
-            if (!CampaignManager.Instance.EconomyManager.CheckIfCanAfford(modifiedRecruitmentCost))
+            if (!CampaignManager.Instance.GoldManager.CheckIfCanAfford(modifiedRecruitmentCost))
             {
                 NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("notEnoughGold"));
                 shopPanel.RenableShopPanel();
                 return;
             }
-            CampaignManager.Instance.EconomyManager.SpendGold(modifiedRecruitmentCost);
+            string localizedString = LocalizationManager.Instance.GetText("Recruit Units");
+            CampaignManager.Instance.GoldManager.ModifyGold(-modifiedRecruitmentCost, localizedString);
 
             townPanelCanvasGroup.FadeOutAsync(0.25f);
             IAudioRequester.Instance.PlaySFX(SFXData.FocusNode);
@@ -422,7 +424,7 @@ namespace TJ.Town
         public override void ClosePanel()
         {
             Debug.Log("[Map] Closing TownPanel");
-            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
+            goldManager.OnGoldAmountChanged -= UpdateAffordability;
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0f, 0.25f));
             lootGearButton.gameObject.SetActive(false);
             lootGoldButton.gameObject.SetActive(false);
@@ -435,7 +437,7 @@ namespace TJ.Town
         }
         public void DisableTownCanvasesOnLoss()
         {
-            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
+            goldManager.OnGoldAmountChanged -= UpdateAffordability;
             lootGearButton.gameObject.SetActive(false);
             lootGoldButton.gameObject.SetActive(false);
             HideEnemyCompany();
@@ -485,9 +487,9 @@ namespace TJ.Town
         }
         public void OnDestroy()
         {
-            if (economyManager == null) return;
+            if (goldManager == null) return;
 
-            economyManager.OnGoldAmountChangedEconomyManager -= UpdateAffordability;
+            goldManager.OnGoldAmountChanged -= UpdateAffordability;
         }
         private void SetRecruitmentAvailable(bool available)
         {

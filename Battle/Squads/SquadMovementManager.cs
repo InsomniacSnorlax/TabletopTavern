@@ -79,6 +79,10 @@ namespace TJ
 
                     if (squadNavObjects.TryGetValue(squadEntityData.TargetSquadEntity, out SquadNavObject targetSquadNavObject))
                     {
+                        if (entityManager.HasBuffer<EntityReferenceBufferElement>(squadEntityData.TargetSquadEntity) &&
+                            entityManager.GetBuffer<EntityReferenceBufferElement>(squadEntityData.TargetSquadEntity).Length <= 1)
+                            continue;
+
                         bool isFlanking = squadNavObjects[squadEntities[i]].IsFlanking(targetSquadNavObject);
 
                         if (isFlanking)
@@ -98,16 +102,15 @@ namespace TJ
                                 }
                             }
                         }
-                        // else
-                        // {
-                        //     if(entityManager.GetComponentData<IsFlanking>(squadEntities[i]).TargetFlankedSquadEntity == squadEntityData.TargetSquadEntity)
-                        //     {
-                        //         var isFlankingComponent = entityManager.GetComponentData<IsFlanking>(squadEntities[i]);
-                        //         isFlankingComponent.TargetFlankedSquadEntity = Entity.Null;
-                        //         entityManager.SetComponentData(squadEntities[i], isFlankingComponent);
-                        //         Debug.Log($"ended flank!");
-                        //     }
-                        // }
+                        else
+                        {
+                            if(entityManager.GetComponentData<IsFlanking>(squadEntities[i]).TargetFlankedSquadEntity == squadEntityData.TargetSquadEntity)
+                            {
+                                var isFlankingComponent = entityManager.GetComponentData<IsFlanking>(squadEntities[i]);
+                                isFlankingComponent.TargetFlankedSquadEntity = Entity.Null;
+                                entityManager.SetComponentData(squadEntities[i], isFlankingComponent);
+                            }
+                        }
                     }
                 }
             }

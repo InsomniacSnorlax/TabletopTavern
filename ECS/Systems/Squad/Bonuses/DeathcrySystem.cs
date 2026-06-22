@@ -18,52 +18,62 @@ partial struct DeathcrySystem : ISystem
         var entityManager = state.EntityManager;
         float deltaTime = SystemAPI.Time.DeltaTime;
 
-        bool anyJustFell = false;
+        bool playerSideFell = false;
+        bool enemySideFell = false;
         var toTag = new NativeList<Entity>(Allocator.Temp);
 
-        foreach (var (entityBuffer, entity) in SystemAPI.Query<
-            DynamicBuffer<EntityReferenceBufferElement>>()
+        foreach (var (entityBuffer, squadEntity, entity) in SystemAPI.Query<
+            DynamicBuffer<EntityReferenceBufferElement>,
+            RefRO<SquadEntity>>()
             .WithAll<RavenHostRaceTag>()
             .WithNone<DeathcryTriggeredTag>()
             .WithEntityAccess())
         {
             if (entityBuffer.Length > 0) continue;
             toTag.Add(entity);
-            anyJustFell = true;
+            if (squadEntity.ValueRO.Team == Team.Player) playerSideFell = true;
+            else enemySideFell = true;
         }
 
-        foreach (var (_, entity) in SystemAPI.Query<RavenHostRaceTag>()
-            .WithAll<BrokenSquadTag>()
+        foreach (var (squadEntity, entity) in SystemAPI.Query<RefRO<SquadEntity>>()
+            .WithAll<RavenHostRaceTag, BrokenSquadTag>()
             .WithNone<DeathcryTriggeredTag>()
             .WithEntityAccess())
         {
             toTag.Add(entity);
-            anyJustFell = true;
+            if (squadEntity.ValueRO.Team == Team.Player) playerSideFell = true;
+            else enemySideFell = true;
         }
 
-        foreach (var (_, entity) in SystemAPI.Query<RavenHostRaceTag>()
-            .WithAll<WithdrawSquadTag>()
+        foreach (var (squadEntity, entity) in SystemAPI.Query<RefRO<SquadEntity>>()
+            .WithAll<RavenHostRaceTag, WithdrawSquadTag>()
             .WithNone<DeathcryTriggeredTag>()
             .WithEntityAccess())
         {
             toTag.Add(entity);
-            anyJustFell = true;
+            if (squadEntity.ValueRO.Team == Team.Player) playerSideFell = true;
+            else enemySideFell = true;
         }
 
         foreach (Entity e in toTag)
             entityManager.AddComponent<DeathcryTriggeredTag>(e);
         toTag.Dispose();
 
+        bool anyJustFell = playerSideFell || enemySideFell;
         if (anyJustFell)
         {
-            foreach (var (entityBuffer, bonusBuffer, deathcry) in SystemAPI.Query<
+            foreach (var (entityBuffer, bonusBuffer, deathcry, squadEntity) in SystemAPI.Query<
                 DynamicBuffer<EntityReferenceBufferElement>,
                 DynamicBuffer<BattlefieldBonusBufferElement>,
-                RefRW<DeathcryComponent>>()
+                RefRW<DeathcryComponent>,
+                RefRO<SquadEntity>>()
                 .WithAll<RavenHostRaceTag>()
                 .WithNone<DeathcryTriggeredTag>())
             {
                 if (entityBuffer.Length == 0) continue;
+
+                bool friendlyFell = squadEntity.ValueRO.Team == Team.Player ? playerSideFell : enemySideFell;
+                if (!friendlyFell) continue;
 
                 if (deathcry.ValueRO.AppliedBonus == 0)
                 {

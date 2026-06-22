@@ -25,52 +25,52 @@ namespace TabletopAnalytics
         }
         public void LogRunStart(string runUUID, int heroID, int difficultyLevel, string startingGear, SquadToLoad[] startingArmy)
         {
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
             return;
-// #endif
-            if (!_initialized) return;
+#endif
+            // if (!_initialized) return;
 
-            List<UnitName> startingUnits = new ();
-            foreach (SquadToLoad squad in startingArmy)
-            {
-                if(squad.UnitIndex == -1) continue;
-                startingUnits.Add(squad.UnitName);
-            }
+            // List<UnitName> startingUnits = new ();
+            // foreach (SquadToLoad squad in startingArmy)
+            // {
+            //     if(squad.UnitIndex == -1) continue;
+            //     startingUnits.Add(squad.UnitName);
+            // }
 
-            CustomEvent myEvent = new ("runStartEvent")
-            {
-                {"runUUID", runUUID },
-                {"heroID", heroID },
-                {"difficultyLevel", difficultyLevel },
-                {"startingGear", startingGear },
-                {"startingUnits", string.Join(",", startingUnits) }
-            };
+            // CustomEvent myEvent = new ("runStartEvent")
+            // {
+            //     {"runUUID", runUUID },
+            //     {"heroID", heroID },
+            //     {"difficultyLevel", difficultyLevel },
+            //     {"startingGear", startingGear },
+            //     {"startingUnits", string.Join(",", startingUnits) }
+            // };
 
-            Debug.Log($"Logging Run Start Event: {myEvent.ToString()}");
+            // Debug.Log($"Logging Run Start Event: {myEvent.ToString()}");
 
-            AnalyticsService.Instance.RecordEvent(myEvent);
-            AnalyticsService.Instance.Flush();
+            // AnalyticsService.Instance.RecordEvent(myEvent);
+            // AnalyticsService.Instance.Flush();
         }
         public void LogRunEnd(string runUUID, RunResult runResult, int turnNumber, int goldCount, int enemiesSlain)
         {
-// #if UNITY_EDITOR
+#if UNITY_EDITOR
             return;
-// #endif
-            if (!_initialized) return;
+#endif
+            // if (!_initialized) return;
 
-            CustomEvent myEvent = new ("runEndEvent")
-            {
-                {"runUUID", runUUID },
-                {"runResult", runResult.ToString() },
-                {"turnNumber", turnNumber },
-                {"goldCount", goldCount },
-                {"enemiesSlain", enemiesSlain }
-            };
+            // CustomEvent myEvent = new ("runEndEvent")
+            // {
+            //     {"runUUID", runUUID },
+            //     {"runResult", runResult.ToString() },
+            //     {"turnNumber", turnNumber },
+            //     {"goldCount", goldCount },
+            //     {"enemiesSlain", enemiesSlain }
+            // };
 
-            Debug.Log($"Logging Run End Event: {myEvent.ToString()}");
+            // Debug.Log($"Logging Run End Event: {myEvent.ToString()}");
 
-            AnalyticsService.Instance.RecordEvent(myEvent);
-            AnalyticsService.Instance.Flush();
+            // AnalyticsService.Instance.RecordEvent(myEvent);
+            // AnalyticsService.Instance.Flush();
         }
     }
 }

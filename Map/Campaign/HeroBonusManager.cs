@@ -54,7 +54,7 @@ namespace TJ
                 string localisedBonusName = LocalizationManager.Instance.GetText("SakuraDynastyBonusDescription");
                 //parse everything to the left of the first :
                 localisedBonusName = localisedBonusName.Split(':')[0];
-                unitStatBonuses.Add(new UnitStatBonus(_unitStat, localisedBonusName, 10));
+                unitStatBonuses.Add(new UnitStatBonus(_unitStat, localisedBonusName, 4));
             }
             if (_unitStat == UnitStat.Leadership)
             {
@@ -112,14 +112,15 @@ namespace TJ
                     }
                     break;
                 case 3:
-                    //go forth my hordes: Goblins gain +20 [Leadership] and +4 [Melee Attack]
-                    if (_unitStat == UnitStat.Leadership && (_requestingUnit == UnitName.GoblinRabble || _requestingUnit == UnitName.GoblinScrapShooters))
+                    //go forth my hordes: Goblins gain +4 [Melee Defense] and +4 [Melee Attack]
+                    if (_unitStat == UnitStat.MeleeDefense && TabletopTavernConstants.IsAGoblinUnit(_requestingUnit))
                     {
-                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle6"), 20));
+                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle6"), 6));
                     }
-                    if (_unitStat == UnitStat.MeleeAttack && (_requestingUnit == UnitName.GoblinRabble || _requestingUnit == UnitName.GoblinScrapShooters))
+            
+                    if (_unitStat == UnitStat.MeleeAttack && TabletopTavernConstants.IsAGoblinUnit(_requestingUnit))
                     {
-                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle6"), 4));
+                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle6"), 6));
                     }
                     break;
                 case 4:

@@ -1,23 +1,50 @@
 
 using UnityEngine;
 using System.Collections.Generic;
+using Memori.Tooltip;
+using Memori.Localization;
+using UnityEngine.EventSystems;
 
 namespace TJ
 {
-    public class SquadDisplayCardBattleQuickInfo : MonoBehaviour
+    public class SquadDisplayCardBattleQuickInfo : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField] private Animator _animator;
-        [SerializeField] private GameObject _movementIcon, _chargeIcon, _braceIcon, _defensiveStanceIcon, _volleyFireIcon, _rapidFireIcon;
+        [SerializeField] private GameObject _movementIcon, _chargeIcon, _braceIcon, _defensiveStanceIcon, _volleyFireIcon, _rapidFireIcon, _meleeIcon;
         private bool _showingInfo;
 
-        public void UpdateSquadDisplay(bool isMoving, bool isCharging, bool isBracing, bool defensiveStance, bool volleyFiring, bool rapidFiring)
+        private void Start()
         {
-            if((!isMoving && !isCharging && !isBracing && !defensiveStance && !volleyFiring && !rapidFiring) && _showingInfo)
+            SetIconTooltip(_movementIcon,        "Moving");
+            SetIconTooltip(_chargeIcon,          "Charging");
+            SetIconTooltip(_braceIcon,           "Braced");
+            SetIconTooltip(_defensiveStanceIcon, "DefensiveStanceTitle");
+            SetIconTooltip(_volleyFireIcon,      "VolleyFireTitle");
+            SetIconTooltip(_rapidFireIcon,       "FireAtWillTitle");
+            SetIconTooltip(_meleeIcon,           "InCombatDesc");
+        }
+
+        public void OnPointerClick(PointerEventData eventData) { }
+        public void OnPointerDown(PointerEventData eventData) { }
+        public bool IsPointerOver { get; private set; }
+        public void OnPointerEnter(PointerEventData eventData) { IsPointerOver = true; }
+        public void OnPointerExit(PointerEventData eventData) { IsPointerOver = false; }
+
+        private void SetIconTooltip(GameObject icon, string descKey)
+        {
+            if (icon == null) return;
+            if (!icon.TryGetComponent<MemoriTooltipTrigger>(out var trigger)) return;
+            trigger.SetUpToolTip(_description: LocalizationManager.Instance.GetText(descKey));
+        }
+
+        public void UpdateSquadDisplay(bool isMoving, bool isCharging, bool isBracing, bool defensiveStance, bool volleyFiring, bool rapidFiring, bool inMeleeCombat)
+        {
+            if((!isMoving && !isCharging && !isBracing && !defensiveStance && !volleyFiring && !rapidFiring && !inMeleeCombat) && _showingInfo)
             {
                 _animator.Play("SQIHide");
                 _showingInfo = false;
             }
-            else if((isMoving || isCharging || isBracing || defensiveStance || volleyFiring || rapidFiring) && !_showingInfo)
+            else if((isMoving || isCharging || isBracing || defensiveStance || volleyFiring || rapidFiring || inMeleeCombat) && !_showingInfo)
             {
                 _animator.Play("SQIShow");
                 _showingInfo = true;
@@ -75,6 +102,15 @@ namespace TJ
             else if(!rapidFiring && _rapidFireIcon.activeSelf)
             {
                 _rapidFireIcon.SetActive(false);
+            }
+
+            if(inMeleeCombat && !_meleeIcon.activeSelf)
+            {
+                _meleeIcon.SetActive(true);
+            }
+            else if(!inMeleeCombat && _meleeIcon.activeSelf)
+            {
+                _meleeIcon.SetActive(false);
             }
 
         }

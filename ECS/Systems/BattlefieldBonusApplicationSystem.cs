@@ -61,6 +61,11 @@ partial struct BattlefieldBonusApplicationSystem : ISystem
 
                 if (hasBonus) continue;
 
+                // Rain only slows large units
+                if (battlefieldBonusApplicator.ValueRO.BattlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Rain
+                    && !SystemAPI.HasComponent<LargeTag>(squadEntity.SelfEntity))
+                    continue;
+
                 //apply bonus
                 bonusBuffer.Add(new BattlefieldBonusBufferElement { Value = battlefieldBonusApplicator.ValueRO.BattlefieldBonus });
                 // Debug.Log($"BattlefieldBonusApplicationSystem: Applied bonus {battlefieldBonusApplicator.ValueRO.BattlefieldBonus.UnitStat} to {squadEntity.SelfEntity}");

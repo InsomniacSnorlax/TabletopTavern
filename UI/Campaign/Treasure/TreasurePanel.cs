@@ -162,7 +162,7 @@ namespace TJ.Treasure
         {
             if (!campaignSaveManager.HasRoomForConsumable())
             {
-                string errorLocalized = LocalizationManager.Instance.GetText("No space for consumable");
+                string errorLocalized = LocalizationManager.Instance.GetText("NoRoomForConsumable");
                 NotificationManager.Instance.ErrorNotification(errorLocalized);
                 return;
             }

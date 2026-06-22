@@ -41,7 +41,7 @@ namespace TJ
         private DateTime time;
         private bool battlefieldGeneratedAtLeastOnce;
 
-        private async void Start()
+        private void Start()
         {
             battleManager = BattleManager.Instance;
             squadMovementManager = battleManager.SquadMovementManager;
@@ -58,7 +58,6 @@ namespace TJ
             gearManager = battleManager.GearManager;
 
             SceneHandler.Instance.OnRequestSceneCleanUp += OnRequestSceneCleanUp;
-            await LoadSubscene();
         }
         public async Task LoadOfBattleScene()
         {
@@ -90,12 +89,32 @@ namespace TJ
 
             TabletopTavernData.Instance.LoadAndInjectData();
 
+            bool onlySakuraUnits = false;
+            if (!customBattle)
+            {
+                SquadToLoad[] savedArmy = SaveDataHandler.Load().playerArmy;
+                onlySakuraUnits = true;
+                bool anyValid = false;
+                foreach (var s in savedArmy)
+                {
+                    if (s.UnitIndex == -1) continue;
+                    anyValid = true;
+                    if (TabletopTavernData.Instance.GetRaceFromUnitName(s.UnitName) != Race.SakuraDynasty)
+                    {
+                        onlySakuraUnits = false;
+                        break;
+                    }
+                }
+                if (!anyValid) onlySakuraUnits = false;
+            }
+
             entityManager.SetComponentData(entity, new CampaignSaveDataHolder
             {
                 IsCustomBattle = customBattle,
                 Gear = gearIdsSerialized,
                 ActiveHeroID = customBattle ? -1 : SaveDataHandler.GetActiveHeroID(),
-                EnemyRace = SaveDataHandler.GetEnemyRace()
+                EnemyRace = SaveDataHandler.GetEnemyRace(),
+                OnlySakuraUnits = onlySakuraUnits
             });
 
 
@@ -256,6 +275,7 @@ namespace TJ
             }
 
             simulationStarted = false;
+            battlefieldGeneratedAtLeastOnce = false;
             AddressablesManager.Instance.ReleaseAll();
             Resources.UnloadUnusedAssets();
         }

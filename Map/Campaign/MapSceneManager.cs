@@ -3,12 +3,9 @@ using Memori.Scenes;
 using Memori.Tooltip;
 using System.Collections.Generic;
 using Memori.Audio;
-using Memori.SaveData;
 using Memori.Input;
 using System.Collections;
-using System.Threading.Tasks;
-using Memori.Steamworks;
-
+using Memori.Localization;
 namespace TJ.Map
 {
     public class MapSceneManager : MonoBehaviour
@@ -109,29 +106,33 @@ namespace TJ.Map
             void SnapshotLoad()
             {
                 Debug.Log($"Snapshot load of map scene activeChapterIndex: {activeChapterIndex}");
-                int finalNodeIndex = CampaignManager.Instance.CampaignSaveManager.SaveData.nodePath[^1];
-                // Debug.Log($"looking for node of index {finalNodeIndex} on layer {activeChapterIndex}");
-                selectedNode = mapLayers[activeChapterIndex].LayerNodes.Find(x => x.index == finalNodeIndex).mapNodeGameObject;
-                if(selectedNode == null) 
+                List<int> nodePath = CampaignManager.Instance.CampaignSaveManager.SaveData.nodePath;
+
+                // Find the pivot: the last nodePath entry that lives on mapLayers[activeChapterIndex].
+                // This is the last *completed* node on the current layer — SelectNextLayer uses it
+                // to mark the correct layer-(N+1) nodes as selectable.
+                selectedNode = null;
+                for (int ni = nodePath.Count - 1; ni >= 0 && selectedNode == null; ni--)
                 {
-                    //TODO Possible error here 
-                    Debug.LogError($"Selected node {finalNodeIndex} not found on layer {activeChapterIndex }");
-                    //search all layers for the node, dont use find itterate through all
-                    for(int i = 0; i < mapLayers.Count; i++) {
-                        for(int j = 0; j < mapLayers[i].LayerNodes.Count; j++) {
-                            if(mapLayers[i].LayerNodes[j].index == finalNodeIndex) {
-                                selectedNode = mapLayers[i].LayerNodes[j].mapNodeGameObject;
-                                break;
+                    selectedNode = mapLayers[activeChapterIndex].LayerNodes
+                        .Find(x => x.index == nodePath[ni]).mapNodeGameObject;
+                }
+
+                // Place the token at the pre-selected next node if one exists, else at the pivot.
+                int tokenNodeId = selectedNodeID != -1 ? selectedNodeID : (selectedNode != null ? selectedNode.Value.index : -1);
+                if (tokenNodeId != -1)
+                {
+                    bool placed = false;
+                    for (int i = 0; i < mapLayers.Count && !placed; i++) {
+                        for (int j = 0; j < mapLayers[i].LayerNodes.Count && !placed; j++) {
+                            if (mapLayers[i].LayerNodes[j].index == tokenNodeId) {
+                                playerToken.transform.position = mapLayers[i].LayerNodes[j].mapNodeGameObject.transform.position;
+                                placed = true;
                             }
                         }
-                        if(selectedNode != null) break;
-                    }
-                    if(selectedNode == null) {
-                        selectedNode = mapLayers[activeChapterIndex].LayerNodes[0].mapNodeGameObject;
                     }
                 }
-                // Debug.Log($"Loaded selected node {selectedNode.Value.index} on layer {activeChapterIndex} from snapshot");
-                playerToken.transform.position = selectedNode.transform.position;
+
                 SelectNextLayer();
                 UpdateNodePathFromSave();
                 mapSceneUIManager.HUDPanel.HudAnimator.Play("HUD Open");
@@ -139,7 +140,7 @@ namespace TJ.Map
 
             if (CampaignManager.Instance.CampaignSaveManager.SaveData.battleCompleted) LoadPostBattle();
             else if (activeChapterIndex == -1) InitialLoad();
-            else if (CampaignManager.Instance.CampaignSaveManager.SaveData.snapShot) SnapshotLoad();
+            else SnapshotLoad();
 
             //check if map scene is the override
             if(SceneHandler.Instance.EditorOverride == SceneHandler.EditorOverrides.Map && activeChapterIndex >= 0 && !CampaignManager.Instance.CampaignSaveManager.SaveData.battleCompleted)
@@ -336,7 +337,7 @@ namespace TJ.Map
                 }
                 return;
             }
-            
+
             for(int i = 0; i < mapLayers.Count; i++) {
                 if (i == activeChapterIndex + 1) {
                     for(int j = 0; j < mapLayers[i].LayerNodes.Count; j++) {
@@ -425,12 +426,15 @@ namespace TJ.Map
 #endif
 
             IAudioRequester.Instance.PlaySFX(SFXData.CompleteLayer);
-            CampaignManager.Instance.EconomyManager.CollectInterest();
+            CampaignManager.Instance.GoldManager.CollectInterest();
             
-            //DifficultyMod 12
+            //DifficultyMod 12 LoseGoldOnTurnEnd
             if(CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.King)
             {
-                CampaignManager.Instance.EconomyManager.LoseGoldOnTurnEnd();
+                string difficultyLocalized = LocalizationManager.Instance.GetText("difficultyName6");
+                string difficultyTitleLocalized = LocalizationManager.Instance.GetText("Difficulty");
+                string localizedString = $"{difficultyTitleLocalized}: {difficultyLocalized}";
+                CampaignManager.Instance.GoldManager.ModifyGold(-1, localizedString);
             }
 
             SelectNextLayer();

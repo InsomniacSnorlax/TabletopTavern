@@ -162,7 +162,8 @@ public class EventChoiceDisplay : MonoBehaviour, IPointerEnterHandler, IPointerE
                 NotificationManager.Instance.ErrorNotification(errorLocalized);
                 return;
             } else {
-                CampaignManager.Instance.CampaignSaveManager.ModifyGold(-actionCost);
+                string localizedString = LocalizationManager.Instance.GetText("Event");
+                CampaignManager.Instance.GoldManager.ModifyGold(-actionCost, localizedString);
             }
         }
 

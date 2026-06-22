@@ -68,7 +68,7 @@ namespace TJ.Recruit
 
             SetUpTierVisuals();
             goldCostText.text = cost.ToString();
-            goldCostText.color = CampaignManager.Instance.EconomyManager.CheckIfCanAfford(cost) ? Color.white : Color.red;
+            goldCostText.color = CampaignManager.Instance.GoldManager.CheckIfCanAfford(cost) ? Color.white : Color.red;
 
             recruitNameText.text = LocalizationManager.Instance.GetText(squadStats.unitName.ToString());
             unitCountText.text = squadStats.baseUnitCount.ToString();

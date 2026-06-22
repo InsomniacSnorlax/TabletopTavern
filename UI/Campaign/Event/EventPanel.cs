@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Memori.Utilities;
 using TMPro;
@@ -125,8 +124,8 @@ namespace TJ.Event
             startLitGuidance.SetActive(false);
             claimedByDestiny.SetActive(false);
             startlitGuidanceButton = startLitGuidance.GetComponent<Button>();
-            startlitGuidanceButton.onClick.RemoveAllListeners();
-            startlitGuidanceButton.onClick.AddListener(() => ActivateStartLitGuidance());
+            // startlitGuidanceButton.onClick.RemoveAllListeners();
+            // startlitGuidanceButton.onClick.AddListener(() => ActivateStartLitGuidance());
 
             claimedByDestinyButton = claimedByDestiny.GetComponent<Button>();
             claimedByDestinyButton.onClick.RemoveAllListeners();
@@ -159,7 +158,7 @@ namespace TJ.Event
             if (HeroBonusManager.Instance.ActiveHeroID == 7 || HeroBonusManager.Instance.ActiveHeroID == 8)
             {
                 starlitGuidanceCostText.text = "5";
-                if (CampaignManager.Instance.EconomyManager.CheckIfCanAfford(5))
+                if (CampaignManager.Instance.GoldManager.CheckIfCanAfford(5))
                 {
                     starlitGuidanceCostText.color = (Color)ColorData.HexToRgba(ColorData.Primary);
                 }
@@ -247,13 +246,17 @@ namespace TJ.Event
             IAudioRequester.Instance.PlaySFX(SFXData.EventOptionLoad);
             EventReward eventReward = GenerateReward(selectedChoice, eventRollOutcome);
 
-            if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_eventDoubleRewardsMetaprogressionModel) && eventRollOutcome is EventRollOutcome.CriticalSuccess or EventRollOutcome.Success) {
-                EventReward extraEventReward = GenerateReward(selectedChoice, eventRollOutcome);
-                var nonGearModifiers = extraEventReward.EventOutcome.EventOutcomeModifiers
-                    .Where(m => m.EventOutcomeModifierEnum != EventOutcomeModifierEnum.GearDrop)
-                    .ToList();
-                eventReward.EventOutcome.EventOutcomeModifiers.AddRange(nonGearModifiers);
-                Debug.Log($"Doubled Event Rewards!");
+            if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_eventDoubleRewardsMetaprogressionModel) &&
+                eventRollOutcome is EventRollOutcome.CriticalSuccess or EventRollOutcome.Success) {
+                var modifiers = eventReward.EventOutcome.EventOutcomeModifiers;
+                for (int i = 0; i < modifiers.Count; i++) {
+                    if (modifiers[i].EventOutcomeModifierEnum == EventOutcomeModifierEnum.Gold) {
+                        var m = modifiers[i];
+                        m.Value *= 2;
+                        modifiers[i] = m;
+                    }
+                }
+                Debug.Log($"Doubled Event Gold Rewards!");
             }
 
             string eventOutcomeDescription = LocalizationManager.Instance.GetEventString(collapsedEventName + _index + eventRollOutcome.ToString() + "OutcomeDesc");
@@ -380,7 +383,8 @@ namespace TJ.Event
             uiBackgroundCanvasGroup.FadeInAsync(0.25f);
             rollAccepted = true;
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.TowerShields)) rollBonus /= 2;
-            CampaignManager.Instance.CampaignSaveManager.ModifyGold(-rollBonus);
+            string localizedString = LocalizationManager.Instance.GetText("Cost");
+            CampaignManager.Instance.GoldManager.ModifyGold(-rollBonus, localizedString);
             rerollButton.gameObject.SetActive(false);
             acceptRollButton.Button.onClick.RemoveAllListeners();
             acceptRollButton.Button.onClick.AddListener(() => CompleteEvent());
@@ -499,24 +503,24 @@ namespace TJ.Event
         {
             guarentee20 = true;
         }
-        public void ActivateStartLitGuidance()
-        {
-            if (startLitGuidanceActive) return;
+        // public void ActivateStartLitGuidance()
+        // {
+        //     if (startLitGuidanceActive) return;
 
-            if (!CampaignManager.Instance.EconomyManager.CheckIfCanAfford(5))
-            {
-                string errorLocalized = LocalizationManager.Instance.GetText("You do not have enough gold to make this choice.");
-                NotificationManager.Instance.ErrorNotification(errorLocalized);
-                return;
-            }
+        //     if (!CampaignManager.Instance.GoldManager.CheckIfCanAfford(5))
+        //     {
+        //         string errorLocalized = LocalizationManager.Instance.GetText("You do not have enough gold to make this choice.");
+        //         NotificationManager.Instance.ErrorNotification(errorLocalized);
+        //         return;
+        //     }
 
-            startLitGuidanceActive = true;
-            System.Random random = campaignSaveManager.GetCampaignRandom();
-            int roll = random.Next(1, 21);
-            startLitGuidanceOutcomeText.text = roll.ToString();
-            CampaignManager.Instance.EconomyManager.SpendGold(5);
-            IAudioRequester.Instance.PlaySFX(SFXData.Purchase);
-        }
+        //     startLitGuidanceActive = true;
+        //     System.Random random = campaignSaveManager.GetCampaignRandom();
+        //     int roll = random.Next(1, 21);
+        //     startLitGuidanceOutcomeText.text = roll.ToString();
+        //     CampaignManager.Instance.GoldManager.ModifyGold(-5);
+        //     IAudioRequester.Instance.PlaySFX(SFXData.Purchase);
+        // }
         public void ActivateClaimedByDestiny()
         {
             if (claimedByDestinyActive) return;

@@ -22,11 +22,11 @@ namespace TJ
             {
                 SaveDataHandler.DeleteCampaignSave();
             } else {
-                #if UNITY_EDITOR
-                    campaignSaveManager.OverrideCampaignSave();
-                #else
+                // #if UNITY_EDITOR
+                //     campaignSaveManager.OverrideCampaignSave();
+                // #else
                     campaignSaveManager.DeleteCampaignSave();
-                #endif
+                // #endif
             }
             settingsManager.AbandonRun();
         }

@@ -24,8 +24,9 @@ public class GameOverPanel : MonoBehaviour
     [Header("Game Over Stats")]
     [SerializeField] private TMP_Text chaptersCompletedText;
     [SerializeField] private TMP_Text goldEarnedText, goldDepositedText, goldDepositedOutcomeText;
+    [SerializeField] private TMP_Text enemiesSlainText;
     [SerializeField] private MemoriCanvasGroup completionMessageRow, heroNameRow, difficultyRow, backgroundRow;
-    [SerializeField] private MemoriCanvasGroup chaptersCompletedRow, goldEarnedRow, goldDepositedRow;
+    [SerializeField] private MemoriCanvasGroup chaptersCompletedRow, goldEarnedRow, goldDepositedRow, enemiesSlainRow;
     public MemoriButtonV2 mainMenuButton;
     [SerializeField] private MemoriCanvasGroup mainGameOverGroup, textGroup, fadeCanvasGroup;
     [SerializeField] private GameObject defeatObject, victoryObject;
@@ -97,6 +98,7 @@ public class GameOverPanel : MonoBehaviour
 
         chaptersCompletedText.text = runStats.chaptersCompleted.ToString();
         goldEarnedText.text = runStats.goldEarned.ToString();
+        enemiesSlainText.text = runStats.enemiesSlain.ToString();
 
         int bonusGold = _beatDemo ? saveData.goldAmount : 0;
         string bonusColor = _beatDemo ? ColorData.Green : ColorData.Error;
@@ -141,11 +143,11 @@ public class GameOverPanel : MonoBehaviour
     {
         textGroup.CGEnable();
 
-        MemoriCanvasGroup[] rows = { backgroundRow, difficultyRow, heroNameRow, chaptersCompletedRow, goldEarnedRow, goldDepositedRow, completionMessageRow };
+        MemoriCanvasGroup[] rows = { backgroundRow, difficultyRow, heroNameRow, chaptersCompletedRow, enemiesSlainRow, goldEarnedRow, goldDepositedRow,  completionMessageRow };
         foreach (var row in rows) row.CGDisable();
 
         const float rowFade = 0.4f;
-        const int rowGapMs = 200;
+        const int rowGapMs = 100;
 
         foreach (var row in rows)
         {

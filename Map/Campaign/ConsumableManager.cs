@@ -14,6 +14,7 @@ namespace TJ.Map
     {
         [SerializeField] private string targetUnitGuid;
         [SerializeField] private MetaprogressionModel _consumableSellValueMetaprogressionModel;
+        public event Action OnConsumableUsed;
         public void UseConsumable(ConsumableEnum _consumable)
         {
             CampaignManager.Instance.CampaignSaveManager.RemoveConsumable(_consumable);
@@ -76,10 +77,13 @@ namespace TJ.Map
                         if (!consumableUI.ConsumableLoaded)
                         {
                             int actNumber = CampaignManager.Instance.CampaignSaveManager.SaveData.bookNumber;
-                            ConsumableEnum randomConsumable = ConsumableData.GetWeightedConsumable(actNumber, CampaignManager.Instance.CampaignSaveManager.GetSeededRandom() + i);
+                            int baseSeed = CampaignManager.Instance.CampaignSaveManager.GetSeededRandom() + i;
+                            ConsumableEnum randomConsumable = ConsumableData.GetWeightedConsumable(actNumber, baseSeed);
+                            int retryOffset = 0;
                             while (randomConsumable == ConsumableEnum.RunewellNectar)
                             {
-                                randomConsumable = ConsumableData.GetWeightedConsumable(actNumber, CampaignManager.Instance.CampaignSaveManager.GetSeededRandom() + i);
+                                retryOffset++;
+                                randomConsumable = ConsumableData.GetWeightedConsumable(actNumber, baseSeed + retryOffset);
                             }
                             CampaignManager.Instance.CampaignSaveManager.AquireConsumable(randomConsumable);
                         }
@@ -116,7 +120,8 @@ namespace TJ.Map
                 case ConsumableEnum.Alchemist:
                     {
                         int alchemistGold = SaveDataHandler.IsMetaprogressionNodeUnlocked(_consumableSellValueMetaprogressionModel) ? 10 : 5;
-                        CampaignManager.Instance.CampaignSaveManager.ModifyGold(alchemistGold);
+                        string localizedString = LocalizationManager.Instance.GetText($"AlchemistName");
+                        CampaignManager.Instance.GoldManager.ModifyGold(alchemistGold, localizedString);
                         break;
                     }
                 case ConsumableEnum.LambSauce:
@@ -130,6 +135,7 @@ namespace TJ.Map
                 Debug.LogError($"ConsumableManager.UseConsumable({_consumable}) not implemented");
                     break;
             }
+            OnConsumableUsed?.Invoke();
         }
         public bool AttemptToUseConsumable(ConsumableEnum _consumable, int _targetUnitIndex)
         {

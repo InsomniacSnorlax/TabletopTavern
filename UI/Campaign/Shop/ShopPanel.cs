@@ -15,7 +15,7 @@ using Memori.Tooltip;
 using Memori.Steamworks;
 using TJ.Treasure;
 using Memori.Metaprogression;
-
+using Memori.Localization;
 namespace TJ.Shop
 {
 [System.Serializable] public class ShopSaveData
@@ -75,7 +75,8 @@ namespace TJ.Shop
         {
             if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_gainGoldOnShopEnterMetaprogressionModel))
             {
-                CampaignManager.Instance.CampaignSaveManager.ModifyGold(_gainGoldOnShopEnterMetaprogressionModel.NodeValue);
+                string localizedString = LocalizationManager.Instance.GetText("Shop");
+                CampaignManager.Instance.GoldManager.ModifyGold(_gainGoldOnShopEnterMetaprogressionModel.NodeValue, localizedString);
             }
             consumablesPurchased = 0;
             gearPacksPurchased = 0;
@@ -345,7 +346,8 @@ namespace TJ.Shop
         }
         public async void PurchasePack(CardPackData _cardPackData, int _cost)
         {
-            CampaignManager.Instance.EconomyManager.SpendGold(_cost);
+            string localizedString = LocalizationManager.Instance.GetText("Shop");
+            CampaignManager.Instance.GoldManager.ModifyGold(-_cost, localizedString);
             IAudioRequester.Instance.PlaySFX(SFXData.Purchase);
             
             coinDispenser.DispenseCoin(_cost);
