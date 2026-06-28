@@ -185,6 +185,11 @@ namespace TJ
         {
             if (subscene != null)
             {
+                if (simulationStarted)
+                {
+                    Debug.LogWarning("LoadSubscene called while subscene is already loaded. Skipping.");
+                    return;
+                }
                 sceneEntity = Entity.Null;
                 sceneEntity = SceneSystem.LoadSceneAsync(World.DefaultGameObjectInjectionWorld.Unmanaged, subscene.SceneGUID);
                 // BakingSystem bakingSystem = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<BakingSystem>();
@@ -283,6 +288,8 @@ namespace TJ
         {
             if(SceneHandler.Instance == null) return;
             SceneHandler.Instance.OnRequestSceneCleanUp -= OnRequestSceneCleanUp;
+            if (simulationStarted)
+                UnloadSubscene();
         }
     }
 }

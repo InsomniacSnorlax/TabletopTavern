@@ -286,7 +286,7 @@ public class SquadManager : MonoBehaviour
     }
     
     #region Register Squad
-    public void RegisterSquad(List<Entity> _entities, SquadSpawnData _enemyData, int _spawnPrestige, string _uniqueID)
+    public void RegisterSquad(List<Entity> _entities, SquadSpawnData _enemyData, int _spawnPrestige, string _uniqueID, int _healthOverride = -1)
     {
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         EntityQuery query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<EntitiesReferences>());
@@ -296,6 +296,13 @@ public class SquadManager : MonoBehaviour
         CampaignSaveDataHolder campaignSaveDataHolder = query2.GetSingleton<CampaignSaveDataHolder>();
 
         SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(_enemyData.unitName);
+        
+        //Override health for structures
+        if (squadStats.unitType == UnitType.Structure)
+        {
+            squadStats.HitPointsPerUnit = _healthOverride > 0 ? _healthOverride : squadStats.HitPointsPerUnit;
+        }
+
         int squadId = 0;
         bool guardMode = false;
         if(_enemyData.Team == Team.Player) 
@@ -317,9 +324,6 @@ public class SquadManager : MonoBehaviour
                 guardMode = true;
             }
         }
-// #if !UNITY_EDITOR
-//         Debug.Log($"Registered {_enemyData.unitName} - {_enemyData.Team} ({squadId})");
-// #endif
 
         Entity squadEntity = entityManager.CreateEntity();
 
@@ -352,6 +356,7 @@ public class SquadManager : MonoBehaviour
             if(campaignSaveDataHolder.ActiveHeroID == 6 && squadStats.unitName == UnitName.Shieldmaidens) {
                 leadership +=10;
             }
+            //Bushido Discipline: If army contains only Sakura Dynasty units, all units gain +20 [Leadership] 
             if((campaignSaveDataHolder.ActiveHeroID == 11 || campaignSaveDataHolder.ActiveHeroID == 12) && campaignSaveDataHolder.OnlySakuraUnits) {
                 leadership += 20;
             }
@@ -395,6 +400,8 @@ public class SquadManager : MonoBehaviour
         squadMovementComponent.SetRotation(_enemyData.squadRotation);
 
         ecb.AddComponent(squadEntity, squadMovementComponent);
+
+        // Debug.Log($"Registering squad {squadId} with {maxHealth} max health, and {currentHealth} current health");
 
         ecb.AddComponent(squadEntity, new SquadStateComponent
         {
@@ -471,8 +478,7 @@ public class SquadManager : MonoBehaviour
             ecb.AddComponent<BackStabbersTag>(squadEntity);
         }
 
-        // if(_enemyData.Team == Team.Player)
-        // {
+        //Race passive
         Race squadRace = TabletopTavernData.Instance.GetRaceFromUnitName(_enemyData.unitName);
         switch (squadRace)
         {
@@ -511,7 +517,6 @@ public class SquadManager : MonoBehaviour
                 ecb.AddComponent(squadEntity, new ApexHuntersComponent());
                 break;
         }
-        // }
 
         GearIDsSerialized gear = campaignSaveDataHolder.Gear;
 
@@ -582,6 +587,8 @@ public class SquadManager : MonoBehaviour
         ecb.SetComponentEnabled<TakingFlankingDamage>(squadEntity, false);
         ecb.AddComponent<TakingFireDamage>(squadEntity);
         ecb.SetComponentEnabled<TakingFireDamage>(squadEntity, false);
+        ecb.AddComponent<HasTakenDamage>(squadEntity);
+        ecb.SetComponentEnabled<HasTakenDamage>(squadEntity, false);
         ecb.AddComponent<ArmyLossesPenaltyTag>(squadEntity);
         ecb.SetComponentEnabled<ArmyLossesPenaltyTag>(squadEntity, false);
 
@@ -631,7 +638,14 @@ public class SquadManager : MonoBehaviour
 
             if (_spawnPrestige > 0) ecb.AddComponent(_entities[i], new UnitPrestigeSetUpTag { PrestigeLevel = _spawnPrestige });
 
-            ecb.AddComponent(_entities[i], new UnitStatsSetUpTag { });
+            if(squadStats.unitType == UnitType.Structure)
+            {
+                ecb.AddComponent(_entities[i], new UnitStatsSetUpTag { HealthOverride = currentHealth });
+            }
+            else
+            {
+                ecb.AddComponent(_entities[i], new UnitStatsSetUpTag { });
+            }
             ecb.AddComponent(_entities[i], new UnitParentEntityTag { parentSquadEntity = squadEntity });
 
             // add a new componet that is diabled by default

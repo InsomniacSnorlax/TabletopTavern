@@ -166,6 +166,7 @@ public struct ArtilleryUnit : IComponentData { public int SquadID; public int Ex
 public struct GarrisonGateUnit : IComponentData { public Entity squadEntity; }
 public struct GarrisonGateSquadTag : IComponentData { public int GateIndex; }
 public struct GarrisonDefenderComponent : IComponentData { public int GateIndex; }
+public struct DefendersResolveComponent : IComponentData { }
 public struct SetUpGarrisonGateSquad : IComponentData, IEnableableComponent { }
 public struct GateFiringPoints : IComponentData { public Unity.Mathematics.float3 PointA; public Unity.Mathematics.float3 PointB; public bool UsePointA; public Unity.Mathematics.float2 ForwardXZ; }
 public struct BlockedArrowTag : IComponentData { }
@@ -218,7 +219,7 @@ public struct DeleteSquadTag : IComponentData { }
 public struct WithdrawSquadTag : IComponentData { }
 public struct WithdrawCompleteTag : IComponentData { }
 public struct UnitPrestigeSetUpTag : IComponentData { public int PrestigeLevel; }
-public struct UnitStatsSetUpTag : IComponentData { }
+public struct UnitStatsSetUpTag : IComponentData { public int HealthOverride; }
 public struct UnitParentEntityTag : IComponentData { public Entity parentSquadEntity; }
 
 public struct SpellEntity : IComponentData { 
@@ -284,6 +285,7 @@ public struct DealFlankingDamageTag : IComponentData, IEnableableComponent { }
 public struct TakingFlankingDamage : IComponentData, IEnableableComponent { public float LifeTime; public bool RecentlyTookDamage; }
 public struct FlamingRangedAttackTag : IComponentData, IEnableableComponent { }
 public struct TakingFireDamage: IComponentData, IEnableableComponent { public float LifeTime; public bool RecentlyTookDamage; }
+public struct HasTakenDamage : IComponentData, IEnableableComponent { }
 public struct SquadDestination : IComponentData {
     public float3 DestinationPosition;
     public quaternion DestinationRotation;

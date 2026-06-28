@@ -37,7 +37,9 @@ namespace TJ
         [SerializeField] private MemoriCanvasGroup spawnErrorMessage;
         [SerializeField] private BattlefieldBonusInfo battlefieldBonusInfo;
         [SerializeField] private TMP_Text spawnErrorText;
+        [SerializeField] private GameObject addingOrQueuingIconParent;
         [SerializeField] private Image addingOrQueuingIcon;
+        private bool isOverUI;
 
         [Header("Battle")]
         [SerializeField] private Button startBattleButton;
@@ -153,8 +155,8 @@ namespace TJ
             BattleManager.Instance.SquadOrderManager.OnSquadOrderChanged += OnSquadOrderReceived;
             BattleManager.Instance.BattlefieldEnvManager.OnWeatherChanged += OnWeatherChanged;
             addingOrQueuingIcon.enabled = false;
-            InputHandler.Instance.OnAddUnitsToSelection += EnableAddingOrQueuingIcon;
-            InputHandler.Instance.OnAddUnitsToSelectionCanceled += CancelAddingOrQueuingIcon;
+            InputHandler.Instance.OnQueueOrder += EnableAddingOrQueuingIcon;
+            InputHandler.Instance.OnQueueOrderCanceled += CancelAddingOrQueuingIcon;
             InputHandler.Instance.OnFireAtWillModeToggle += SetFireAtWillMode;
             InputHandler.Instance.OnVolleyFireModeToggle += SetVolleyFireMode;
             InputHandler.Instance.OnBalancedStanceToggle += SetBalancedStance;
@@ -185,9 +187,20 @@ namespace TJ
             }
         }
 
+        private void LateUpdate()
+        {
+            cursorPopupParent.transform.position = Input.mousePosition;
+        }
+
         private void Update()
         {
-            cursorPopupParent.transform.position = InputHandler.Instance.MousePosition;
+
+            bool overUI = UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+            if (overUI != isOverUI)
+            {
+                isOverUI = overUI;
+                addingOrQueuingIconParent.SetActive(!isOverUI);
+            }
 
             foreach (HealthBar healthBar in healthBars.Values)
             {

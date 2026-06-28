@@ -9,6 +9,10 @@ namespace TJ
     {
         [SerializeField] private GameSpeedButton pauseButton, slowButton, normalButton, fastButton;
         GameSpeedButton[] gameSpeedButtons;
+        private bool _isPaused;
+        private bool _isSettingsOpen;
+        private int _currentSpeedIndex;
+        private ReportABugScreen _reportABugScreen;
         private void Start()
         {
             gameSpeedButtons = new GameSpeedButton[] { pauseButton, slowButton, normalButton, fastButton };
@@ -18,15 +22,21 @@ namespace TJ
             fastButton.SetUpGameSpeedButton(this, 3);
             SetTimeScale(normalButton);
             InputHandler.Instance.PauseButtonPressed += PauseGame;
+            InputHandler.Instance.OnSpeedUp += IncreaseSpeed;
+            InputHandler.Instance.OnSpeedDown += DecreaseSpeed;
+            _reportABugScreen = FindFirstObjectByType<ReportABugScreen>();
+            SettingsManager.Instance.OnSettingsPanelToggled += OnSettingsPanelToggled;
         }
+
+        private void OnSettingsPanelToggled(bool isOpen) => _isSettingsOpen = isOpen;
 
         public void PauseGame()
         {
             if (BattleManager.Instance.GamePhase != GamePhase.Battle) return;
+            if (_isSettingsOpen) return;
+            if (_reportABugScreen.GetComponent<CanvasGroup>().interactable) return;
 
-            if (FindFirstObjectByType<ReportABugScreen>().GetComponent<CanvasGroup>().interactable) return;
-
-            if (Time.timeScale == 0) {
+            if (_isPaused) {
                 Debug.Log("Battle unpaused.");
                 SetTimeScale(normalButton);
             } else {
@@ -34,25 +44,47 @@ namespace TJ
                 SetTimeScale(pauseButton);
             }
         }
+        public void IncreaseSpeed()
+        {
+            if (BattleManager.Instance.GamePhase != GamePhase.Battle) return;
+            if (_isSettingsOpen) return;
+            if (_currentSpeedIndex < gameSpeedButtons.Length - 1)
+                SetTimeScale(gameSpeedButtons[_currentSpeedIndex + 1]);
+        }
+
+        public void DecreaseSpeed()
+        {
+            if (BattleManager.Instance.GamePhase != GamePhase.Battle) return;
+            if (_isSettingsOpen) return;
+            if (_currentSpeedIndex > 0)
+                SetTimeScale(gameSpeedButtons[_currentSpeedIndex - 1]);
+        }
+
         public void SetTimeScale(GameSpeedButton _gameSpeedButton)
         {
-            foreach (var button in gameSpeedButtons) {
-                if (button == _gameSpeedButton) {
-                    button.Select();
+            for (int i = 0; i < gameSpeedButtons.Length; i++) {
+                if (gameSpeedButtons[i] == _gameSpeedButton) {
+                    gameSpeedButtons[i].Select();
+                    _currentSpeedIndex = i;
                 } else {
-                    button.Deselect();
+                    gameSpeedButtons[i].Deselect();
                 }
             }
+            _isPaused = _gameSpeedButton.GameSpeed == 0;
             Time.timeScale = _gameSpeedButton.GameSpeed;
             var defaultWorld = World.DefaultGameObjectInjectionWorld;
             var simulationSystemGroup = defaultWorld.GetExistingSystemManaged<SimulationSystemGroup>();
             var initializationSystemGroup = defaultWorld.GetExistingSystemManaged<InitializationSystemGroup>();
-            simulationSystemGroup.Enabled = Time.timeScale != 0;
-            initializationSystemGroup.Enabled = Time.timeScale != 0;
+            simulationSystemGroup.Enabled = !_isPaused;
+            initializationSystemGroup.Enabled = !_isPaused;
         }
         public void OnDestroy()
         {
             InputHandler.Instance.PauseButtonPressed -= PauseGame;
+            InputHandler.Instance.OnSpeedUp -= IncreaseSpeed;
+            InputHandler.Instance.OnSpeedDown -= DecreaseSpeed;
+            if (SettingsManager.Instance != null)
+                SettingsManager.Instance.OnSettingsPanelToggled -= OnSettingsPanelToggled;
         }
         public void LockEndOfBattleSpeed()
         {

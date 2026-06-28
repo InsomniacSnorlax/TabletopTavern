@@ -45,7 +45,7 @@ namespace TJ
 
         [Header("Battlefield Attributes")]
         [SerializeField] private UnitAttributesUI inForestAttribute;
-        [SerializeField] private UnitAttributesUI inSwampAttribute, isChargingAttribute, inCombatAttribute, isTerrifiedAttribute, isExhaustedAttribute, isOutOfAmmoAttribute, bloodFrenzyAttribute, rageAttribute, armorSunderedAttribute, isOnFireAttribute;
+        [SerializeField] private UnitAttributesUI inSwampAttribute, isChargingAttribute, inCombatAttribute, isTerrifiedAttribute, isExhaustedAttribute, isOutOfAmmoAttribute, bloodFrenzyAttribute, rageAttribute, armorSunderedAttribute, isOnFireAttribute, garrisonDefenderAttribute, defendersResolveAttribute;
 
         int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1, lastAmmunition = -1, lastHealth = -1, lastEntityCount = -1;
         const float AMMO_REFRESH_INTERVAL = 0.5f;
@@ -488,7 +488,12 @@ namespace TJ
                 isOnFireAttribute.Load(UnitAttribute.IsOnFire);
             }
             rageAttribute.gameObject.SetActive(entityManager.HasComponent<SlayerActiveTag>(squadEntity.SelfEntity));
-
+            garrisonDefenderAttribute.gameObject.SetActive(entityManager.HasComponent<GarrisonDefenderComponent>(squadEntity.SelfEntity));
+            if (garrisonDefenderAttribute.gameObject.activeSelf)
+                garrisonDefenderAttribute.Load(UnitCondition.GarrisonDefender);
+            defendersResolveAttribute.gameObject.SetActive(entityManager.HasComponent<DefendersResolveComponent>(squadEntity.SelfEntity));
+            if (defendersResolveAttribute.gameObject.activeSelf)
+                defendersResolveAttribute.Load(UnitCondition.DefendersResolve);
         }
         private void TurnOffBattlefieldConditions()
         {
@@ -503,6 +508,8 @@ namespace TJ
             rageAttribute.gameObject.SetActive(false);
             armorSunderedAttribute.gameObject.SetActive(false);
             isOnFireAttribute.gameObject.SetActive(false);
+            garrisonDefenderAttribute.gameObject.SetActive(false);
+            defendersResolveAttribute.gameObject.SetActive(false);
         }
     }
 }

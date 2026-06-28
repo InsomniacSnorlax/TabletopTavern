@@ -15,6 +15,7 @@ public class BoxFormation : MonoBehaviour
     private Dictionary<int, float3> SE_WidthDepthSpreadDict = new();
     private Dictionary<int, int> selectedSquadEntityAndEntitiesCountDict = new();
     private Dictionary<int, UnitType> SE_UnitTypeDict = new();
+    private Dictionary<int, float> SE_SquadCenterXDict = new();
     private float3 middleOffset = new(0.5f, 0, 0.5f);
     private float cachedDistance = 50f;
     private float _noise = 0;
@@ -29,7 +30,7 @@ public class BoxFormation : MonoBehaviour
     {
         _pointPositions.Clear();
 
-        // Step 1: group squad IDs by type priority, preserving TrueSquadOrder within each group
+        // Step 1: group squad IDs by type priority, then sort within each group by squad center X
         var typeGroups = new SortedDictionary<int, List<int>>();
         for (int i = 0; i < selectedSquadEntityAndEntitiesCountDict.Keys.Count; i++)
         {
@@ -38,6 +39,18 @@ public class BoxFormation : MonoBehaviour
             int priority = SE_UnitTypeDict.TryGetValue(id, out var t) ? GetTypePriority(t) : 0;
             if (!typeGroups.ContainsKey(priority)) typeGroups[priority] = new List<int>();
             typeGroups[priority].Add(id);
+        }
+        bool useSquadOrder = BattleManager.Instance.GamePhase == GamePhase.Deployment
+                          || BattleManager.Instance.GamePhase == GamePhase.SetUp;
+        List<int> trueOrder = BattleManager.Instance.SquadManager.TrueSquadOrder;
+        foreach (List<int> group in typeGroups.Values)
+        {
+            if (useSquadOrder)
+                group.Sort((a, b) => trueOrder.IndexOf(a).CompareTo(trueOrder.IndexOf(b)));
+            else
+                group.Sort((a, b) =>
+                    SE_SquadCenterXDict.GetValueOrDefault(a, 0f)
+                        .CompareTo(SE_SquadCenterXDict.GetValueOrDefault(b, 0f)));
         }
 
         // Step 2: calculate total Z width per type group (for centering)
@@ -282,6 +295,10 @@ public class BoxFormation : MonoBehaviour
     public void SetUnitTypes(Dictionary<int, UnitType> unitTypeDict)
     {
         SE_UnitTypeDict = unitTypeDict;
+    }
+    public void SetSquadCenterXDict(Dictionary<int, float> squadCenterXDict)
+    {
+        SE_SquadCenterXDict = squadCenterXDict;
     }
     private static int GetTypePriority(UnitType t) => t switch
     {

@@ -190,7 +190,17 @@ namespace TJ
                 if (defenderGateIndex >= 0)
                 {
                     ecb.AddComponent(entity, new GarrisonDefenderComponent { GateIndex = defenderGateIndex });
-                    // Debug.Log($"[GarrisonDefender] Stamped GarrisonDefenderComponent(GateIndex={defenderGateIndex}) on squad {squadEntity.SquadId}");
+                    ecb.AddComponent<DefendersResolveComponent>(entity);
+                    var moraleComp = _entityManager.GetComponentData<MoraleComponent>(entity);
+                    moraleComp.CurrentMorale += TabletopTavernConstants.FORTIFIED_MORALE_BONUS;
+                    moraleComp.MaxMorale += TabletopTavernConstants.FORTIFIED_MORALE_BONUS;
+                    _entityManager.SetComponentData(entity, moraleComp);
+                    foreach (var unitRef in entityBuffer)
+                    {
+                        if (!_entityManager.Exists(unitRef.Entity)) continue;
+                        if (!_entityManager.HasComponent<MissileResistance>(unitRef.Entity))
+                            ecb.AddComponent(unitRef.Entity, new MissileResistance { DamageMultiplier = 0.5f });
+                    }
                 }
 
                 UnitType unitType = TabletopTavernData.Instance.GetUnitTypeFromUnitName(squadEntity.UnitName);
@@ -355,7 +365,6 @@ namespace TJ
             _entityManager.CompleteAllTrackedJobs();
             NativeArray<Entity> squadEntitiesOverrideSquadCommandTag = _queryIssueSquadCommand.ToEntityArray(Allocator.Temp);
 
-            bool chargeSFXPlayed = false;
             foreach (Entity entity in squadEntitiesOverrideSquadCommandTag)
             {
                 IssueSquadCommand overrideSquadCommandTag = _entityManager.GetComponentData<IssueSquadCommand>(entity);
@@ -378,7 +387,7 @@ namespace TJ
                     continue;
                 }
 
-                // Debug.Log($"issueSquadCommand {overrideSquadCommandTag.SquadCommand} for squad {squadEntity.SquadId}");
+                Debug.Log($"issueSquadCommand {overrideSquadCommandTag.SquadCommand} for squad {squadEntity.SquadId}");
 
                 switch (overrideSquadCommandTag.SquadCommand)
                 {
@@ -395,8 +404,7 @@ namespace TJ
                     case SquadCommand.Attack:
                         ecb.SetComponentEnabled<JustFollowingOrders>(entity, true);
                         bool enemySquad = _entityManager.HasComponent<EnemySquad>(entity);
-                        BattleManager.Instance.UnitPositioningManager.OrderSquadToAttack(squadEntity, overrideSquadCommandTag.NewTargetSquad, enemySquad, !chargeSFXPlayed, ecb);
-                        chargeSFXPlayed = true;
+                        BattleManager.Instance.UnitPositioningManager.OrderSquadToAttack(squadEntity, overrideSquadCommandTag.NewTargetSquad, enemySquad, ecb);
                         break;
                     case SquadCommand.Halt:
                         BattleManager.Instance.UnitPositioningManager.OrderSquadToHalt(squadEntity, ecb);
@@ -777,7 +785,7 @@ namespace TJ
         private void OnGateDestroyed(int gateIndex)
         {
             if (!setup) return;
-            Debug.Log($"[GarrisonGate] Gate {gateIndex} destroyed — releasing defender squads");
+            // Debug.Log($"[GarrisonGate] Gate {gateIndex} destroyed — releasing defender squads");
 
             _entityManager.CompleteAllTrackedJobs();
 
@@ -788,10 +796,24 @@ namespace TJ
             foreach (Entity squadEntity in defenders)
             {
                 if (!_entityManager.Exists(squadEntity)) continue;
-                // if (_entityManager.GetComponentData<GarrisonDefenderComponent>(squadEntity).GateIndex != gateIndex) continue;
+                if (_entityManager.GetComponentData<GarrisonDefenderComponent>(squadEntity).GateIndex != gateIndex) continue;
 
                 _entityManager.RemoveComponent<GarrisonDefenderComponent>(squadEntity);
-                Debug.Log($"[GarrisonGate] Removed GarrisonDefenderComponent from squad entity {squadEntity}");
+                // Debug.Log($"[GarrisonGate] Removed GarrisonDefenderComponent from squad entity {squadEntity}");
+                if (_entityManager.HasBuffer<EntityReferenceBufferElement>(squadEntity))
+                {
+                    var unitBuffer = _entityManager.GetBuffer<EntityReferenceBufferElement>(squadEntity);
+                    var unitEntities = new System.Collections.Generic.List<Entity>(unitBuffer.Length);
+                    for (int i = 0; i < unitBuffer.Length; i++)
+                        unitEntities.Add(unitBuffer[i].Entity);
+
+                    foreach (var entity in unitEntities)
+                    {
+                        if (!_entityManager.Exists(entity)) continue;
+                        if (_entityManager.HasComponent<MissileResistance>(entity))
+                            _entityManager.RemoveComponent<MissileResistance>(entity);
+                    }
+                }
             }
         }
         public void EndBattle(bool playerWon)

@@ -120,7 +120,61 @@ namespace TJ
             playerDeploymentZoneLine.SetPoints(points);
             playerDeploymentZoneLine.gameObject.SetActive(true);
 
-            if (isGarrison && !zone.isFlat)
+            if (isGarrison && zone.isDiagonalLayout)
+            {
+                // 4-sided trapezoid tracing the village layout: narrow front wall + 45° outward side walls.
+                // Expanded 3 units outward so the line renders outside the wall geometry.
+                const float o = 3f;
+                float lcX      = zone.leftConnectorX  - o;
+                float rcX      = zone.rightConnectorX + o;
+                float wZ       = zone.wallZ    - o;
+                float bkZ      = zone.battleMaxZ + o;
+                float diagDepth = bkZ - wZ;
+                float leftEndX  = lcX - diagDepth;
+                float rightEndX = rcX + diagDepth;
+
+                points = new Vector3[80];
+                for (int i = 0; i < 20; i++)
+                {
+                    float t = i / 20f;
+                    points[i]      = GetPointOnTerrain(new Vector3(math.lerp(lcX,       rcX,       t), 0, wZ));
+                    points[20 + i] = GetPointOnTerrain(new Vector3(math.lerp(rcX,       rightEndX, t), 0, math.lerp(wZ, bkZ, t)));
+                    points[40 + i] = GetPointOnTerrain(new Vector3(math.lerp(rightEndX, leftEndX,  t), 0, bkZ));
+                    points[60 + i] = GetPointOnTerrain(new Vector3(math.lerp(leftEndX,  lcX,       t), 0, math.lerp(bkZ, wZ, t)));
+                }
+                enemyDeploymentZoneLine.SetPoints(points);
+                enemyDeploymentZoneLine.gameObject.SetActive(true);
+            }
+            else if (isGarrison && !zone.isFlat && zone.isConvex)
+            {
+                // 8-segment convex closed zone: middle bumps forward, flanks recessed.
+                // Expanded 3 units outward so the line renders outside the wall geometry.
+                const float o = 3f;
+                float minX = zone.battleMinX      - o;
+                float maxX = zone.battleMaxX      + o;
+                float lcX  = zone.leftConnectorX  - o;
+                float rcX  = zone.rightConnectorX + o;
+                float wZ   = zone.wallZ   - o;
+                float mZ   = zone.middleZ - o;
+                float bkZ  = zone.battleMaxZ + o;
+
+                points = new Vector3[160];
+                for (int i = 0; i < 20; i++)
+                {
+                    float t = i / 20f;
+                    points[i]       = GetPointOnTerrain(new Vector3(math.lerp(lcX, rcX,  t), 0, wZ));
+                    points[20 + i]  = GetPointOnTerrain(new Vector3(rcX, 0, math.lerp(wZ, mZ, t)));
+                    points[40 + i]  = GetPointOnTerrain(new Vector3(math.lerp(rcX, maxX, t), 0, mZ));
+                    points[60 + i]  = GetPointOnTerrain(new Vector3(maxX, 0, math.lerp(mZ, bkZ, t)));
+                    points[80 + i]  = GetPointOnTerrain(new Vector3(math.lerp(maxX, minX, t), 0, bkZ));
+                    points[100 + i] = GetPointOnTerrain(new Vector3(minX, 0, math.lerp(bkZ, mZ, t)));
+                    points[120 + i] = GetPointOnTerrain(new Vector3(math.lerp(minX, lcX, t), 0, mZ));
+                    points[140 + i] = GetPointOnTerrain(new Vector3(lcX, 0, math.lerp(mZ, wZ, t)));
+                }
+                enemyDeploymentZoneLine.SetPoints(points);
+                enemyDeploymentZoneLine.gameObject.SetActive(true);
+            }
+            else if (isGarrison && !zone.isFlat)
             {
                 // 8-segment concave closed zone matching the wall's U-shape.
                 // Expanded 3 units outward so the line renders outside the wall geometry.

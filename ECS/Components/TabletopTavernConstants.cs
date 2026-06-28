@@ -43,6 +43,7 @@ public static class TabletopTavernConstants
     public const float FOG_MODIFIER = 0.5f;
     public const float RAIN_SPEED_MODIFIER = 0.5f;
     public const float SNOW_MORALE_PENALTY = -10f;
+    public const float FORTIFIED_MORALE_BONUS = 10f;
 
     // Spreads
     public const float InfantrySpread = 2f;

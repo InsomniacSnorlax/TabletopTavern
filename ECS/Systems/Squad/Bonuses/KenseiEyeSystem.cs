@@ -2,7 +2,7 @@ using Unity.Entities;
 
 // SakuraDynasty passive — "Kensei's Eye"
 // While engaged in continuous melee combat:
-//   10s → +10 MeleeAttack, 20s → +10 more, 30s → +10 more (max +30 total)
+//   10s → +5 MeleeAttack, 20s → +5 more, 30s → +5 more (max +15 total)
 // If the squad disengages (InCombat removed) the bonus and timer both reset.
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 partial struct KenseiEyeSystem : ISystem
@@ -37,7 +37,7 @@ partial struct KenseiEyeSystem : ISystem
 
             if (stagesToApply <= 0) continue;
 
-            int bonusToApply = stagesToApply * 10;
+            int bonusToApply = stagesToApply * 5;
             for (int i = 0; i < entityBuffer.Length; i++)
             {
                 Entity unitEntity = entityBuffer[i].Entity;
@@ -48,7 +48,7 @@ partial struct KenseiEyeSystem : ISystem
             }
 
             honor.ValueRW.CurrentStage = newStage;
-            SyncBonusBuffer(bonusBuffer, newStage * 10);
+            SyncBonusBuffer(bonusBuffer, newStage * 5);
         }
 
         // Reset path — squad left combat with an active bonus
@@ -61,7 +61,7 @@ partial struct KenseiEyeSystem : ISystem
         {
             if (honor.ValueRO.CurrentStage == 0) continue;
 
-            int bonusToRemove = honor.ValueRO.CurrentStage * 10;
+            int bonusToRemove = honor.ValueRO.CurrentStage * 5;
             for (int i = 0; i < entityBuffer.Length; i++)
             {
                 Entity unitEntity = entityBuffer[i].Entity;

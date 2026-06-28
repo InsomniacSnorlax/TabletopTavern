@@ -91,22 +91,42 @@ public class UnitPositioningManager : MonoBehaviour
     {
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
-        if (_squadCommand == SquadCommand.Attack && _squadToAttack != 0)
-        {
-            SquadEntity targetSquadEntity = BattleManager.Instance.SquadManager.GetSquadEntityFromId(_squadToAttack);
-            if (targetSquadEntity.SelfEntity != Entity.Null && entityManager.HasComponent<GarrisonDefenderComponent>(targetSquadEntity.SelfEntity))
-            {
-                Debug.LogError($"QueueSquadCommand: Cannot attack squad {_squadToAttack} — it is a garrison defender.");
-                string localizedNotificaiton = LocalizationManager.Instance.GetText("CannotAttackProtectedByWalls");
-                NotificationManager.Instance.DisplayNotification(localizedNotificaiton);
-                return;
-            }
-        }
+        // if (_squadCommand == SquadCommand.Attack && _squadToAttack != 0)
+        // {
+        //     SquadEntity targetSquadEntity = BattleManager.Instance.SquadManager.GetSquadEntityFromId(_squadToAttack);
+        //     if (targetSquadEntity.SelfEntity != Entity.Null && entityManager.HasComponent<GarrisonDefenderComponent>(targetSquadEntity.SelfEntity))
+        //     {
+        //         bool anyRangedOrArtillery = false;
+        //         foreach (int squadId in unitSelectionManager.GetSelectedSquadIDsAndAllUnits().Keys)
+        //         {
+        //             SquadEntity se = BattleManager.Instance.SquadManager.GetSquadEntityFromId(squadId);
+        //             if (se.SelfEntity == Entity.Null) continue;
+        //             UnitType ut = TabletopTavernData.Instance.GetUnitTypeFromUnitName(se.UnitName);
+        //             if (ut == UnitType.Ranged || ut == UnitType.Artillery)
+        //             {
+        //                 anyRangedOrArtillery = true;
+        //                 break;
+        //             }
+        //         }
+        //
+        //         if (!anyRangedOrArtillery)
+        //         {
+        //             Debug.LogError($"QueueSquadCommand: Cannot attack squad {_squadToAttack} — it is a garrison defender.");
+        //             string localizedNotificaiton = LocalizationManager.Instance.GetText("CannotAttackProtectedByWalls");
+        //             NotificationManager.Instance.DisplayNotification(localizedNotificaiton);
+        //             return;
+        //         }
+        //     }
+        // }
+
+        if (_squadCommand == SquadCommand.Attack)
+            IAudioRequester.Instance.PlaySFX(SFXData.AttackCommand);
 
         var entityCommandBuffer = new EntityCommandBuffer(Allocator.Temp);
         NativeArray<float3> movePositionArray = positionDrawer.UnitPrefabPointPositions().ToNativeArray(Allocator.Temp);
 
         int unitIndexOffset = 0;
+        bool chargeSFXPlayed = false;
         foreach(KeyValuePair<int, List<Entity>> kvp in unitSelectionManager.GetSelectedSquadIDsAndAllUnits())
         {
             // Debug.Log($"Requesting Queueing {_squadCommand} command to squad {kvp.Key} to attack squad {_squadToAttack}");
@@ -118,13 +138,13 @@ public class UnitPositioningManager : MonoBehaviour
                 continue;
             }
             QueuedOrder queuedOrder = new ();
-                
-            if(_squadCommand == SquadCommand.Move) 
+
+            if(_squadCommand == SquadCommand.Move)
             {
                 float3 averagePosition = float3.zero;
                 quaternion desiredRotation = quaternion.AxisAngle(math.up(), (battleInputManager.Angle + 90) * Mathf.Deg2Rad);
 
-                for(int i = 0; i < kvp.Value.Count; i++) 
+                for(int i = 0; i < kvp.Value.Count; i++)
                 {
                     averagePosition += movePositionArray[i + unitIndexOffset];
                 }
@@ -140,8 +160,13 @@ public class UnitPositioningManager : MonoBehaviour
                     WidthAndDepth = positionDrawer.Formation.GetWidthAndDepth(squadEntity.SquadId)
                 };
             }
-            else if(_squadCommand == SquadCommand.Attack) 
+            else if(_squadCommand == SquadCommand.Attack)
             {
+                if (!chargeSFXPlayed)
+                {
+                    IAudioRequester.Instance.PlaySFX(TabletopTavernData.Instance.GetRandomChargeSFX(squadEntity.UnitName));
+                    chargeSFXPlayed = true;
+                }
                 queuedOrder = new ()
                 {
                     Type = QueuedOrderType.Attack,
@@ -308,13 +333,8 @@ public class UnitPositioningManager : MonoBehaviour
 
         if (ownEcb) entityCommandBuffer.Playback(entityManager);
     }
-    public void OrderSquadToAttack(SquadEntity squadReceivingAttackOrder, Entity _targetSquadEntity, bool _enemySquad, bool playSFX = true, EntityCommandBuffer? externalEcb = null)
+    public void OrderSquadToAttack(SquadEntity squadReceivingAttackOrder, Entity _targetSquadEntity, bool _enemySquad, EntityCommandBuffer? externalEcb = null)
     {
-        if(!_enemySquad && playSFX)
-        {
-            IAudioRequester.Instance.PlaySFX(SFXData.AttackCommand);
-        }
-
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         bool ownEcb = !externalEcb.HasValue;
         var entityCommandBuffer = externalEcb ?? new EntityCommandBuffer(Allocator.Temp);
@@ -374,13 +394,6 @@ public class UnitPositioningManager : MonoBehaviour
 
         if(!_enemySquad)
         {
-            if (playSFX)
-            {
-                IAudioRequester.Instance.PlaySFX(
-                    TabletopTavernData.Instance.GetRandomChargeSFX(squadReceivingAttackOrder.UnitName)
-                );
-            }
-
             if (BattleManager.Instance.GamePhase == GamePhase.Battle)
             {
                 entityCommandBuffer.SetComponentEnabled<WaitingForCommand>(squadReceivingAttackOrder.SelfEntity, false);

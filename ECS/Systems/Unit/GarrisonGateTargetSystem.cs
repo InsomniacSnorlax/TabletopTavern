@@ -29,7 +29,7 @@ partial struct GarrisonGateTargetSystem : ISystem
         {
             float2 gateForwardXZ = new float2(0f, -1f); // hardcoded test: gate faces (0,0,-1)
 
-            // Validate existing target — clear if dead, retreating, or outside the cone
+            // Validate existing target — clear if dead, retreating, or behind the gate
             if (target.ValueRO.targetEntity != Entity.Null)
             {
                 bool clear = false;
@@ -44,7 +44,7 @@ partial struct GarrisonGateTargetSystem : ISystem
                     if (math.lengthsq(toExistingXZ) > 0f)
                     {
                         float dot = math.dot(gateForwardXZ, math.normalize(toExistingXZ));
-                        if (dot < 0.7071f) clear = true;
+                        if (dot < 0.0872f) clear = true; // 85° half-angle = 170° arc
                     }
                 }
 
@@ -83,7 +83,7 @@ partial struct GarrisonGateTargetSystem : ISystem
                     if (math.lengthsq(toTargetXZ) > 0f)
                     {
                         float dot = math.dot(gateForwardXZ, math.normalize(toTargetXZ));
-                        if (dot < 0.7071f) continue;
+                        if (dot < 0.0872f) continue; // 85° half-angle = 170° arc
                     }
 
                     if (hit.Distance < closestDist)

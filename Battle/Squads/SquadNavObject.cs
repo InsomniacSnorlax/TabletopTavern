@@ -39,7 +39,7 @@ namespace TJ
                 {
                     renderer.material = notFlankingMaterial;
                 }
-                _rotationIndicator.transform.localPosition += new Vector3(0, _squadID*0.2f, 0);
+                _rotationIndicator.transform.localPosition += new Vector3(0, _squadID*0.1f, 0);
             }
         }
 

@@ -45,6 +45,7 @@ namespace TJ
         private void InitializeSquadStats()
         {
             LoadStatsFromSOs();
+            // TryApplyCSVOverrides();
         }
         private void LoadStatsFromSOs()
         {
@@ -796,6 +797,124 @@ namespace TJ
             StartCoroutine(SendToSheets());
         }
 #endif
+
+        #region CSV Override
+        private static string CSVPath => System.IO.Path.Combine(Application.persistentDataPath, "unit_stats_override.csv");
+
+        private void TryApplyCSVOverrides()
+        {
+            if (!System.IO.File.Exists(CSVPath)) return;
+
+            string[] lines = System.IO.File.ReadAllLines(CSVPath);
+            if (lines.Length < 2) return;
+
+            string[] headers = lines[0].Split(',');
+            var col = new Dictionary<string, int>();
+            for (int i = 0; i < headers.Length; i++)
+                col[headers[i].Trim()] = i;
+
+            string[] vals;
+            string Get(string key) => col.TryGetValue(key, out int i) && i < vals.Length ? vals[i].Trim() : null;
+            bool ParseBool(string key) { var v = Get(key); return v != null && (v.Equals("TRUE", StringComparison.OrdinalIgnoreCase) || v == "1"); }
+            int ParseInt(string key, int fallback) { var v = Get(key); return v != null && int.TryParse(v, out int res) ? res : fallback; }
+            float ParseFloat(string key, float fallback) { var v = Get(key); return v != null && float.TryParse(v, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float res) ? res : fallback; }
+
+            int applied = 0;
+            for (int r = 1; r < lines.Length; r++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[r])) continue;
+                vals = lines[r].Split(',');
+
+                if (!col.TryGetValue("UnitName", out int nameIdx) || nameIdx >= vals.Length) continue;
+                if (!Enum.TryParse(vals[nameIdx].Trim(), out UnitName unitName))
+                {
+                    Debug.LogWarning($"[CSV Override] Row {r}: unknown UnitName '{vals[nameIdx]}', skipping.");
+                    continue;
+                }
+                if (!SquadStatsDictionary.TryGetValue(unitName, out SquadStats stats))
+                {
+                    Debug.LogWarning($"[CSV Override] Row {r}: UnitName '{unitName}' not in dictionary, skipping.");
+                    continue;
+                }
+
+                if (Enum.TryParse(Get("UnitType"), out UnitType ut)) stats.unitType = ut;
+                if (Enum.TryParse(Get("UnitSize"), out UnitSize us)) stats.unitSize = us;
+                if (Enum.TryParse(Get("RarityTier"), out UnitRarity rarity)) stats.RarityTier = rarity;
+
+                stats.MeleeAttack        = ParseInt("MeleeAttack", stats.MeleeAttack);
+                stats.MeleeDefense       = ParseInt("MeleeDefense", stats.MeleeDefense);
+                stats.HitPointsPerUnit   = ParseInt("HitPointsPerUnit", stats.HitPointsPerUnit);
+                stats.WeaponStrength     = ParseInt("WeaponStrength", stats.WeaponStrength);
+                stats.Speed              = ParseFloat("Speed", stats.Speed);
+                stats.Leadership         = ParseFloat("Leadership", stats.Leadership);
+                stats.Armor              = ParseInt("Armor", stats.Armor);
+                stats.ChargeBonus        = ParseInt("ChargeBonus", stats.ChargeBonus);
+                stats.ChargeImactDamage  = ParseInt("ChargeImpactDamage", stats.ChargeImactDamage);
+                stats.ChargeCount        = ParseInt("ChargeCount", stats.ChargeCount);
+                stats.BaseRange          = ParseFloat("BaseRange", stats.BaseRange);
+                stats.attackAccuracy     = ParseFloat("AttackAccuracy", stats.attackAccuracy);
+                stats.MissileStrength    = ParseInt("MissileStrength", stats.MissileStrength);
+                stats.baseUnitCount      = ParseInt("BaseUnitCount", stats.baseUnitCount);
+                stats.attackCooldown     = ParseFloat("AttackCooldown", stats.attackCooldown);
+                stats.Ammunition         = ParseInt("Ammunition", stats.Ammunition);
+                stats.rateOfFire         = ParseFloat("RateOfFire", stats.rateOfFire);
+                stats.ExplosionDamage    = ParseInt("ExplosionDamage", stats.ExplosionDamage);
+                stats.ExplosionRange     = ParseFloat("ExplosionRange", stats.ExplosionRange);
+                stats.ExplosionForce     = ParseFloat("ExplosionForce", stats.ExplosionForce);
+
+                stats.SquadAttributes.None               = ParseBool("None");
+                stats.SquadAttributes.StandardShields    = ParseBool("StandardShields");
+                stats.SquadAttributes.ArmorPiercing      = ParseBool("ArmorPiercing");
+                stats.SquadAttributes.AntiInfantry       = ParseBool("AntiInfantry");
+                stats.SquadAttributes.AntiLarge          = ParseBool("AntiLarge");
+                stats.SquadAttributes.Terrifying         = ParseBool("Terrifying");
+                stats.SquadAttributes.Stalwart           = ParseBool("Stalwart");
+                stats.SquadAttributes.Outrider           = ParseBool("Outrider");
+                stats.SquadAttributes.SwampCreature      = ParseBool("SwampCreature");
+                stats.SquadAttributes.ForestDweller      = ParseBool("ForestDweller");
+                stats.SquadAttributes.ChickenFlight      = ParseBool("ChickenFlight");
+                stats.SquadAttributes.Ethereal           = ParseBool("Ethereal");
+                stats.SquadAttributes.BloodFrenzy        = ParseBool("BloodFrenzy");
+                stats.SquadAttributes.Rage               = ParseBool("Rage");
+                stats.SquadAttributes.Emblazing          = ParseBool("Emblazing");
+                stats.SquadAttributes.Unstoppable        = ParseBool("Unstoppable");
+                stats.SquadAttributes.HeavyShields       = ParseBool("HeavyShields");
+                stats.SquadAttributes.ThrowingAxes       = ParseBool("ThrowingAxes");
+                stats.SquadAttributes.ArmorSundering     = ParseBool("ArmorSundering");
+                stats.SquadAttributes.MonsterSlayer      = ParseBool("MonsterSlayer");
+                stats.SquadAttributes.ForgefuryTempering = ParseBool("ForgefuryTempering");
+                stats.SquadAttributes.FlamingAmmo        = ParseBool("FlamingAmmo");
+                stats.SquadAttributes.DragonsHoard       = ParseBool("DragonsHoard");
+                stats.SquadAttributes.BackStabbers       = ParseBool("BackStabbers");
+                stats.SquadAttributes.ThickScales        = ParseBool("ThickScales");
+
+                SquadStatsDictionary[unitName] = stats;
+                applied++;
+            }
+
+            Debug.Log($"[CSV Override] Applied overrides for {applied} unit(s) from {CSVPath}");
+        }
+
+        [ContextMenu("Export Unit Stats CSV")]
+        public void ExportStatsToCSV()
+        {
+            if (SquadStatsDictionary.Count == 0) InitializeSquadStats();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("UnitName,UnitType,UnitSize,MeleeAttack,MeleeDefense,HitPointsPerUnit,WeaponStrength,Speed,Leadership,Armor,ChargeBonus,ChargeImpactDamage,ChargeCount,BaseRange,AttackAccuracy,MissileStrength,RarityTier,BaseUnitCount,AttackCooldown,Ammunition,RateOfFire,ExplosionDamage,ExplosionRange,ExplosionForce,None,StandardShields,ArmorPiercing,AntiInfantry,AntiLarge,Terrifying,Stalwart,Outrider,SwampCreature,ForestDweller,ChickenFlight,Ethereal,BloodFrenzy,Rage,Emblazing,Unstoppable,HeavyShields,ThrowingAxes,ArmorSundering,MonsterSlayer,ForgefuryTempering,FlamingAmmo,DragonsHoard,BackStabbers,ThickScales");
+
+            foreach (var kvp in new SortedDictionary<UnitName, SquadStats>(SquadStatsDictionary))
+            {
+                var s = kvp.Value;
+                var a = s.SquadAttributes;
+                static string B(bool v) => v ? "TRUE" : "FALSE";
+                sb.AppendLine($"{s.unitName},{s.unitType},{s.unitSize},{s.MeleeAttack},{s.MeleeDefense},{s.HitPointsPerUnit},{s.WeaponStrength},{s.Speed},{s.Leadership},{s.Armor},{s.ChargeBonus},{s.ChargeImactDamage},{s.ChargeCount},{s.BaseRange},{s.attackAccuracy},{s.MissileStrength},{s.RarityTier},{s.baseUnitCount},{s.attackCooldown},{s.Ammunition},{s.rateOfFire},{s.ExplosionDamage},{s.ExplosionRange},{s.ExplosionForce},{B(a.None)},{B(a.StandardShields)},{B(a.ArmorPiercing)},{B(a.AntiInfantry)},{B(a.AntiLarge)},{B(a.Terrifying)},{B(a.Stalwart)},{B(a.Outrider)},{B(a.SwampCreature)},{B(a.ForestDweller)},{B(a.ChickenFlight)},{B(a.Ethereal)},{B(a.BloodFrenzy)},{B(a.Rage)},{B(a.Emblazing)},{B(a.Unstoppable)},{B(a.HeavyShields)},{B(a.ThrowingAxes)},{B(a.ArmorSundering)},{B(a.MonsterSlayer)},{B(a.ForgefuryTempering)},{B(a.FlamingAmmo)},{B(a.DragonsHoard)},{B(a.BackStabbers)},{B(a.ThickScales)}");
+            }
+
+            System.IO.File.WriteAllText(CSVPath, sb.ToString());
+            Debug.Log($"[CSV Override] Exported {SquadStatsDictionary.Count} units to {CSVPath}");
+        }
+        #endregion
 
       private IEnumerator SendToSheets()
     {

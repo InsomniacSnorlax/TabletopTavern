@@ -39,7 +39,7 @@ public class UnitSelectionManagerUI : MonoBehaviour
         float canvasScale = canvas.transform.localScale.x;
         selectionAreaRectTransform.anchoredPosition = new Vector2(selectionAreaRect.x, selectionAreaRect.y) / canvasScale;
         selectionAreaRectTransform.sizeDelta = new Vector2(selectionAreaRect.width, selectionAreaRect.height) / canvasScale;
-        selectionAreaImage.color = BattleInputManager.Instance.RemovingFromSelectedUnits ? removeFromSelectionColor : addToSelectionColor;
+        selectionAreaImage.color = addToSelectionColor; //BattleInputManager.Instance.RemovingFromSelectedUnits ? removeFromSelectionColor : 
 
         // Get the screen bounds for the selection area to stay within screen limits
         float minX = 10;

@@ -90,8 +90,8 @@ namespace TJ
                 return new Vector3(c.x + r * Mathf.Cos(rad), c.y, c.z + r * Mathf.Sin(rad));
             }
 
-            Vector3 startPoint = CalculateArcPoint(center, range, 45f);
-            Vector3 endPoint   = CalculateArcPoint(center, range, 135f);
+            Vector3 startPoint = CalculateArcPoint(center, range, 5f);
+            Vector3 endPoint   = CalculateArcPoint(center, range, 175f);
 
             leftLine.Start  = center;
             leftLine.End    = endPoint;

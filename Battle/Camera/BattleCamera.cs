@@ -184,8 +184,9 @@ namespace TJ
                     pitch = cameraTarget.eulerAngles.x;
                 }
 
+                float mouseYDir = SettingsManager.Instance.InvertMouseY.Value ? 1f : -1f;
                 yaw += Input.GetAxis("Mouse X") * _rotationSpeed * Time.unscaledDeltaTime;
-                pitch -= Input.GetAxis("Mouse Y") * _rotationSpeed * Time.unscaledDeltaTime;
+                pitch += mouseYDir * Input.GetAxis("Mouse Y") * _rotationSpeed * Time.unscaledDeltaTime;
                 
                 // pitch = Mathf.Clamp(pitch, -90f, 90f); // Prevent upside-down view
                 cameraTarget.eulerAngles = new Vector3(pitch, yaw, 0f);

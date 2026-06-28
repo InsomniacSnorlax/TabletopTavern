@@ -14,6 +14,7 @@ namespace TJ.MainMenu
         Material _flagMaterialInstance;
         GameObject _activeThemeInstance;
         TavernThemeData themeToLoad;
+        int _loadGeneration;
 
         private async void Start()
         {
@@ -81,10 +82,11 @@ namespace TJ.MainMenu
             if (_theme == null || _theme.ThemeObjects == null || !_theme.ThemeObjects.RuntimeKeyIsValid())
                 return;
 
+            int generation = ++_loadGeneration;
             GameObject prefab = await AddressablesManager.Instance.LoadAsync<GameObject>(_theme.ThemeObjects);
-            if (prefab == null) return;
-            _activeThemeInstance = Instantiate(prefab, _spawnParent);
+            if (prefab == null || generation != _loadGeneration) return;
 
+            _activeThemeInstance = Instantiate(prefab, _spawnParent);
             ColorFlags();
         }
         private void ColorFlags()

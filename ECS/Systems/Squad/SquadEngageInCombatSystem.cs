@@ -93,6 +93,13 @@ partial struct SquadEngageInCombatSystem : ISystem
             entityCommandBuffer.AddComponent<InCombat>(squad.ValueRO.SelfEntity);
             // Debug.Log($"SquadEngageInCombatSystem: squad {squad.ValueRO.SquadId} is engaging in combat");
 
+            // EntityWatcher (MonoBehaviour) runs after ECS systems. If a stale IssueSquadCommand
+            // exists when InCombat is added, OrderSquadToAttack will see InCombat and immediately
+            // trigger DisengageFromCombat, cancelling the engagement. Remove it here so the
+            // LateSim ECB removal lands after any Sim-group dispatch, winning the race.
+            if (entityManager.HasComponent<IssueSquadCommand>(squad.ValueRO.SelfEntity))
+                entityCommandBuffer.RemoveComponent<IssueSquadCommand>(squad.ValueRO.SelfEntity);
+
             //get sizes of attacker and defender for charge damage
             bool attackerIsLarge = SystemAPI.HasComponent<LargeTag>(squad.ValueRO.SelfEntity);
             bool defenderIsLarge = SystemAPI.HasComponent<LargeTag>(squad.ValueRO.TargetSquadEntity);

@@ -45,12 +45,14 @@ namespace TJ
         [SerializeField] private SettingsToggleV2 hideUnitInfoInBattleToggle;
         [SerializeField] private SettingsToggleV2 cameraShakeToggle;
         [SerializeField] private SettingsToggleV2 autoRollInitiativeToggle;
+        [SerializeField] private SettingsToggleV2 invertMouseToggle;
         [SerializeField] private MemoriButtonV2 resetTutorialButton;
         public Action<bool> OnSettingsPanelToggled;
 
         public MonitoredData<bool> HideSquadInfoInBattle = new();
         public MonitoredData<bool> CameraShakeEnabled = new();
         public MonitoredData<bool> AutoRollInitiative = new();
+        public MonitoredData<bool> InvertMouseY = new();
 
         public MonitoredData<float> CameraRotationSpeed;
         public MonitoredData<float> CameraMovementSpeed;
@@ -113,6 +115,9 @@ namespace TJ
 
             AutoRollInitiative.Value = autoRollInitiativeToggle.OnToggle.isOn;
             autoRollInitiativeToggle.OnToggle.onValueChanged.AddListener(val => AutoRollInitiative.Value = val);
+
+            InvertMouseY.Value = invertMouseToggle.OnToggle.isOn;
+            invertMouseToggle.OnToggle.onValueChanged.AddListener(val => InvertMouseY.Value = val);
 
             CameraRotationSpeed.Value = PlayerPrefs.GetFloat("cameraRotationSpeed", 0.5f);
             CameraMovementSpeed.Value = PlayerPrefs.GetFloat("cameraMovementSpeed", 0.5f);

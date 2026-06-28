@@ -144,7 +144,7 @@ namespace TJ
                                 }
                                 else if (unitStat == UnitStat.Speed)
                                 {
-                                    if (TabletopTavernData.Instance.IgnoresSwamp(_unitName))
+                                    if (bonus.Value.BattlefieldBonusEnum != BattlefieldBonusEnum.Rain && TabletopTavernData.Instance.IgnoresSwamp(_unitName))
                                     {
                                         continue;
                                     }
@@ -228,6 +228,13 @@ namespace TJ
                             string ammunitionDepletedLocalised = LocalizationManager.Instance.GetText("AmmunitionDepletedTitle");
                             description += $"\n<color {ColorData.Error}>{ammunitionDepletedLocalised}: -{ammunitionLost} </color>";
                         }
+                    }
+                    if (unitStat == UnitStat.Leadership && entityManager.HasComponent<DefendersResolveComponent>(squadEntity.SelfEntity))
+                    {
+                        int bonus = (int)TabletopTavernConstants.FORTIFIED_MORALE_BONUS;
+                        totalBonus += bonus;
+                        string fortifiedMoraleLocalised = LocalizationManager.Instance.GetText("DefendersResolve");
+                        description += $"\n<color {ColorData.Green}>{fortifiedMoraleLocalised}: +{bonus} </color>";
                     }
                 }
             }

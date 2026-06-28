@@ -23,5 +23,13 @@ namespace TJ
         public int numberOfGates = 2;
         [Tooltip("How far in +Z the middle section is recessed from the flanks. 0 = flat wall.")]
         public float wallInwardDepth = 0f;
+        [Tooltip("Village layout: only the centre third of the wall spawns as the front face; perpendicular side walls run from each end all the way to the back of the battlefield.")]
+        public bool useStraightSideWalls = false;
+        [Tooltip("Convex layout: middle section sits at wallLineZ (forward); left and right flanks are recessed inward by wallInwardDepth. Requires wallInwardDepth > 0.")]
+        public bool useConvexWalls = false;
+
+        [Header("Gate")]
+        [Tooltip("Starting (and max) health for each gate squad spawned from this wall config.")]
+        public int gateStartingHealth = 100;
     }
 }

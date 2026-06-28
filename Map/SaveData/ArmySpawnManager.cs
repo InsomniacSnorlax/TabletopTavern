@@ -782,6 +782,7 @@ namespace Memori.SaveData
 
                     for (int rank = 0; rank < outside.Count; rank++)
                     {
+                        _gateDefenderUniqueIds[gateIdx].Add(outside[rank].UniqueID);
                         Vector3 spawnPos = gatePos + new Vector3(0f, 0f, depthPerRank * (rank + 2) + 5f);
                         SpawnSquadFromSaveData(outside[rank], facing, spawnPos, squadIndex++);
                     }
@@ -1026,6 +1027,11 @@ namespace Memori.SaveData
 
             SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(squadToLoad.UnitName);
 
+            if (unitType == UnitType.Structure)
+            {
+                squadStats.HitPointsPerUnit = squadToLoad.HitPointsPerUnit;
+            }
+
             //offset the entity positions by the enemy spawn point and rotate them
             bool isEnemyOutriders = TabletopTavernData.Instance.GetSquadStats(squadToLoad.UnitName).SquadAttributes.Outrider && selectedTeam == Team.Enemy && enemyOutriderSpawnPointsShuffled.Count > 0;
             
@@ -1127,7 +1133,7 @@ namespace Memori.SaveData
                 });
                 
                 if(squadStats.unitSize == UnitSize.SingleUnit && selectedTeam == Team.Player )
-                    {
+                {
                     ModifyHealthOnSpawn modifyHealthOnSpawn = new ModifyHealthOnSpawn { Value = squadToLoad.SquadCurrentHealth };
                     entityManager.AddComponentData(entity, modifyHealthOnSpawn);
                 }
@@ -1170,7 +1176,7 @@ namespace Memori.SaveData
                     entityManager.SetComponentData(entity, dat);
                     
                     entityManager.AddComponentData(entity, new GarrisonGateUnit());
-                    entityManager.AddComponentData(entity, new MissileResistance { DamageMultiplier = 0.25f });
+                    entityManager.AddComponentData(entity, new MissileResistance { DamageMultiplier = 0.5f });
 
                     Entity arrowPrefab = entitiesReferences.GetProjectileEntityForUnitName(UnitName.Gate);
                     entityManager.AddComponentData(entity, new ShootAttack {
@@ -1191,7 +1197,7 @@ namespace Memori.SaveData
                 entities.Add(entity);
             }
         
-            BattleManager.Instance.SquadManager.RegisterSquad(entities, squadData, squadToLoad.UnitPrestige, squadToLoad.UniqueID);
+            BattleManager.Instance.SquadManager.RegisterSquad(entities, squadData, squadToLoad.UnitPrestige, squadToLoad.UniqueID, squadToLoad.HitPointsPerUnit);
 
             query.Dispose();
         }
@@ -1228,6 +1234,8 @@ namespace Memori.SaveData
             _pendingGateWallsData = wallsData;
             selectedTeam = Team.Enemy;
             SquadToLoad squadToLoad = new SquadToLoad(UnitName.Gate) { UniqueID = $"Gate_{gateIndex}" };
+            squadToLoad.HitPointsPerUnit = wallsData.gateStartingHealth;
+            // Debug.Log($"Spawning gate squad for gate {gateIndex} with health {wallsData.gateStartingHealth}");
             // Offset into -9001, -9002, … range to avoid collision with normal enemy squad IDs
             SpawnSquadFromSaveData(squadToLoad, Quaternion.Euler(0f, 180f, 0f), position, 9000 + gateIndex);
         }
@@ -1295,6 +1303,130 @@ namespace Memori.SaveData
                 }
             }
         }
+        public void IssueGarrisonReformOrders(List<Entity> squadEntities)
+        {
+            if (squadEntities == null || squadEntities.Count == 0) return;
+
+            Debug.Log($"[ArmySpawnManager] IssueGarrisonReformOrders: {squadEntities.Count} squad(s), enemyArmyCenter={enemyArmyCenter.position}");
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            List<SquadEntity> meleeSquads   = new();
+            List<SquadEntity> rangedSquads  = new();
+            List<SquadEntity> cavalrySquads = new();
+            List<SquadEntity> largeSquads   = new();
+
+            foreach (Entity entity in squadEntities)
+            {
+                if (!entityManager.Exists(entity)) continue;
+                SquadEntity squadData = entityManager.GetComponentData<SquadEntity>(entity);
+                UnitSize size = TabletopTavernData.Instance.GetUnitSizeFromUnitName(squadData.UnitName);
+                if (size == UnitSize.Cavalry)   { cavalrySquads.Add(squadData); continue; }
+                if (size == UnitSize.Monstrous) { largeSquads.Add(squadData);   continue; }
+                switch (TabletopTavernData.Instance.GetUnitTypeFromUnitName(squadData.UnitName))
+                {
+                    case UnitType.Melee:     meleeSquads.Add(squadData);  break;
+                    case UnitType.Hybrid:    meleeSquads.Add(squadData);  break;
+                    case UnitType.Ranged:    rangedSquads.Add(squadData); break;
+                    case UnitType.Artillery: rangedSquads.Add(squadData); break;
+                }
+            }
+
+            SquadEntity?[] frontRow  = new SquadEntity?[5];
+            SquadEntity?[] middleRow = new SquadEntity?[5];
+            SquadEntity?[] backRow   = new SquadEntity?[5];
+
+            int[] centerOut = { 2, 1, 3, 0, 4 };
+            int meleeUsed = 0, rangedUsed = 0, cavalryUsed = 0, largeUsed = 0;
+
+            for (int i = 0; i < centerOut.Length && meleeUsed   < meleeSquads.Count;   i++) frontRow[centerOut[i]]  = meleeSquads[meleeUsed++];
+            for (int i = 0; i < centerOut.Length && largeUsed   < largeSquads.Count;   i++) middleRow[centerOut[i]] = largeSquads[largeUsed++];
+
+            List<int> midAvail = new();
+            for (int pos = 0; pos < 5; pos++) if (middleRow[pos] == null) midAvail.Add(pos);
+            midAvail.Sort((a, b) => Mathf.Abs(a - 2).CompareTo(Mathf.Abs(b - 2)));
+            for (int i = 0; i < midAvail.Count && rangedUsed < rangedSquads.Count; i++) middleRow[midAvail[i]] = rangedSquads[rangedUsed++];
+            for (int pos = 0; pos < 5 && meleeUsed < meleeSquads.Count; pos++)
+            { if (middleRow[pos] != null) continue; middleRow[pos] = meleeSquads[meleeUsed++]; }
+
+            for (int i = 0; i < centerOut.Length && cavalryUsed < cavalrySquads.Count; i++) backRow[centerOut[i]] = cavalrySquads[cavalryUsed++];
+
+            List<int> backAvail = new();
+            for (int pos = 0; pos < 5; pos++) if (backRow[pos] == null) backAvail.Add(pos);
+            backAvail.Sort((a, b) => Mathf.Abs(b - 2).CompareTo(Mathf.Abs(a - 2)));
+            for (int i = 0; i < backAvail.Count && rangedUsed < rangedSquads.Count; i++) backRow[backAvail[i]] = rangedSquads[rangedUsed++];
+
+            List<SquadEntity> remaining = new();
+            remaining.AddRange(meleeSquads.Skip(meleeUsed));
+            remaining.AddRange(largeSquads.Skip(largeUsed));
+            remaining.AddRange(rangedSquads.Skip(rangedUsed));
+            remaining.AddRange(cavalrySquads.Skip(cavalryUsed));
+            int remIdx = 0;
+            foreach (SquadEntity?[] row in new[] { frontRow, middleRow, backRow })
+                for (int i = 0; i < 5 && remIdx < remaining.Count; i++)
+                    if (row[i] == null) row[i] = remaining[remIdx++];
+
+            Vector3 origin  = enemyArmyCenter.position - enemyArmyCenter.forward * 50f;
+            Vector3 right   = enemyArmyCenter.right;
+            Vector3 fwd     = enemyArmyCenter.forward;
+            Quaternion facing = enemyArmyCenter.rotation;
+
+            Debug.Log($"[ArmySpawnManager] Reform rows: melee={meleeSquads.Count} ranged={rangedSquads.Count} cav={cavalrySquads.Count} large={largeSquads.Count}");
+            IssueReformRow(frontRow,  origin,                                    right, facing, "front");
+            IssueReformRow(middleRow, origin - fwd * GAP_BETWEEN_SQUADS_Z,       right, facing, "middle");
+            IssueReformRow(backRow,   origin - fwd * (GAP_BETWEEN_SQUADS_Z * 2), right, facing, "back");
+        }
+
+        private void IssueReformRow(SquadEntity?[] row, Vector3 rowCenter, Vector3 rightDir, Quaternion facing, string rowName = "")
+        {
+            if (row.All(r => r == null)) { Debug.Log($"[ArmySpawnManager] Reform row '{rowName}': empty, skipping"); return; }
+
+            rightDir = rightDir.normalized;
+            int centeredCount = 0;
+            for (int i = 0; i < row.Length; i++)
+            {
+                if (row[i] == null) continue;
+                bool isCav = TabletopTavernData.Instance.GetUnitSizeFromUnitName(row[i].Value.UnitName) == UnitSize.Cavalry;
+                if (!(isCav && (i == 0 || i == 4))) centeredCount++;
+            }
+
+            float totalWidth  = centeredCount > 1 ? (centeredCount - 1) * GAP_BETWEEN_SQUADS_X : 0f;
+            Vector3 startOff  = -rightDir * (totalWidth / 2f);
+            Vector3 leftFlank  = -rightDir * (4f * GAP_BETWEEN_SQUADS_X / 2f);
+            Vector3 rightFlank =  rightDir * (4f * GAP_BETWEEN_SQUADS_X / 2f);
+
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            var ecb = new EntityCommandBuffer(Allocator.Temp);
+            int j = 0;
+            for (int i = 0; i < row.Length; i++)
+            {
+                if (row[i] == null) continue;
+                SquadEntity squadData = row[i].Value;
+                bool isCav = TabletopTavernData.Instance.GetUnitSizeFromUnitName(squadData.UnitName) == UnitSize.Cavalry;
+
+                Vector3 slotPos;
+                if (isCav && (i == 0 || i == 4))
+                    slotPos = rowCenter + (i == 0 ? leftFlank : rightFlank);
+                else
+                { slotPos = rowCenter + startOff + rightDir * (j * GAP_BETWEEN_SQUADS_X); j++; }
+
+                int unitCount = entityManager.GetBuffer<EntityReferenceBufferElement>(squadData.SelfEntity).Length;
+                int2 widthAndDepth = CalculateWidthAndDepth(unitCount, squadData.UnitName);
+                entityManager.GetBuffer<QueuedOrder>(squadData.SelfEntity).Clear();
+                QueuedOrder queuedOrder = new()
+                {
+                    Type          = QueuedOrderType.Move,
+                    Goal          = (float3)slotPos,
+                    Rotation      = (quaternion)facing,
+                    WidthAndDepth = widthAndDepth
+                };
+                ecb.AppendToBuffer(squadData.SelfEntity, queuedOrder);
+                Debug.Log($"[ArmySpawnManager] Reform row '{rowName}': squad {squadData.SquadId} ({squadData.UnitName}) -> {slotPos}");
+            }
+
+            ecb.Playback(entityManager);
+            ecb.Dispose();
+        }
+
         static int2 CalculateWidthAndDepth(int _unitCount, UnitName _unitName) {
             int unitCount = TabletopTavernData.Instance.GetMaxUnitCountFromUnitName(_unitName);
             int formationWidth = DataTypes.GetFormationWidthFromUnitCount(unitCount);

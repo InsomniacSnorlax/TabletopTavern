@@ -60,6 +60,11 @@ namespace TJ
         // Shielded squads monitored for combat deterioration in the Aggressive state.
         private readonly List<Entity> _shieldedEnemySquads = new();
 
+        // Garrison gate tracking: built once at first UpdateGarrison tick, then used to release squads per gate.
+        private readonly Dictionary<int, List<Entity>> _garrisonDefendersByGate = new();
+        private readonly HashSet<int> _processedBreachedGates = new();
+        private bool _garrisonCacheBuilt;
+
         #region Lifecycle
 
         private void Awake()
@@ -92,7 +97,6 @@ namespace TJ
             _rangedBehavior.SetUp();
             _cavalryBehavior.SetUp();
 
-            BattleManager.Instance.UIManager.BalanceOfPowerDisplay.ArmyLossesTriggered += OnArmyLossesHandler;
         }
 
         public void TearDown()
@@ -133,7 +137,6 @@ namespace TJ
         {
             if (_setup) TearDown();
             if (BattleManager.Instance == null || BattleManager.Instance.UIManager == null) return;
-            BattleManager.Instance.UIManager.BalanceOfPowerDisplay.ArmyLossesTriggered -= OnArmyLossesHandler;
         }
 
         #endregion
@@ -149,10 +152,6 @@ namespace TJ
             _isRiverCrossing = isRiverCrossing;
             _cavalryBehavior.SetRiverCrossing(isRiverCrossing);
         }
-
-        /// <summary>Forwarded from BalanceOfPowerDisplay.ArmyLossesTriggered.</summary>
-        public void OnArmyLossesHandler(Team team) =>
-            _rangedBehavior.OnArmyLossesTriggered(team);
 
         #endregion
 
@@ -342,8 +341,103 @@ namespace TJ
 
         private void UpdateGarrison()
         {
-            if (BattleManager.Instance.AnyGateBreached)
-                SetAggressive();
+            if (!_garrisonCacheBuilt)
+                BuildGarrisonCache();
+
+            foreach (int gateIndex in _garrisonDefendersByGate.Keys)
+            {
+                if (!BattleManager.Instance.IsGateBreached(gateIndex)) continue;
+                if (_processedBreachedGates.Contains(gateIndex)) continue;
+                ReleaseGateDefenders(gateIndex);
+            }
+
+            if (_processedBreachedGates.Count > 0)
+            {
+                CheckShieldedSquadsForDefensiveSwitch();
+                _rangedBehavior.Tick();
+                _cavalryBehavior.Tick();
+                _rangedBehavior.ReprioritizeTargets();
+            }
+        }
+
+        private void BuildGarrisonCache()
+        {
+            NativeArray<Entity> enemies = _enemySquadQuery.ToEntityArray(Allocator.Temp);
+            foreach (Entity entity in enemies)
+            {
+                if (!_entityManager.HasComponent<GarrisonDefenderComponent>(entity)) continue;
+                int gateIndex = _entityManager.GetComponentData<GarrisonDefenderComponent>(entity).GateIndex;
+                if (!_garrisonDefendersByGate.TryGetValue(gateIndex, out List<Entity> list))
+                {
+                    list = new List<Entity>();
+                    _garrisonDefendersByGate[gateIndex] = list;
+                }
+                list.Add(entity);
+            }
+            enemies.Dispose();
+            _garrisonCacheBuilt = true;
+            Debug.Log($"[EnemyGeneral] Garrison cache built: {_garrisonDefendersByGate.Count} gate(s)");
+        }
+
+        private void ReleaseGateDefenders(int gateIndex)
+        {
+            if (_processedBreachedGates.Count == 0)
+                _cavalryBehavior.OnAggressiveStarted();
+
+            _processedBreachedGates.Add(gateIndex);
+
+            if (!_garrisonDefendersByGate.TryGetValue(gateIndex, out List<Entity> defenders)) return;
+
+            int released = 0;
+            foreach (Entity entity in defenders)
+            {
+                if (!_entityManager.Exists(entity)) continue;
+                SquadEntity squadEntity = _entityManager.GetComponentData<SquadEntity>(entity);
+                if (_cavalryBehavior.TryRegisterFlankingSquad(entity, squadEntity)) continue;
+
+                _entityManager.SetComponentEnabled<WaitingForCommand>(entity, false);
+
+                SquadAttributes attrs = TabletopTavernData.Instance.GetSquadStats(squadEntity.UnitName).SquadAttributes;
+                if (attrs.StandardShields || attrs.HeavyShields)
+                    _shieldedEnemySquads.Add(entity);
+
+                released++;
+            }
+            Debug.Log($"[EnemyGeneral] Gate {gateIndex} breached — released {released} defender(s), {_garrisonDefendersByGate.Count - _processedBreachedGates.Count} gate(s) still holding");
+
+            // Reform the squads still holding at intact gates into a new defensive formation.
+            List<Entity> holdingEntities = new();
+            foreach (var kvp in _garrisonDefendersByGate)
+            {
+                if (_processedBreachedGates.Contains(kvp.Key)) continue;
+                foreach (Entity e in kvp.Value)
+                {
+                    if (_entityManager.Exists(e))
+                    {
+                        holdingEntities.Add(e);
+                        SquadEntity se = _entityManager.GetComponentData<SquadEntity>(e);
+                        Debug.Log($"[EnemyGeneral] Reform: queuing squad {se.SquadId} ({se.UnitName}) from gate {kvp.Key}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[EnemyGeneral] Reform: entity {e} from gate {kvp.Key} no longer exists, skipping");
+                    }
+                }
+            }
+            Debug.Log($"[EnemyGeneral] Reform: {holdingEntities.Count} holding squad(s) queued for reformation");
+            if (holdingEntities.Count > 0)
+            {
+                foreach (Entity e in holdingEntities)
+                {
+                    // _entityManager.SetComponentEnabled<WaitingForCommand>(e, false);
+                    if (_entityManager.HasComponent<GarrisonGateSquadTag>(e))
+                        _entityManager.RemoveComponent<GarrisonGateSquadTag>(e);
+                    
+                }
+                BattleManager.Instance.ArmySpawnManager.IssueGarrisonReformOrders(holdingEntities);
+            }
+            else
+                Debug.Log("[EnemyGeneral] Reform: no holding squads found — skipping IssueGarrisonReformOrders");
         }
 
         #endregion
@@ -375,7 +469,13 @@ namespace TJ
 
         private void SetPassive()           => _currentState = EnemyGeneralState.Passive;
         private void SetDelayedPassive()    => _currentState = EnemyGeneralState.DelayedPassive;
-        private void SetGarrison()          => _currentState = EnemyGeneralState.Garrison;
+        private void SetGarrison()
+        {
+            _currentState = EnemyGeneralState.Garrison;
+            _garrisonDefendersByGate.Clear();
+            _processedBreachedGates.Clear();
+            _garrisonCacheBuilt = false;
+        }
         private void SetDelayedAggressive() { _delayedAggressiveTimer = 0; _currentState = EnemyGeneralState.DelayedAggressive; }
 
         #endregion

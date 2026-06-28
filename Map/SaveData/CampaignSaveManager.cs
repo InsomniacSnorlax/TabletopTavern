@@ -1457,7 +1457,7 @@ namespace TJ
         {
 #if DEMO
             Debug.Log($"Book 2 completed - Demo beaten on {saveData.difficultyLevel}");
-else
+#else
             Debug.Log($"Book 3 completed - Release beaten on {saveData.difficultyLevel}");
 #endif
 

@@ -31,7 +31,6 @@ public class UnitSelectionManager : MonoBehaviour
     private bool unitsAreSelected;
     private bool EnemySquadsSelected => selectedSquadIds.Count > 0 && selectedSquadIds.All(id => id < 0);
     private bool IsHoveringEnemySquad => previousHoveredSquad < 0;
-    private int _shiftAnchorSquadId = -1;
     private int _lastSelectSFXFrame = -1;
     private float timer = 0;
     private Vector2 hoverStartCursorPosition;
@@ -135,7 +134,7 @@ public class UnitSelectionManager : MonoBehaviour
                 Debug.LogError($"Squad to attack is 0, cannot issue attack command");
                 return;
             }
-            unitPositioningManager.QueueSquadCommand(SquadCommand.Attack, battleInputManager.AddingToSelectedUnits, squadToAttack);
+            unitPositioningManager.QueueSquadCommand(SquadCommand.Attack, InputHandler.Instance.QueueOrder, squadToAttack);
             TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.GiveAttackOrders);
             return;
         }
@@ -238,7 +237,7 @@ public class UnitSelectionManager : MonoBehaviour
             }
 
             TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.RepositionUnit);
-            unitPositioningManager.IssueSquadMoveCommand(true, battleInputManager.AddingToSelectedUnits);
+            unitPositioningManager.IssueSquadMoveCommand(true, InputHandler.Instance.QueueOrder);
         }
 
         if (battleInputManager.CursorMode.Equals(CursorMode.MouseDown))
@@ -308,9 +307,7 @@ public class UnitSelectionManager : MonoBehaviour
     {
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         List<int> _selectedSquadIds = selectedSquadIds;
-        // Debug.Log($"Getting all units in selected squads: {string.Join(", ", _selectedSquadIds)}");
 
-        //get all entities in the selected squads
         Dictionary<int, List<Entity>> unitsInSelectedSquads = new();
 
         for (int i = 0; i < _selectedSquadIds.Count; i++)
@@ -369,45 +366,58 @@ public class UnitSelectionManager : MonoBehaviour
     }
     public void SquadCardSelected(int _squadId)
     {
-        if (!battleInputManager.AddingToSelectedUnits && !battleInputManager.RemovingFromSelectedUnits)
+        bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        if (shiftHeld && selectedSquadIds.Count > 0)
         {
-            // Normal click — set anchor, clear previous selection, select clicked squad.
-            _shiftAnchorSquadId = _squadId;
+            SelectSquadRange(_squadId);
+            return;
+        }
+
+        if (!battleInputManager.AddingToSelectedUnits)
+        {
             ClearSelectedSquads();
             AttemptSquadSelect(_squadId, true);
             return;
         }
 
-        if (battleInputManager.AddingToSelectedUnits)
+        ToggleSquadSelect(_squadId);
+    }
+    private void SelectSquadRange(int _squadId)
+    {
+        List<int> trueOrder = squadManager.TrueSquadOrder;
+        int clickedIndex = trueOrder.IndexOf(_squadId);
+        if (clickedIndex < 0) return;
+
+        int minIndex = int.MaxValue;
+        int maxIndex = int.MinValue;
+        foreach (int id in selectedSquadIds)
         {
-            // Shift-click — select the range from anchor to clicked card (inclusive).
-            List<int> order = squadManager.GetTrueSquadOrder();
-            int clickedIndex = order.IndexOf(_squadId);
+            int idx = trueOrder.IndexOf(id);
+            if (idx < 0) continue;
+            if (idx < minIndex) minIndex = idx;
+            if (idx > maxIndex) maxIndex = idx;
+        }
 
-            // If the squad isn't in the order yet (e.g. order not yet initialized),
-            // fall back to a simple single select.
-            if (clickedIndex < 0)
-            {
-                AttemptSquadSelect(_squadId, true);
-                return;
-            }
-
-            int anchorIndex = _shiftAnchorSquadId >= 0 ? order.IndexOf(_shiftAnchorSquadId) : clickedIndex;
-            if (anchorIndex < 0) anchorIndex = clickedIndex;
-
-            int rangeStart = Mathf.Min(anchorIndex, clickedIndex);
-            int rangeEnd   = Mathf.Max(anchorIndex, clickedIndex);
-
-            // Replace the current selection with the full anchor→click range.
-            ClearSelectedSquads();
-            for (int i = rangeStart; i <= rangeEnd; i++)
-            {
-                SelectSquad(order[i], true);
-            }
+        if (minIndex == int.MaxValue)
+        {
+            selectedSquadIds.Add(_squadId);
+            SortSelectedSquads();
             return;
         }
 
-        AttemptSquadSelect(_squadId, true);
+        int rangeMin = Mathf.Min(clickedIndex, minIndex);
+        int rangeMax = Mathf.Max(clickedIndex, maxIndex);
+
+        selectedSquadIds.Clear();
+        for (int i = rangeMin; i <= rangeMax; i++)
+            selectedSquadIds.Add(trueOrder[i]);
+
+        SortSelectedSquads();
+    }
+    public void ToggleSquadSelect(int squadId)
+    {
+        bool isSelected = selectedSquadIds.Contains(squadId);
+        AttemptSquadSelect(squadId, !isSelected);
     }
     public void SelectSquad(int _squadId, bool _addingToSelection)
     {
@@ -450,6 +460,17 @@ public class UnitSelectionManager : MonoBehaviour
         foreach (var squad in playerSquads)
             allPlayerSquadIds.Add(squad.SquadId);
         SelectSquads(allPlayerSquadIds);
+    }
+    public void SelectAllPlayerSquadsWithName(UnitName unitName)
+    {
+        using var playerSquads = squadManager.RetrieveSquadEntities(ComponentType.ReadOnly<PlayerSquad>());
+        List<int> matchingIds = new(playerSquads.Length);
+        foreach (var squad in playerSquads)
+        {
+            if (squad.UnitName == unitName)
+                matchingIds.Add(squad.SquadId);
+        }
+        SelectSquads(matchingIds);
     }
     public void ClearSelectedSquads()
     {
@@ -498,7 +519,7 @@ public class UnitSelectionManager : MonoBehaviour
     }
     public void SelectSquadsByGroup(List<int> _selectedSquadIds)
     {
-        if (!battleInputManager.AddingToSelectedUnits && !battleInputManager.RemovingFromSelectedUnits)
+        if (!battleInputManager.AddingToSelectedUnits)
         {
             // DeselectAllSquads();
             ClearSelectedSquads();
@@ -971,6 +992,7 @@ public class UnitSelectionManager : MonoBehaviour
         using var squadEntities = query.ToEntityArray(Allocator.TempJob);
         Dictionary<int, float3> SEwidthAndDepth = new();
         Dictionary<int, UnitType> SEunitTypes = new();
+        Dictionary<int, float> SEsquadCenterX = new();
         SelectedSquadUnitNames = new();
 
         //sort squadEntities by true squad order
@@ -1039,6 +1061,7 @@ public class UnitSelectionManager : MonoBehaviour
             float spread = TabletopTavernConstants.GetSpread(unitSize);
 
             SEwidthAndDepth[squad.SquadId] = new float3(widthAndDepth.x, widthAndDepth.y, spread);
+            SEsquadCenterX[squad.SquadId] = squadMovementComponent.SquadCenter.x;
             SquadOverridesComponent overrides = entityManager.GetComponentData<SquadOverridesComponent>(squad.SelfEntity);
             SEunitTypes[squad.SquadId] = overrides.UnitType;
             SetSelectedSquadAngle(squadMovementComponent.SquadRotation);
@@ -1055,6 +1078,7 @@ public class UnitSelectionManager : MonoBehaviour
         }
         // Debug.Log($"Selected squads width and depth: {string.Join(", ", sortedSEwidthAndDepth.Select(kvp => $"{kvp.Key}: ({kvp.Value.x}, {kvp.Value.y}, {kvp.Value.z})"))}");
         SEwidthAndDepth = sortedSEwidthAndDepth;
+        positionDrawer.Formation.SetSquadCenterXDict(SEsquadCenterX);
         GetSelectedUnitsCount(SEwidthAndDepth, SEunitTypes);
 
         if (_selectedSquadIds.Count > 0 && Time.frameCount != _lastSelectSFXFrame)
@@ -1087,7 +1111,7 @@ public class UnitSelectionManager : MonoBehaviour
                 selectedSquadIds.Add(squadManager.TrueSquadOrder[i]);
             }
         }
-        
+
         // squad IDs not in TrueSquadOrder (e.g. enemy squad IDs) go at the end
         for(int i = 0; i < unsortedSquadIds.Count; i++)
         {

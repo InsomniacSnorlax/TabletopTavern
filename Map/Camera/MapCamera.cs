@@ -115,8 +115,9 @@ namespace TJ.Map
         {
             if (!InputHandler.Instance.EnableCameraRotation_Input) return;
 
+            float mouseYDir = SettingsManager.Instance.InvertMouseY.Value ? 1f : -1f;
             yaw += Input.GetAxis("Mouse X") * rotationSpeed * Time.deltaTime;
-            pitch -= Input.GetAxis("Mouse Y") * rotationSpeed * Time.deltaTime;
+            pitch += mouseYDir * Input.GetAxis("Mouse Y") * rotationSpeed * Time.deltaTime;
             pitch = Mathf.Clamp(pitch, -90f, 90f);
 
             target.rotation = Quaternion.Euler(pitch, yaw, 0f);

@@ -82,12 +82,7 @@ namespace TJ
                 BattleManager.Instance.EntityWatcher.EndBattle(true);
             }
         }
-        private void GateDestroyedHandler(int gateIndex)
-        {
-            enemyLossesTriggered = true;
-            enemyArmyLossesIndicator.SetActive(true);
-            ArmyLossesTriggered?.Invoke(Team.Enemy);
-        }
+        private void GateDestroyedHandler(int gateIndex) { }
         private void OnDestroy()
         {
             if(BattleManager.HasInstance)

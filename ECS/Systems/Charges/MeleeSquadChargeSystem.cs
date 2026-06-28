@@ -120,7 +120,7 @@ partial struct MeleeSquadChargeSystem : ISystem
 
                     if (entityManager.HasComponent<SquadMoveOverrideTag>(squad.ValueRO.TargetSquadEntity))
                         entityCommandBuffer.RemoveComponent<SquadMoveOverrideTag>(squad.ValueRO.TargetSquadEntity);
-                    
+
                     entityCommandBuffer.AddComponent(squad.ValueRO.TargetSquadEntity, new FormationEngagedInCombat{
                         EngagementEntity = squad.ValueRO.SelfEntity,
                         WasCharging = entityManager.HasComponent<ChargeBonus>(squad.ValueRO.TargetSquadEntity)

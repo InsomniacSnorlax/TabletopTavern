@@ -4,7 +4,7 @@ using Unity.Mathematics;
 using TJ;
 
 public enum UnitType { Melee, Ranged, Hybrid, Artillery, Structure }
-public enum UnitCondition { None, InForest, InCombat, IsCharging, IsTerrified, InSwamp, IsExhausted, IsOutOfAmmo }
+public enum UnitCondition { None, InForest, InCombat, IsCharging, IsTerrified, InSwamp, IsExhausted, IsOutOfAmmo, GarrisonDefender, DefendersResolve }
 public enum UnitStat { MeleeAttack, MeleeDefense, WeaponStrength, 
     Accuracy, Range, MissileStrength, HitPoints, None, Speed, 
     Armor, ChargeBonus, Leadership, Ammunition, ChargeImpactDamage }
@@ -104,19 +104,30 @@ public struct GarrisonConcaveZone
     public float battleMinX;     // left edge of the battle zone
     public float battleMaxX;     // right edge of the battle zone
     public float battleMaxZ;     // back edge of the battle zone (enemy far side)
-    public bool isFlat;          // true when inwardDepth <= 0 or wall too narrow for sections
+    public bool isFlat;            // true when inwardDepth <= 0 or wall too narrow for sections
+    public bool isDiagonalLayout;  // true for village layout: narrow front wall + 45° outward side walls
+    public bool isConvex;          // true for convex layout: middle forward at wallZ, flanks recessed to middleZ
 
     public bool IsInsideEnemyZone(float x, float z)
     {
         if (isFlat) return z >= wallZ;
+        if (isDiagonalLayout)
+        {
+            if (z < wallZ) return false;
+            float depth = z - wallZ;
+            return x >= leftConnectorX - depth && x <= rightConnectorX + depth;
+        }
         bool inMiddle = x > leftConnectorX && x < rightConnectorX;
+        if (isConvex) return z >= (inMiddle ? wallZ : middleZ);
         return z >= (inMiddle ? middleZ : wallZ);
     }
 
     public float GetSectionZ(float x)
     {
         if (isFlat) return wallZ;
-        return (x > leftConnectorX && x < rightConnectorX) ? middleZ : wallZ;
+        bool inMiddle = x > leftConnectorX && x < rightConnectorX;
+        if (isConvex) return inMiddle ? wallZ : middleZ;
+        return inMiddle ? middleZ : wallZ;
     }
 
     public (float minX, float maxX) GetSectionXRange(float x)

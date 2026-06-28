@@ -21,7 +21,7 @@ namespace TJ
         [SerializeField] private Image squadFactionColorImage;
         [SerializeField] private Transform unitAttributesParent;
         [SerializeField] private UnitAttributesUI unitAttributePrefab;
-        [SerializeField] private GameObject isChargingGO, inCombatGO, isTerrifiedGO, inForestGO, inSwampGO, chargeBonusCooldownGO, exhaustedGO, bloodFrenzyGO, rageGO, armorSunderedGO, attackedInFlanksGO, onFireGO, defensiveStanceGO, bracedGO, retreatingAlliesGO;
+        [SerializeField] private GameObject isChargingGO, inCombatGO, isTerrifiedGO, inForestGO, inSwampGO, chargeBonusCooldownGO, exhaustedGO, bloodFrenzyGO, rageGO, armorSunderedGO, attackedInFlanksGO, onFireGO, defensiveStanceGO, bracedGO, retreatingAlliesGO, garrisonDefenderGO, defendersResolveGO;
 
         [Header("Combat Status Indicators")]
         [SerializeField] private TMP_Text _combatStatusText;
@@ -134,6 +134,8 @@ namespace TJ
             bracedGO.SetActive(entityManager.IsComponentEnabled<BracedTag>(squadEntity.SelfEntity));
             defensiveStanceGO.SetActive(entityManager.IsComponentEnabled<DefensiveStanceTag>(squadEntity.SelfEntity));
             retreatingAlliesGO.SetActive(entityManager.IsComponentEnabled<RetreatingNearbyAllies>(squadEntity.SelfEntity));
+            garrisonDefenderGO.SetActive(entityManager.HasComponent<GarrisonDefenderComponent>(squadEntity.SelfEntity));
+            defendersResolveGO.SetActive(entityManager.HasComponent<DefendersResolveComponent>(squadEntity.SelfEntity));
             
             bool isExhausted = entityManager.HasComponent<ExhaustedTag>(squadEntity.SelfEntity);
             if(isExhausted) {

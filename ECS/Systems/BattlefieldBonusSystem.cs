@@ -204,7 +204,7 @@ partial struct BattlefieldBonusJob : IJobEntity
                             if (ShootAttackLookup.HasComponent(unitEntity))
                             {
                                 var sa = ShootAttackLookup[unitEntity];
-                                sa.Accuracy *= 2;
+                                sa.Accuracy += (int)bonus.Value;
                                 ShootAttackLookup[unitEntity] = sa;
                             }
                             break;
@@ -212,7 +212,7 @@ partial struct BattlefieldBonusJob : IJobEntity
                             if (ShootAttackLookup.HasComponent(unitEntity))
                             {
                                 var sa = ShootAttackLookup[unitEntity];
-                                sa.Range *= 2;
+                                sa.Range += (int)bonus.Value;
                                 ShootAttackLookup[unitEntity] = sa;
                             }
                             break;
@@ -224,28 +224,31 @@ partial struct BattlefieldBonusJob : IJobEntity
 
             if (hasRemoveCharge && bonus.BattlefieldBonusEnum == BattlefieldBonusEnum.ChargeBonus)
             {
-                for (int j = 0; j < entityBuffer.Length; j++)
+                if (bonus.Applied)
                 {
-                    Entity unitEntity = entityBuffer[j].Entity;
-                    if (!ExistsLookup.HasComponent(unitEntity)) continue;
-                    switch (bonus.UnitStat)
+                    for (int j = 0; j < entityBuffer.Length; j++)
                     {
-                        case UnitStat.WeaponStrength:
-                            if (MeleeAttackLookup.HasComponent(unitEntity))
-                            {
-                                var ma = MeleeAttackLookup[unitEntity];
-                                ma.WeaponStrength -= (int)bonus.Value;
-                                MeleeAttackLookup[unitEntity] = ma;
-                            }
-                            break;
-                        case UnitStat.MeleeAttack:
-                            if (MeleeAttackLookup.HasComponent(unitEntity))
-                            {
-                                var ma = MeleeAttackLookup[unitEntity];
-                                ma.MeleeAttackValue -= (int)bonus.Value;
-                                MeleeAttackLookup[unitEntity] = ma;
-                            }
-                            break;
+                        Entity unitEntity = entityBuffer[j].Entity;
+                        if (!ExistsLookup.HasComponent(unitEntity)) continue;
+                        switch (bonus.UnitStat)
+                        {
+                            case UnitStat.WeaponStrength:
+                                if (MeleeAttackLookup.HasComponent(unitEntity))
+                                {
+                                    var ma = MeleeAttackLookup[unitEntity];
+                                    ma.WeaponStrength -= (int)bonus.Value;
+                                    MeleeAttackLookup[unitEntity] = ma;
+                                }
+                                break;
+                            case UnitStat.MeleeAttack:
+                                if (MeleeAttackLookup.HasComponent(unitEntity))
+                                {
+                                    var ma = MeleeAttackLookup[unitEntity];
+                                    ma.MeleeAttackValue -= (int)bonus.Value;
+                                    MeleeAttackLookup[unitEntity] = ma;
+                                }
+                                break;
+                        }
                     }
                 }
                 bonusBuffer.RemoveAt(i--);
@@ -398,6 +401,7 @@ partial struct BattlefieldBonusJob : IJobEntity
                     bonusBuffer.Add(new BattlefieldBonusBufferElement { Value = bonus });
                     if (!InSnowLookup.HasComponent(entity))
                     {
+                        Ecb.AddComponent<InSnowTag>(sortKey, entity);
                         var morale = MoraleComponentLookup[entity];
                         morale.MaxMorale += TabletopTavernConstants.SNOW_MORALE_PENALTY;
                         morale.CurrentMorale += TabletopTavernConstants.SNOW_MORALE_PENALTY;
@@ -408,7 +412,6 @@ partial struct BattlefieldBonusJob : IJobEntity
                 {
                     bonus.Applied = true;
                     bonusBuffer.RemoveAt(i--);
-                    bonusBuffer.Add(new BattlefieldBonusBufferElement { Value = bonus });
                     for (int j = 0; j < entityBuffer.Length; j++)
                     {
                         Entity unitEntity = entityBuffer[j].Entity;
@@ -419,7 +422,9 @@ partial struct BattlefieldBonusJob : IJobEntity
                                 if (ShootAttackLookup.HasComponent(unitEntity))
                                 {
                                     var sa = ShootAttackLookup[unitEntity];
-                                    sa.Accuracy = (int)(sa.Accuracy * 0.5f);
+                                    int reduction = sa.Accuracy - (int)(sa.Accuracy * 0.5f);
+                                    bonus.Value = reduction;
+                                    sa.Accuracy -= reduction;
                                     ShootAttackLookup[unitEntity] = sa;
                                 }
                                 break;
@@ -427,12 +432,15 @@ partial struct BattlefieldBonusJob : IJobEntity
                                 if (ShootAttackLookup.HasComponent(unitEntity))
                                 {
                                     var sa = ShootAttackLookup[unitEntity];
-                                    sa.Range = (int)(sa.Range * 0.5f);
+                                    int reduction = (int)sa.Range - (int)(sa.Range * 0.5f);
+                                    bonus.Value = reduction;
+                                    sa.Range -= reduction;
                                     ShootAttackLookup[unitEntity] = sa;
                                 }
                                 break;
                         }
                     }
+                    bonusBuffer.Add(new BattlefieldBonusBufferElement { Value = bonus });
                 }
                 else
                 {

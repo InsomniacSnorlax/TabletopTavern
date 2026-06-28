@@ -48,8 +48,12 @@ public class BattleInputManager : MonoBehaviour
     public bool SettingInitialSquadPosition => settingInitialSquadPosition;
     public void SetInitialSquadPosition(bool value) => settingInitialSquadPosition = value;
 
-    [SerializeField] bool addingToSelectedUnits = false, removingFromSelectedUnits = false, repositioningSelectedUnits = false;
+    [SerializeField] bool addingToSelectedUnits = false, repositioningSelectedUnits = false;
     private bool repositionCancelled = false;
+
+    private float _lastBattlefieldClickTime = -1f;
+    private int _lastBattlefieldClickedSquadId = 0;
+    private const float DoubleClickTime = 0.3f;
 
     [Header("Debug")]
     [SerializeField] private bool debug = false;
@@ -62,7 +66,6 @@ public class BattleInputManager : MonoBehaviour
     public bool RepositioningSelectedUnits => repositioningSelectedUnits;
     public bool RepositionCancelled => repositionCancelled;
     public bool AddingToSelectedUnits => addingToSelectedUnits;
-    public bool RemovingFromSelectedUnits => removingFromSelectedUnits;
     public bool LeftClickDownThisFrame => _leftClickDownThisFrame;
     public bool RightClickDownThisFrame => _rightClickDownThisFrame;
     public bool RightClickUpThisFrame => _rightClickUpThisFrame;
@@ -113,7 +116,6 @@ public class BattleInputManager : MonoBehaviour
         }
 
         repositioningSelectedUnits = InputHandler.Instance.RepositioningSelectedUnits;
-        removingFromSelectedUnits = InputHandler.Instance.RemoveUnitsFromSelection;
         if (!InputHandler.Instance.RepositioningSelectedUnits) repositionCancelled = false;
     }
     private void AddUnitsToSelection()
@@ -302,7 +304,7 @@ public class BattleInputManager : MonoBehaviour
                 {
                     RotatingSelectedUnits(false);
                 }
-                unitPositioningManager.IssueSquadMoveCommand(false, addingToSelectedUnits);
+                unitPositioningManager.IssueSquadMoveCommand(false, InputHandler.Instance.QueueOrder);
             }
             return;
         }
@@ -451,7 +453,7 @@ public class BattleInputManager : MonoBehaviour
 
         NativeArray<Entity> entityArray = entityQuery.ToEntityArray(Allocator.Temp);
 
-        if (!AddingToSelectedUnits && !RemovingFromSelectedUnits)
+        if (!AddingToSelectedUnits)
         {
             // Debug.Log($"here");
             unitSelectionManager.DeselectAllSquadsForNewSelectionArea();
@@ -499,7 +501,19 @@ public class BattleInputManager : MonoBehaviour
                     // Debug.Log($"hit squad flag");
                     // Handle hit on squad flag here
                     SquadFlagGameObject squadFlag = hitInfo.collider.GetComponent<SquadFlagGameObject>();
-                    unitSelectionManager.AttemptSquadSelect(squadFlag.SquadId, true);
+                    if (CheckAndRecordBattlefieldDoubleClick(squadFlag.SquadId) && squadFlag.SquadId > 0)
+                    {
+                        UnitName unitName = BattleManager.Instance.SquadManager.GetSquad(squadFlag.SquadId).UnitName;
+                        unitSelectionManager.SelectAllPlayerSquadsWithName(unitName);
+                    }
+                    else if (AddingToSelectedUnits)
+                    {
+                        unitSelectionManager.ToggleSquadSelect(squadFlag.SquadId);
+                    }
+                    else
+                    {
+                        unitSelectionManager.AttemptSquadSelect(squadFlag.SquadId, true);
+                    }
                 }
             }
             //try to hit unit
@@ -564,20 +578,22 @@ public class BattleInputManager : MonoBehaviour
                                 //check if unit is broken
                                 if (!entityManager.IsComponentEnabled<RetreatingUnit>(raycastHit.Entity))
                                 {
-                                    List<int> previouslySelectedSquads = unitSelectionManager.GetSelectedSquadEntities().ConvertAll(squad => squad.SquadId);
-
-                                    if (AddingToSelectedUnits)
+                                    if (CheckAndRecordBattlefieldDoubleClick(unit.squadId))
                                     {
-                                        if (!previouslySelectedSquads.Contains(unit.squadId)) previouslySelectedSquads.Add(unit.squadId);
+                                        UnitName unitName = BattleManager.Instance.SquadManager.GetSquad(unit.squadId).UnitName;
+                                        unitSelectionManager.SelectAllPlayerSquadsWithName(unitName);
+                                    }
+                                    else if (AddingToSelectedUnits)
+                                    {
+                                        unitSelectionManager.ToggleSquadSelect(unit.squadId);
                                     }
                                     else
                                     {
+                                        List<int> previouslySelectedSquads = unitSelectionManager.GetSelectedSquadEntities().ConvertAll(squad => squad.SquadId);
                                         previouslySelectedSquads.Add(unit.squadId);
+                                        unitSelectionManager.SelectSquads(previouslySelectedSquads);
+                                        unitSelectionManager.AttemptSquadSelect(unit.squadId, true);
                                     }
-
-                                    unitSelectionManager.SelectSquads(previouslySelectedSquads);
-                                    // BattleManager.Instance.UIManager.SquadCardDisplaySelected(unit.squadId, true);
-                                    unitSelectionManager.AttemptSquadSelect(unit.squadId, true);
                                 }
                             }
                         }
@@ -591,6 +607,13 @@ public class BattleInputManager : MonoBehaviour
             }
         }
         SelectionAreaEnded();
+    }
+    private bool CheckAndRecordBattlefieldDoubleClick(int squadId)
+    {
+        bool isDouble = (Time.time - _lastBattlefieldClickTime) <= DoubleClickTime && _lastBattlefieldClickedSquadId == squadId;
+        _lastBattlefieldClickTime = Time.time;
+        _lastBattlefieldClickedSquadId = squadId;
+        return isDouble;
     }
     public List<int> RemoveBrokenSquads(List<int> squadIds)
     {

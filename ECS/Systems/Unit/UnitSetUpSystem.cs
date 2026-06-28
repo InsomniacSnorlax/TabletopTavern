@@ -39,8 +39,6 @@ partial struct UnitSetUpSystem : ISystem
             RefRO<UnitStatsSetUpTag>
         >().WithEntityAccess()) {
             
-            entityCommandBuffer.RemoveComponent<UnitStatsSetUpTag>(entity);
-
             SquadStats squadStats = statsBlob.GetStats(unit.ValueRO.unitName);
             UnitAttributeSerialized unitAttributes = new();
 
@@ -57,6 +55,12 @@ partial struct UnitSetUpSystem : ISystem
             float accuracy = squadStats.attackAccuracy;
             float range = squadStats.BaseRange;
             int maxHitPoints = squadStats.HitPointsPerUnit;
+            if(squadStats.unitType == UnitType.Structure) {
+                maxHitPoints = UnitStatsSetUpTag.ValueRO.HealthOverride;
+            }
+
+            entityCommandBuffer.RemoveComponent<UnitStatsSetUpTag>(entity);
+
             float GetShieldBlockChance() {
                 if (squadStats.SquadAttributes.StandardShields)
                 {
@@ -455,7 +459,7 @@ partial struct UnitSetUpSystem : ISystem
                 if (entityManager.HasComponent<AgentShape>(entity))
                 {
                     AgentShape agentShape = entityManager.GetComponentData<AgentShape>(entity);
-                    agentShape.Radius = 2f;
+                    agentShape.Radius = 2.5f;
                     entityCommandBuffer.SetComponent(entity, agentShape);
                 }
             }
