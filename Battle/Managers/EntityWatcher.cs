@@ -230,7 +230,7 @@ namespace TJ
                     BattleManager.Instance.SquadManager.CreateArcherRangeDrawer(squadEntity);
 
                     //enemy archers receive skirmish tag
-                    if (squadEntity.SquadId < 0  && squadEntity.UnitName != UnitName.Gate)// && !BattleManager.Instance.BattleSaveManager.IsGarrisonBattle)
+                    if (squadEntity.SquadId < 0  && squadEntity.UnitName != UnitName.Gate && !BattleManager.Instance.BattleSaveManager.IsGarrisonBattle)
                     {
                         ecb.AddComponent(entity, new RangedSquadSkirmishTag() { });
                     }

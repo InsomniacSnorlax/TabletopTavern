@@ -16,7 +16,7 @@ public partial struct SquadTookDamageSystem : ISystem
         EntityCommandBuffer ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
 
         foreach (var (squadState, entity) in SystemAPI.Query<SquadStateComponent>()
-            .WithAll<WaitingForCommand>()
+            .WithAll<WaitingForCommand, EnemySquad>()
             .WithPresent<HasTakenDamage>()
             .WithEntityAccess())
         {

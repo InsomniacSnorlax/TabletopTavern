@@ -8,7 +8,6 @@ using TJ.Map;
 using Memori.Audio;
 using MoreMountains.Feedbacks;
 using System.Threading.Tasks;
-using Memori.Input;
 using Memori.Localization;
 
 namespace TJ
@@ -345,12 +344,12 @@ namespace TJ
             if (isEnemy) return;
             
             // Move the image with the mouse
-            transform.position = InputHandler.Instance.MousePosition;
+            transform.position = eventData.position;
             initialPosition = cachedDummySquadCard.transform.position;
 
 
-            bool isOverDropArea1 = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.DeployedTroopsArea, InputHandler.Instance.MousePosition);
-            bool isOverDropArea2 = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.ReserveTroopsArea, InputHandler.Instance.MousePosition);
+            bool isOverDropArea1 = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.DeployedTroopsArea, eventData.position);
+            bool isOverDropArea2 = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.ReserveTroopsArea, eventData.position);
 
             if (isOverDropArea1 && !cachedOverDeployedArea) //switching from reserves to deployed
             {
@@ -445,7 +444,7 @@ namespace TJ
             }
 
             for(int i = 0; i < hudPanel.TroopsIndexAreas.Length; i++) {
-                if(RectTransformUtility.RectangleContainsScreenPoint(hudPanel.TroopsIndexAreas[i], InputHandler.Instance.MousePosition)) {
+                if(RectTransformUtility.RectangleContainsScreenPoint(hudPanel.TroopsIndexAreas[i], eventData.position)) {
                 //    Debug.Log($"TroopsIndexAreas: {i}");
                     indexHovered = i;
                 }

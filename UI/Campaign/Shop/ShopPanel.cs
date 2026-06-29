@@ -49,6 +49,8 @@ namespace TJ.Shop
         private ShopSaveData shopSaveData;
         private MemoriCanvasGroup shopCanvasGroup;
         private bool shopSceneActive = false;
+        private bool freeCameraMode = false;
+        public void SetFreeCameraMode(bool _enabled) { freeCameraMode = _enabled; }
         private Outline[] outlines;
         private int consumablesPurchased = 0;
         public int ConsumablesPurchased => consumablesPurchased;
@@ -80,7 +82,7 @@ namespace TJ.Shop
             }
             consumablesPurchased = 0;
             gearPacksPurchased = 0;
-            Task cameraTask = CampaignManager.Instance.MapCamera.EnterRecruitScene();
+            Task cameraTask = CampaignManager.Instance.MapCamera.EnterShopScene();
 
 #if WINTER_UPDATE
                 specialBartenderAnimator.CrossFade("Welcome", 0.1f);
@@ -184,7 +186,8 @@ namespace TJ.Shop
             if (
                 UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject() ||
                 SettingsManager.Instance.SettingsPanelOpen ||
-                !shopSceneActive
+                !shopSceneActive ||
+                freeCameraMode
             )
             {
                 if (hoveredConsumable != null)

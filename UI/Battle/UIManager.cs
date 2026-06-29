@@ -154,7 +154,7 @@ namespace TJ
             InputHandler.Instance.OnWithdrawCommand += OnWithdrawSquadButtonClicked;
             BattleManager.Instance.SquadOrderManager.OnSquadOrderChanged += OnSquadOrderReceived;
             BattleManager.Instance.BattlefieldEnvManager.OnWeatherChanged += OnWeatherChanged;
-            addingOrQueuingIcon.enabled = false;
+            if (addingOrQueuingIcon != null) addingOrQueuingIcon.enabled = false;
             InputHandler.Instance.OnQueueOrder += EnableAddingOrQueuingIcon;
             InputHandler.Instance.OnQueueOrderCanceled += CancelAddingOrQueuingIcon;
             InputHandler.Instance.OnFireAtWillModeToggle += SetFireAtWillMode;
@@ -632,21 +632,25 @@ namespace TJ
         #region Battle Buttons Hotkeys
         private void ToggleGuardMode()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             guardModeButton.HotkeyInteract();
         }
         private void ToggleAutoRetarget()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             autoRetargetButton.HotkeyInteract();
         }
         private void ToggleMeleeMode()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             meleeModeButton.HotkeyInteract();
         }
         private void SetFireAtWillMode()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetFireAtWill();
             volleyFireButton.SetOnOrOff(false);
@@ -654,6 +658,7 @@ namespace TJ
         }
         private void SetVolleyFireMode()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetVolleyFire();
             fireAtWillButton.SetOnOrOff(false);
@@ -661,6 +666,7 @@ namespace TJ
         }
         private void SetBalancedStance()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetBalancedStance();
             defensiveStanceButton.SetOnOrOff(false);
@@ -668,6 +674,7 @@ namespace TJ
         }
         private void SetDefensiveStance()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetDefensiveStance();
             balancedStanceButton.SetOnOrOff(false);
@@ -675,6 +682,7 @@ namespace TJ
         }
         private void SetCeaseFireMode()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             IssueCeaseFireCommand();
         }
@@ -840,6 +848,7 @@ namespace TJ
         }
         private void IssueHaltCommand()
         {
+            if (BattleManager.Instance == null) return;
             BattleManager.Instance.UnitPositioningManager.QueueSquadCommand(SquadCommand.HaltAndFreeze, false);
         }
         private void IssueCeaseFireCommand()
@@ -876,8 +885,8 @@ namespace TJ
                 InputHandler.Instance.OnToggleMeleeMode -= ToggleMeleeMode;
                 InputHandler.Instance.OnHaltCommand -= IssueHaltCommand;
                 InputHandler.Instance.OnWithdrawCommand -= OnWithdrawSquadButtonClicked;
-                InputHandler.Instance.OnAddUnitsToSelection -= EnableAddingOrQueuingIcon;
-                InputHandler.Instance.OnAddUnitsToSelectionCanceled -= CancelAddingOrQueuingIcon;
+                InputHandler.Instance.OnQueueOrder -= EnableAddingOrQueuingIcon;
+                InputHandler.Instance.OnQueueOrderCanceled -= CancelAddingOrQueuingIcon;
                 InputHandler.Instance.OnFireAtWillModeToggle -= SetFireAtWillMode;
                 InputHandler.Instance.OnVolleyFireModeToggle -= SetVolleyFireMode;
                 InputHandler.Instance.OnBalancedStanceToggle -= SetBalancedStance;
@@ -899,6 +908,7 @@ namespace TJ
         }
         private void OnWithdrawSquadButtonClicked()
         {
+            if (BattleManager.Instance == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
 
             switch (BattleManager.Instance.GamePhase)
@@ -1059,10 +1069,12 @@ namespace TJ
         }
         private void EnableAddingOrQueuingIcon()
         {
+            if (addingOrQueuingIcon == null) { Debug.LogWarning("addingOrQueuingIcon not assigned in Inspector"); return; }
             addingOrQueuingIcon.enabled = true;
         }
         private void CancelAddingOrQueuingIcon()
         {
+            if (addingOrQueuingIcon == null) return;
             addingOrQueuingIcon.enabled = false;
         }
         public void UpdateBalanceOfPower(BalanceOfPower balanceOfPower)

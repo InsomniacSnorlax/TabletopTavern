@@ -16,6 +16,7 @@ using Unity.Mathematics;
 using MoreMountains.Feedbacks;
 using Memori.Input;
 using Memori.Localization;
+using UnityEngine.InputSystem;
 using Memori.Steamworks;
 
 namespace TJ.Map
@@ -24,6 +25,13 @@ namespace TJ.Map
     {
         [SerializeField] private Button showSettingsButton;
         [SerializeField] private MemoriTooltipTrigger settingsTooltipTrigger;
+        [SerializeField] private Button freeCameraButton;
+        [SerializeField] private MemoriTooltipTrigger freeCameraTooltipTrigger;
+        [SerializeField] private Canvas hudCanvas;
+        [SerializeField] private GameObject freeCameraOverlay;
+        [SerializeField] private Button returnFromFreeCameraButton;
+        [SerializeField] private MemoriTooltipTrigger returnFromFreeCameraTooltipTrigger;
+        [SerializeField] private TMP_Text returnFromFreeCameraKeyText;
 
         [Header("Player Company")]
         [SerializeField] private MemoriTooltipTrigger chapterTooltipTrigger;
@@ -117,6 +125,8 @@ namespace TJ.Map
 
         CampaignSaveManager campaignSaveManager;
         MapSceneUIManager mapSceneUIManager;
+        List<Canvas> hudChildCanvases = new();
+        bool isFreeCameraMode = false;
         List<SquadDisplayCardMenu> playerSquadsCards;
         public List<SquadDisplayCardMenu> PlayerSquadsCards => playerSquadsCards;
         List<string> pendingDisbandGuids = new();
@@ -133,6 +143,8 @@ namespace TJ.Map
             campaignSaveManager = _campaignSaveManager;
             mapSceneUIManager = _mapSceneUIManager;
             showSettingsButton.onClick.AddListener(() => SettingsManager.Instance.OpenSettingsPanel());
+            freeCameraButton.onClick.AddListener(EnterFreeCameraMode);
+            returnFromFreeCameraButton.onClick.AddListener(ExitFreeCameraMode);
 
             disbandSquadButtonConfirm.onClick.AddListener(() => DisbandPendingSquads());
             disbandSquadButtonCancel.onClick.AddListener(() => HideDisbandSquadConfirmation());
@@ -147,6 +159,7 @@ namespace TJ.Map
             campaignSaveManager.OnArmyStructureChanged += ArmyStructureChanged;
             campaignSaveManager.OnConsumablesChanged += ReloadConsumables;
             InputHandler.Instance.SecondaryActionPressed += CloseAllPopUps;
+            InputHandler.Instance.OnToggleFreeCameraMode += ToggleFreeCameraMode;
 
             ReloadGear();
             ReloadConsumables();
@@ -169,7 +182,15 @@ namespace TJ.Map
             chapterTooltipTrigger.SetUpToolTip(_title: GetChapterTooltipTitle(campaignSaveManager.SaveData.bookNumber, campaignSaveManager.SaveData.activeMapLayer));
 
             settingsTooltipTrigger.SetUpToolTip(_title: LocalizationManager.Instance.GetText("Settings"));
+            string freeCamKey = InputControlPath.ToHumanReadableString(
+                InputHandler.Instance.GameControls.Battle.ToggleFreeCameraMode.bindings[0].effectivePath,
+                InputControlPath.HumanReadableStringOptions.OmitDevice
+            );
+            freeCameraTooltipTrigger.SetUpToolTip(_title: $"{LocalizationManager.Instance.GetText("FreeCameraMode")} [{freeCamKey}]");
+            returnFromFreeCameraTooltipTrigger.SetUpToolTip(_title: $"{LocalizationManager.Instance.GetText("exitButton")} {LocalizationManager.Instance.GetText("FreeCameraMode")} [{freeCamKey}]");
+            returnFromFreeCameraKeyText.text = $"{LocalizationManager.Instance.GetText("exitButton")} {LocalizationManager.Instance.GetText("FreeCameraMode")} - [{freeCamKey}]";
             consumablesBlocker.SetActive(false);
+            freeCameraOverlay.SetActive(false);
         }
         private void SetUpDifficultyTooltip()
         {
@@ -724,10 +745,43 @@ namespace TJ.Map
 
             DeselectAllCards();
         }
+        private void ToggleFreeCameraMode()
+        {
+            if (isFreeCameraMode) ExitFreeCameraMode();
+            else EnterFreeCameraMode();
+        }
+
+        private void EnterFreeCameraMode()
+        {
+            hudChildCanvases.Clear();
+            foreach (Canvas c in hudCanvas.GetComponentsInChildren<Canvas>(true))
+                if (c != hudCanvas) hudChildCanvases.Add(c);
+
+            CampaignManager.Instance.MapCamera.SaveFreeCameraState();
+            mapSceneUIManager.MapSceneManager.SetMapInput(false);
+            mapSceneUIManager.ShopPanel.SetFreeCameraMode(true);
+            hudCanvas.enabled = false;
+            foreach (Canvas c in hudChildCanvases) c.enabled = false;
+            freeCameraOverlay.SetActive(true);
+            isFreeCameraMode = true;
+        }
+
+        public void ExitFreeCameraMode()
+        {
+            hudCanvas.enabled = true;
+            foreach (Canvas c in hudChildCanvases) c.enabled = true;
+            freeCameraOverlay.SetActive(false);
+            CampaignManager.Instance.MapCamera.RestoreFreeCameraState();
+            mapSceneUIManager.MapSceneManager.SetMapInput(true);
+            mapSceneUIManager.ShopPanel.SetFreeCameraMode(false);
+            isFreeCameraMode = false;
+        }
+
         public void OnDestroy()
         {
             if (InputHandler.HasInstance) {
                 InputHandler.Instance.SecondaryActionPressed -= CloseAllPopUps;
+                InputHandler.Instance.OnToggleFreeCameraMode -= ToggleFreeCameraMode;
             }
 
             if (campaignSaveManager == null) return;

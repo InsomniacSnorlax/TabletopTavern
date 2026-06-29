@@ -344,19 +344,21 @@ namespace TJ
             if (!_garrisonCacheBuilt)
                 BuildGarrisonCache();
 
-            foreach (int gateIndex in _garrisonDefendersByGate.Keys)
-            {
-                if (!BattleManager.Instance.IsGateBreached(gateIndex)) continue;
-                if (_processedBreachedGates.Contains(gateIndex)) continue;
-                ReleaseGateDefenders(gateIndex);
-            }
-
             if (_processedBreachedGates.Count > 0)
             {
                 CheckShieldedSquadsForDefensiveSwitch();
                 _rangedBehavior.Tick();
                 _cavalryBehavior.Tick();
                 _rangedBehavior.ReprioritizeTargets();
+            }
+            else
+            {
+                foreach (int gateIndex in _garrisonDefendersByGate.Keys)
+                {
+                    if (!BattleManager.Instance.IsGateBreached(gateIndex)) continue;
+                    if (_processedBreachedGates.Contains(gateIndex)) continue;
+                    ReleaseGateDefenders(gateIndex);
+                }
             }
         }
 
@@ -416,7 +418,7 @@ namespace TJ
                     {
                         holdingEntities.Add(e);
                         SquadEntity se = _entityManager.GetComponentData<SquadEntity>(e);
-                        Debug.Log($"[EnemyGeneral] Reform: queuing squad {se.SquadId} ({se.UnitName}) from gate {kvp.Key}");
+                        // Debug.Log($"[EnemyGeneral] Reform: queuing squad {se.SquadId} ({se.UnitName}) from gate {kvp.Key}");
                     }
                     else
                     {
@@ -436,8 +438,8 @@ namespace TJ
                 }
                 BattleManager.Instance.ArmySpawnManager.IssueGarrisonReformOrders(holdingEntities);
             }
-            else
-                Debug.Log("[EnemyGeneral] Reform: no holding squads found — skipping IssueGarrisonReformOrders");
+            // else
+            //     Debug.Log("[EnemyGeneral] Reform: no holding squads found — skipping IssueGarrisonReformOrders");
         }
 
         #endregion

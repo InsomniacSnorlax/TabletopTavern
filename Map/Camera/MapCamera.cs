@@ -47,6 +47,49 @@ namespace TJ.Map
         private bool skipIntro = false;
         public bool SkipIntro => skipIntro;
 
+        private bool isFreeCameraMode = false;
+        private Vector3 savedTargetPosition;
+        private Quaternion savedTargetRotation;
+        private float savedPitch, savedYaw;
+        private float savedVolumeWeight;
+        private bool savedMapCameraEnabled;
+        private Coroutine volumeLerpCoroutine;
+
+        public void SaveFreeCameraState()
+        {
+            savedTargetPosition = target.position;
+            savedTargetRotation = target.rotation;
+            savedPitch = pitch;
+            savedYaw = yaw;
+            isFreeCameraMode = true;
+
+            savedMapCameraEnabled = mapCamera.enabled;
+            if (!savedMapCameraEnabled) mapCamera.enabled = true;
+
+            savedVolumeWeight = focusedOnMapNodeVolume.weight;
+            if (savedVolumeWeight > 0f)
+            {
+                if (volumeLerpCoroutine != null) StopCoroutine(volumeLerpCoroutine);
+                volumeLerpCoroutine = StartCoroutine(LerpFocusedOnNodeVolume(0f, 0.3f));
+            }
+        }
+
+        public void RestoreFreeCameraState()
+        {
+            isFreeCameraMode = false;
+            target.SetPositionAndRotation(savedTargetPosition, savedTargetRotation);
+            pitch = savedPitch;
+            yaw = savedYaw;
+
+            if (savedVolumeWeight > 0f)
+            {
+                if (volumeLerpCoroutine != null) StopCoroutine(volumeLerpCoroutine);
+                volumeLerpCoroutine = StartCoroutine(LerpFocusedOnNodeVolume(savedVolumeWeight, 0.3f));
+            }
+
+            if (!savedMapCameraEnabled) mapCamera.enabled = false;
+        }
+
         MapSceneManager mapSceneManager;
 
         private void Start()
@@ -69,7 +112,7 @@ namespace TJ.Map
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             if (!mapCamera.enabled) return;
 
-            if (mapSceneManager.AllowMapInput)
+            if (mapSceneManager.AllowMapInput || isFreeCameraMode)
             {
                 HandleCameraMovement();
                 HandleCameraRotation();
@@ -203,7 +246,7 @@ namespace TJ.Map
             skipIntro = true;
         }
 
-        public async Task EnterRecruitScene()
+        public async Task EnterShopScene()
         {
             SceneHandler.Instance.TranstionCameras(
                 CampaignManager.Instance.MapCamera.MapCameraInstance,

@@ -13,7 +13,6 @@ namespace TJ.Map
         [SerializeField] private bool allowMapInput = false;
         public bool AllowMapInput => allowMapInput;
         [SerializeField] MapSceneUIManager mapSceneUIManager;
-        public MapSceneUIManager MapSceneUIManager => mapSceneUIManager;
         [SerializeField] private MapGenerator mapGenerator;
         
         [Header("Map Scene Camera")]
@@ -31,8 +30,6 @@ namespace TJ.Map
 
         [Header("Player Token")]
         [SerializeField] private PlayerToken playerToken;
-
-        private MemoriTooltipTriggerMesh _hoveredTooltip;
 
         [Header("Map Race")]
         public Race MapRace => mapGenerator.MapRace;

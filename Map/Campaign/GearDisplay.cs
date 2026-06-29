@@ -33,6 +33,7 @@ namespace TJ
 
         MemoriTooltipTrigger memoriTooltipTrigger;
         int sellValue;
+        int bonusValue;
         Gear gear;
         GearID gearID;
         public GearID GearID => gearID;
@@ -58,10 +59,11 @@ namespace TJ
             gearIcon.enabled = true;
             gearSellTag.SetActive(false);
             sellValue = GetGearSellValue(gearID);
+            bonusValue = 0;
 
             #region Metaprogression
             if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_gearSellValueMetaprogressionModel)) {
-                sellValue += _gearSellValueMetaprogressionModel.NodeValue;
+                bonusValue += _gearSellValueMetaprogressionModel.NodeValue;
             }
             #endregion
 
@@ -91,11 +93,19 @@ namespace TJ
                         continue;
                     }
 
+                    if (gearName == GearID.OrnateRing)
+                    {
+                        int ringValue = CampaignManager.Instance.CampaignSaveManager.SaveData.goldAmount;
+                        sellValue += ringValue.Clamp(0, 20);
+                        continue;
+                    }
+
                     sellValue += GetGearSellValue(gearName);
                 }
             }
             string sellLocalizedText = LocalizationManager.Instance.GetText("Sell");
-            sellValueText.text = $"{sellLocalizedText}    {sellValue} <sprite name=GoldSprite>";
+            string bonusValueString = bonusValue > 0 ? $"<color={ColorData.Green}>+{bonusValue}</color>" : "";
+            sellValueText.text = $"{sellLocalizedText}    {sellValue}{bonusValueString} <sprite name=GoldSprite>";
 
             Button.onClick.RemoveAllListeners();
             Button.onClick.AddListener(OnGearDisplaySelected);
@@ -164,7 +174,7 @@ namespace TJ
             {
                 CampaignManager.Instance.CampaignSaveManager.PrestigeRandomUnit();
             }
-            CampaignManager.Instance.CampaignSaveManager.SellGear(gearID, sellValue);
+            CampaignManager.Instance.CampaignSaveManager.SellGear(gearID, sellValue + bonusValue);
         }
         public int GetGearSellValue(GearID gearName)
         {

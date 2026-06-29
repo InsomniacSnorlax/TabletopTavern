@@ -192,7 +192,7 @@ namespace TJ
 
         public void DeleteCampaignSave()
         {
-            Debug.Log($"Deleting campaign save data");
+            Debug.Log($"Erasing campaign save data");
             saveData = null;
             SaveDataHandler.DeleteCampaignSave();
         }

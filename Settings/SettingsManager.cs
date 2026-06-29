@@ -107,7 +107,7 @@ namespace TJ
             resetTutorialButton.Button.onClick.AddListener(() => ResetTutorial());
 
             SceneHandler.Instance.OnGameStateChanged += OnGameStateChanged;
-            InputHandler.Instance.SettingsButtonPressed += SettingsButtonPressed;
+            InputHandler.Instance.SettingsButtonPressed += SettingsHotkeyPressed;
             infoCanvasGroup.gameObject.SetActive(false);
             hideUnitInfoInBattleToggle.OnToggle.onValueChanged.AddListener(SetHideSquadInfoInBattle);
             CameraShakeEnabled.Value = cameraShakeToggle.OnToggle.isOn;
@@ -124,9 +124,15 @@ namespace TJ
             cameraRotationSpeedSlider.AssignMonitoredData(CameraRotationSpeed);
             cameraMovementSpeedSlider.AssignMonitoredData(CameraMovementSpeed);
         }
-        private void SettingsButtonPressed()
+        private void SettingsHotkeyPressed()
         {
-            // Debug.Log($"SettingsManager.SettingsButtonPressed()");
+            Debug.Log($"SettingsManager.SettingsHotkeyPressed() - SettingsPanelOpen: {SettingsPanelOpen}");
+            if(SceneHandler.Instance.CurrentGameState == GameStateEnum.MainMenu) 
+            {
+                OnSettingsPanelToggled?.Invoke(true);
+                return;
+            }
+
             if(settingsCanvasGroup.canvasGroup.alpha == 1) {
                 CloseSettingsPanel();
             } else {
@@ -272,7 +278,7 @@ namespace TJ
             }
             if (InputHandler.Instance != null)
             {
-                InputHandler.Instance.SettingsButtonPressed -= SettingsButtonPressed;
+                InputHandler.Instance.SettingsButtonPressed -= SettingsHotkeyPressed;
             }
         }
         private void SetHideSquadInfoInBattle(bool isOn)

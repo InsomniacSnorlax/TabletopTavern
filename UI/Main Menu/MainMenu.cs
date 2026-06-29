@@ -88,6 +88,7 @@ namespace TJ.MainMenu
             libraryPanel.SetUp(this);
             exitPanel.SetUp(this);
             SceneHandler.Instance.OnGameStateChanged += OnGameStateChanged;
+            SettingsManager.Instance.OnSettingsPanelToggled += OnSettingsPanelToggled;
 
             UpdateButtonText();
             LocalizationManager.Instance.OnLocalizedStringsLoaded += UpdateButtonText;
@@ -269,6 +270,11 @@ namespace TJ.MainMenu
             if (gameStateEnum.Equals(GameStateEnum.MainMenu))
                 Load();
         }
+        private void OnSettingsPanelToggled(bool isOpen)
+        {
+            if (SceneHandler.Instance.CurrentGameState == GameStateEnum.MainMenu)
+                ReturnToMainMenu();
+        }
         private void CheckForCampaignSaveData()
         {
             campaignSaveDataExists = SaveDataHandler.CampaignSaveExists();
@@ -402,6 +408,9 @@ namespace TJ.MainMenu
 
             if (LocalizationManager.Instance != null)
                 LocalizationManager.Instance.OnLocalizedStringsLoaded -= UpdateButtonText;
+
+            if (SettingsManager.Instance != null)
+                SettingsManager.Instance.OnSettingsPanelToggled -= OnSettingsPanelToggled;
         }
     }
 }
