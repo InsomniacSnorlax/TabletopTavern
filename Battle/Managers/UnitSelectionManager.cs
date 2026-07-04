@@ -818,9 +818,9 @@ public class UnitSelectionManager : MonoBehaviour
                 BattleManager.Instance.SquadManager.SquadRangeDrawers[previousHoveredSquad].TurnOff();
             }
 
-            if (BattleManager.Instance.SquadManager.GateRangeDrawers.ContainsKey(previousHoveredSquad))
+            if (BattleManager.Instance.SquadManager.GateRangeDrawers.TryGetValue(previousHoveredSquad, out var prevGateDrawer) && prevGateDrawer != null)
             {
-                BattleManager.Instance.SquadManager.GateRangeDrawers[previousHoveredSquad].TurnOff();
+                prevGateDrawer.TurnOff();
             }
 
         }
@@ -852,9 +852,9 @@ public class UnitSelectionManager : MonoBehaviour
                 BattleManager.Instance.SquadManager.SquadRangeDrawers[_hoveredSquadId].TurnOn();
             }
 
-            if (BattleManager.Instance.SquadManager.GateRangeDrawers.ContainsKey(_hoveredSquadId))
+            if (BattleManager.Instance.SquadManager.GateRangeDrawers.TryGetValue(_hoveredSquadId, out var gateDrawer) && gateDrawer != null)
             {
-                BattleManager.Instance.SquadManager.GateRangeDrawers[_hoveredSquadId].TurnOn();
+                gateDrawer.TurnOn();
             }
         }
 

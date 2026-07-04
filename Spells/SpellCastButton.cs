@@ -1,14 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using System.Threading;
 
 namespace TJ.Spells
 {
-// [RequireComponent(typeof(ToolTipTrigger))]
 public class SpellCastButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Icon")]
@@ -23,73 +20,48 @@ public class SpellCastButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
     [SerializeField] private Image outlineImage;
     [SerializeField] private Color outlineDefaultColor;
     [SerializeField] private Color mouseOverOutlineColor, selectedOutlineColor;
-    private float currentCooldown;
-    public bool OnCooldown => currentCooldown > 0;
-    private SpellManager spellManager;
-    private SpellData spell;
-    private bool selected;
-    private float modifiedCooldownRate;
-    // ToolTipTrigger toolTipTrigger;
 
-
-    Color cachedCooldownColor;
-    Color cachedSpellIconColor;
+    private Color cachedCooldownColor;
+    private bool cachedSelected;
+    private bool cachedOnCooldown;
 
     private void Awake()
     {
-        // toolTipTrigger = GetComponent<ToolTipTrigger>();
-        // toolTipTrigger.SetUpToolTip(_description:"Locked", _delay:0.5f);
         cachedCooldownColor = cooldownImage.color;
-        cachedSpellIconColor = spellIcon.color;
     }
 
-    public void LoadSpellUI(SpellData _spell, SpellManager _spellManager, int _spellIndex)
+    public void LoadSpellUI(SpellData spellData, Action onSelectRequested)
     {
-        spell = _spell;
-        spellManager = _spellManager;
+        spellIcon.sprite = spellData.SpellSprite;
 
-        spellIcon.sprite = SpriteData.GetSprite($"{spell.SpellIcon}");
-
-
-        cooldownImage.fillAmount = 0;
         selectSpellButton.onClick.RemoveAllListeners();
-        selectSpellButton.onClick.AddListener(AttemptSelectSpell);
-        onCooldownGem.gameObject.SetActive(false);
-        availableGem.gameObject.SetActive(true);
-        selectedGem.gameObject.SetActive(false);
-        // toolTipTrigger.SetUpToolTip(spell.spellName, spell.spellDescription + "\nCooldown: " +spell.spellCooldown.ToString()+"s", $"Hotkey [{_spellIndex}]", 0.25f);
+        selectSpellButton.onClick.AddListener(() => onSelectRequested?.Invoke());
+
+        SetSelected(false);
+        RenderCooldown(0f, false);
     }
-    public void ApplyCooldown()
+
+    public void SetSelected(bool selected)
     {
-        // modifiedCooldownRate = spell.spellCooldown * GameManager.Instance.GlobalModifierManager.GetGlobalModifier(ModifierType.SpellsCooldown, TowerType.Global);
-        modifiedCooldownRate = spell.SpellCooldown;
-        currentCooldown = modifiedCooldownRate;
-        StartCoroutine(StartCooldown());
+        cachedSelected = selected;
+        outlineImage.color = selected ? selectedOutlineColor : outlineDefaultColor;
+        RefreshGems();
     }
-    public void ReduceCooldown(float _time)
+
+    public void RenderCooldown(float remainingFraction01, bool onCooldown)
     {
-        currentCooldown -= _time;
+        cachedOnCooldown = onCooldown;
+        cooldownImage.fillAmount = onCooldown ? Mathf.Clamp01(remainingFraction01) : 0f;
+        RefreshGems();
     }
-    private IEnumerator StartCooldown()
+
+    private void RefreshGems()
     {
-        selectedGem.gameObject.SetActive(false);
-        availableGem.gameObject.SetActive(false);
-        onCooldownGem.gameObject.SetActive(true);
-        while (currentCooldown > 0) {
-            cooldownImage.fillAmount = currentCooldown / modifiedCooldownRate;
-            currentCooldown -= Time.deltaTime;
-            yield return null;
-        }
-        cooldownImage.fillAmount = 100;
-        FlashCooldownImage(Color.white);
-        yield return new WaitForSecondsRealtime(0.1f);
-        spellIcon.color = Color.white;
-        cooldownImage.fillAmount = 0;
-        availableGem.gameObject.SetActive(true);
-        onCooldownGem.gameObject.SetActive(false);
-        
-        // GameManager.Instance.IAudioRequester.PlaySFX("spell-ready");
+        onCooldownGem.gameObject.SetActive(cachedOnCooldown);
+        selectedGem.gameObject.SetActive(cachedSelected && !cachedOnCooldown);
+        availableGem.gameObject.SetActive(!cachedSelected && !cachedOnCooldown);
     }
+
     public async void FlashCooldownImage(Color _color)
     {
         _color.a = 0.75f;
@@ -97,35 +69,15 @@ public class SpellCastButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
         await Task.Delay(100);
         cooldownImage.color = cachedCooldownColor;
     }
-    public void AttemptSelectSpell() 
-    {
-        spellManager.SelectSpell(spell.SpellName);
-    }
-    public void SelectSpell()
-    {
-        // GameManager.Instance.IAudioRequester.PlaySFX("spell-selected");
-        selected = true;
-        outlineImage.color = selectedOutlineColor;
-        selectedGem.gameObject.SetActive(true);
-        availableGem.gameObject.SetActive(false);
-    }
-    public void DeselectSpell()
-    {
-        outlineImage.color = outlineDefaultColor;
-        selected = false;
-        selectedGem.gameObject.SetActive(false);
-        availableGem.gameObject.SetActive(true);
-    }
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        // GameManager.Instance.IAudioRequester.PlaySFX("tiny-click");
-
-        if(!OnCooldown && !selected)
+        if(!cachedOnCooldown && !cachedSelected)
             outlineImage.color = mouseOverOutlineColor;
     }
     public void OnPointerExit(PointerEventData eventData)
     {
-        if(!OnCooldown && !selected)
+        if(!cachedOnCooldown && !cachedSelected)
             outlineImage.color = outlineDefaultColor;
     }
 }

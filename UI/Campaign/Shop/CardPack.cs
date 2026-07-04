@@ -108,6 +108,7 @@ namespace TJ.Shop
         public void RefreshPrice()
         {
             cost = cardPackData.packPrice;
+            int activeHeroID = HeroBonusManager.Instance.ActiveHeroID;
             switch(cardPackData.packID)
             {
                 case 0:
@@ -133,10 +134,6 @@ namespace TJ.Shop
                     if (CampaignManager.Instance.GearManager.CheckForGear(GearID.CommonBuilder)) {
                         cost -= GearData.CommonBuilder.GearModifierValue;
                     }
-                    //Drums in the Deep: Recruitment cost Reduced to 0 for all Goblin Units
-                    if(HeroBonusManager.Instance.ActiveHeroID == 3) {
-                        cost = 5;
-                    }
                     break;
                 case 2:
                     if(CampaignManager.Instance.GearManager.CheckForGear(GearID.UncommonBuilder)) cost -= GearData.UncommonBuilder.GearModifierValue;
@@ -148,8 +145,18 @@ namespace TJ.Shop
                     cost += CampaignManager.Instance.CampaignSaveManager.SaveData.signatureUnitPacksPurchased * 25;
                     break;
             }
-            //DifficultyMod 4
-            cost += CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Squire ? 2 : 0;
+
+            //Drums in the Deep: Pack cost Reduced to 5 for all Common Packs
+            if(activeHeroID == 3 && cardPackData.packID == 1)
+            {
+                cost = 5;
+            }
+            else
+            {
+                //DifficultyMod 4
+                cost += CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Squire ? 2 : 0;
+            }
+
             cost -= _discount;
             shopPriceCanvas.SetUp(cost.ToString());
         }

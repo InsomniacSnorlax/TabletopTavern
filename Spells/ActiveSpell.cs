@@ -6,34 +6,31 @@ using Unity.Entities;
 
 namespace TJ.Spells
 {
-public class GreyComanySpell : MonoBehaviour
+public class ActiveSpell : MonoBehaviour
 {
-    [SerializeField] private SpellName spellName;
-    public SpellName SpellName => spellName;
-
     [Header("Visual Effect")]
     [SerializeField] private GameObject spellWarmupEffect;
     [SerializeField] private GameObject spellVisualEffect;
 
-    SquadEntity squadEntity;
-    SpellData spellData;
+    private SpellData spellData;
+    private Entity targetSquadEntity = Entity.Null;
 
-    public void Load(float3 position, SquadEntity _squadEntity)
-    {
-        squadEntity = _squadEntity;
-        transform.position = position;
-        StartCoroutine(WarmUpSpell());
-    }
-    public void Load(SpellData _spellData, float3 position)
+    public void Load(SpellData _spellData, float3 position, Entity _targetSquadEntity = default)
     {
         spellData = _spellData;
+        targetSquadEntity = _targetSquadEntity;
         transform.position = position;
         StartCoroutine(WarmUpSpell());
     }
     private void Update()
     {
-        if(spellData.SpellTargetingType == SpellTargetingType.Squad) {
-            // transform.position = squadEntity.TrueSquadCenter;
+        if(spellData == null) return;
+
+        if(spellData.SpellTargetingType == SpellTargetingType.Squad && targetSquadEntity != Entity.Null) {
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+            if(entityManager.Exists(targetSquadEntity) && entityManager.HasComponent<SquadMovementComponent>(targetSquadEntity)) {
+                transform.position = entityManager.GetComponentData<SquadMovementComponent>(targetSquadEntity).SquadCenter;
+            }
         }
     }
     private IEnumerator WarmUpSpell()
@@ -52,10 +49,10 @@ public class GreyComanySpell : MonoBehaviour
 
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         var ecb = World.DefaultGameObjectInjectionWorld.GetOrCreateSystemManaged<EndSimulationEntityCommandBufferSystem>().CreateCommandBuffer();
-        Entity squadEntity = entityManager.CreateEntity();
+        Entity spellEntity = entityManager.CreateEntity();
 
-        ecb.AddComponent(squadEntity, new SpellEntity { 
-            Entity = squadEntity, 
+        ecb.AddComponent(spellEntity, new SpellEntity {
+            Entity = spellEntity,
             DamageBufferElement = spellData.damageBufferElement,
             SpellPosition = transform.position,
             SpellRadius = spellData.SpellRadius,

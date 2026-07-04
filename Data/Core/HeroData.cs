@@ -55,11 +55,11 @@ namespace TJ
             HeroPrefabName = "BoblinTheGoblinKing",
             UnlockCondition = UnlockCondition.None,
             DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 14,
+            StartingGold = 15,
             HeroID = 3,
             Race = Race.Gruntkin,
             SignatureUnit = UnitName.Siegeclaws,
-            StartingArmyUnits = new UnitName[] { UnitName.GoblinRabble, UnitName.GoblinRabble, UnitName.GoblinRabble, UnitName.BogmawTroll }
+            StartingArmyUnits = new UnitName[] { UnitName.GoblinRabble, UnitName.GoblinRabble, UnitName.GoblinRabble, UnitName.GoblinScrapShooters, UnitName.Direriders }
         };
         public static Hero KragmukGorethirster = new()
         {

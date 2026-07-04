@@ -147,7 +147,8 @@ namespace TJ
 
             battleManager.EntityWatcher.SetUp();
             battleManager.EnemyGeneral.SetUp();            
-            battleManager.EnemyGeneral.SetRiverCrossing(isRiverCrossing);            
+            battleManager.EnemyGeneral.SetRiverCrossing(isRiverCrossing);      
+            battleManager.SpellManager.LoadSpellManager();      
         }
         public async void NotifyOfBattlefieldGenerationCompletion(MapRegion mapRegion, Biome biome, bool regeneratingBattlefield)
         {

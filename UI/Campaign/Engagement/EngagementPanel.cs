@@ -350,6 +350,14 @@ namespace TJ.Engagement
                         }
                     }
                     
+                    if (campaignSaveManager.SaveData.bookNumber == 1
+                        && heroRace == Race.Gruntkin
+                        && engagementType != EngagementType.Horde
+                        && enemyArmy.Length > 1)
+                    {
+                        enemyArmy = enemyArmy.Take(enemyArmy.Length - 1).ToArray();
+                    }
+
                     campaignSaveManager.SaveEnemyArmy(enemyArmy);
                     await LoadEnemyCompany(true);
                     autoResolveBattleManager.Load(garrisonFight);

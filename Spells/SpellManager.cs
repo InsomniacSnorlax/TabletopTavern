@@ -1,98 +1,107 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Memori.Audio;
+using Memori.Input;
 using Memori.Notifications;
+using Unity.Entities;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace TJ.Spells
 {
 public class SpellManager : MonoBehaviour
 {
-    // [SerializeField] private SpellDataOld[] spells;
-    [SerializeField] private SpellData[] selectedSpells;
-    public SpellData[] SpellIds => selectedSpells;
-    [SerializeField] private List<GreyComanySpell> spellPrefabs;
-    [SerializeField] private SpellCastButton spellUIPrefab;
-    [SerializeField] private Transform spellUIButtonParent;
-    private Dictionary<SpellName, SpellCastButton> spellButtonDictionary = new();
-    private Dictionary<int, SpellName> spellNameToButtonIndex = new();
+    [SerializeField] private LayerMask validSpellCastLayerMask;
+    //temp, only for testing
+    [SerializeField] private SpellData[] defaultSpells;
+    [SerializeField] private SpellCastButton[] spellCastButtons;
+
+    private class SpellSlotState
+    {
+        public SpellData SpellData;
+        public float CooldownDuration;
+        public float CooldownRemaining;
+        public bool OnCooldown => CooldownRemaining > 0f;
+    }
+    private SpellSlotState[] slotStates;
+    private int selectedSpellIndex = -1;
+    private Entity targetedSquadSelfEntity = Entity.Null;
+
     private bool validSpellCastPoint;
     private Vector3 spellCursorOrigin;
-    private SpellName selectedSpell;
-    SpellData selectedSpellData;
     public Vector3 SpellCursorOrigin => spellCursorOrigin;
     public bool ValidSpellCastPoint => validSpellCastPoint;
-    [SerializeField] private LayerMask validSpellCastLayerMask;
+    public float SelectedSpellRadius => selectedSpellIndex >= 0 ? slotStates[selectedSpellIndex].SpellData.SpellRadius : 0f;
     int spellsCast = 0;
-    public int SpellsCast => spellsCast; 
     bool mouseReleased = true;
     public bool MouseReleased => mouseReleased;
-    public float SelectedSpellRadius => selectedSpellData.SpellRadius;
 
     private void Start()
     {
-
-        #if UNITY_EDITOR
-            // if(!SceneManager.GetSceneByBuildIndex(0).isLoaded) {
-                selectedSpells = new SpellData[] {
-                    SpellDataLibrary.LightningStrike,
-                    SpellDataLibrary.NaturesWrath,
-                };
-                LoadSpells(selectedSpells);
-            // }
-        #endif
         BattleManager.Instance.OnCursorModeChanged += CursorModeChanged;
+        InputHandler.Instance.OnSelectSpell1 += SelectSpellHotkey1;
+        InputHandler.Instance.OnSelectSpell2 += SelectSpellHotkey2;
+        InputHandler.Instance.OnSelectSpell3 += SelectSpellHotkey3;
+        InputHandler.Instance.OnSelectSpell4 += SelectSpellHotkey4;
     }
-    public void LoadSpells(SpellData[] _spells)
+    private void Update()
     {
-        selectedSpells = _spells;
-        spellButtonDictionary.Clear();
-        spellNameToButtonIndex.Clear();
-        for(int i = spellUIButtonParent.childCount - 1; i >= 0; i--) {
-            Destroy(spellUIButtonParent.GetChild(i).gameObject);
+        if(slotStates == null) return;
+
+        for (int i = 0; i < slotStates.Length; i++) {
+            SpellSlotState slot = slotStates[i];
+            if(slot.CooldownRemaining <= 0f) continue;
+
+            slot.CooldownRemaining -= Time.deltaTime;
+            bool justFinished = slot.CooldownRemaining <= 0f;
+            if(justFinished) slot.CooldownRemaining = 0f;
+
+            spellCastButtons[i].RenderCooldown(slot.CooldownRemaining / slot.CooldownDuration, !justFinished);
+            if(justFinished) spellCastButtons[i].FlashCooldownImage(Color.white);
+        }
+    }
+    public void LoadSpellManager(SpellData[] _spells = null)
+    {
+        if(_spells != null) {
+            defaultSpells = _spells;
         }
 
-        for (int i = 0; i < selectedSpells.Length; i++) {
-            var spellUIButton = Instantiate(spellUIPrefab, spellUIButtonParent);
-            spellUIButton.LoadSpellUI(selectedSpells[i], this, i+1);
-            spellButtonDictionary.Add(selectedSpells[i].SpellName, spellUIButton);
-            spellNameToButtonIndex.Add(i+1, selectedSpells[i].SpellName);
+        slotStates = new SpellSlotState[spellCastButtons.Length];
+        for (int i = 0; i < spellCastButtons.Length; i++) {
+            slotStates[i] = new SpellSlotState { SpellData = defaultSpells[i] };
+            int slotIndex = i;
+            spellCastButtons[i].LoadSpellUI(defaultSpells[i], () => SelectSpell(slotIndex));
         }
+        selectedSpellIndex = -1;
     }
-    public void SelectSpell(SpellName _spellName, bool hotkeyUseIndex = false)
+    private void SelectSpellHotkey1() => SelectSpellByHotkeyIndex(1);
+    private void SelectSpellHotkey2() => SelectSpellByHotkeyIndex(2);
+    private void SelectSpellHotkey3() => SelectSpellByHotkeyIndex(3);
+    private void SelectSpellHotkey4() => SelectSpellByHotkeyIndex(4);
+
+    public void SelectSpellByHotkeyIndex(int _hotkeyIndex)
     {
-        DeselectSpell();
+        if(slotStates == null) return;
 
-        //so that we can use the hotkey to select the spell
-        // if(hotkeyUseIndex){
-        //     if(!spellIdToButtonIndex.ContainsKey(_spellSelectedId)){
-        //         // GameManager.Instance.IAudioRequester.PlayActionFailedSFX();
-        //         return;
-        //     }
-        //     _spellSelectedId = spellIdToButtonIndex[_spellSelectedId];
-        // }
+        int slotIndex = _hotkeyIndex - 1;
+        if(slotIndex < 0 || slotIndex >= slotStates.Length) return;
 
-        selectedSpell = _spellName;
-        selectedSpellData = SpellDataLibrary.GetSpellData(selectedSpell);
-        
-        //check to see if locked
-        // if(!spellButtonDictionary.ContainsKey(selectedSpellId)){
-        //     // Runtime.Instance.NotificationManager.ErrorNotification("Spell is locked");
-        //     return;
-        // }
+        SelectSpell(slotIndex);
+    }
 
-        //check to make sure spell is not on cooldown 
-        if(spellButtonDictionary[selectedSpell].OnCooldown) {
-            spellButtonDictionary[selectedSpell].FlashCooldownImage(Color.red);
-            // Runtime.Instance.NotificationManager.ErrorNotification("Spell is on cooldown");
+    public void SelectSpell(int slotIndex)
+    {
+        if(slotStates == null || slotIndex < 0 || slotIndex >= slotStates.Length) return;
 
+        if(slotStates[slotIndex].OnCooldown) {
+            spellCastButtons[slotIndex].FlashCooldownImage(Color.red);
             return;
         }
 
-        spellButtonDictionary[selectedSpell].SelectSpell();
+        if(selectedSpellIndex >= 0 && selectedSpellIndex != slotIndex)
+            spellCastButtons[selectedSpellIndex].SetSelected(false);
+
+        selectedSpellIndex = slotIndex;
+        spellCastButtons[selectedSpellIndex].SetSelected(true);
 
         if(BattleManager.Instance.CursorMode != CursorMode.CastSpell){
             BattleManager.Instance.SetCursorMode(CursorMode.CastSpell);
@@ -100,8 +109,10 @@ public class SpellManager : MonoBehaviour
     }
     public void DeselectSpell()
     {
-        if(spellButtonDictionary.ContainsKey(selectedSpell))
-            spellButtonDictionary[selectedSpell].DeselectSpell();
+        if(selectedSpellIndex < 0) return;
+
+        spellCastButtons[selectedSpellIndex].SetSelected(false);
+        selectedSpellIndex = -1;
     }
     public void AttemptCastSpell()
     {
@@ -118,53 +129,55 @@ public class SpellManager : MonoBehaviour
         while(BattleManager.Instance.CursorMode == CursorMode.CastSpell)
         {
             if(Input.GetMouseButtonDown(1)){
-                // Debug.Log($"Casting spell {selectedSpell} cancelled");
                 BattleManager.Instance.SetCursorMode(CursorMode.Free);
                 yield break;
             }
 
             if(Input.GetMouseButtonDown(0)){
-                // Debug.Log($"Casting spell {selectedSpell}");
                 AttemptCastSpell();
-                // yield break;
             }
-            
-            Vector3 CastPoint = MouseWorldPosition.Instance.GetWorldPosition() + (Vector3.up*10f);
+
+            if(selectedSpellIndex < 0) { yield return null; continue; }
+            SpellData selectedSpellData = slotStates[selectedSpellIndex].SpellData;
+
+            Vector3 castPoint = MouseWorldPosition.Instance.GetWorldPosition() + (Vector3.up*10f);
+            targetedSquadSelfEntity = Entity.Null;
 
             if(selectedSpellData.SpellTargetingType == SpellTargetingType.Squad)
             {
                 int hoveredSquadIndex = BattleManager.Instance.UIManager.HoveredSquadId;
+                bool validTarget = false;
 
                 if(hoveredSquadIndex != 0) {
-                    SquadEntity squadEntity = BattleManager.Instance.SquadManager.GetSquad(hoveredSquadIndex);
-                    // bool validTarget = false;
-                    // if (team.Player == selectedSpellData.Targetteam && hoveredSquadIndex > 0) {
-                    //     validTarget = true;
-                    // } else if (team.Enemy == selectedSpellData.Targetteam && hoveredSquadIndex < 0) {
-                    //     validTarget = true;
-                    // }
+                    //positive squadId = player squad, negative = enemy squad (see UnitSelectionManager.IsHoveringEnemySquad)
+                    bool hoveredIsPlayerSquad = hoveredSquadIndex > 0;
+                    validTarget = (selectedSpellData.TargetTeam == Team.Player && hoveredIsPlayerSquad)
+                               || (selectedSpellData.TargetTeam == Team.Enemy && !hoveredIsPlayerSquad);
 
-                    // if(validTarget) {
-                    //     CastPoint = squadEntity.TrueSquadCenter;
-                    //     validSpellCastPoint = true;
-                    //     spellCursorOrigin = squadEntity.TrueSquadCenter;
-                    // } else {
-                        validSpellCastPoint = false;
-                        spellCursorOrigin = MouseWorldPosition.Instance.GetWorldPosition();// + Vector3.up * 0.1f;
-                    // }
-
-                } else {
-                    validSpellCastPoint = false;
-                    spellCursorOrigin = MouseWorldPosition.Instance.GetWorldPosition();// + Vector3.up * 0.1f;
+                    if(validTarget) {
+                        SquadEntity hoveredSquad = BattleManager.Instance.SquadManager.GetSquad(hoveredSquadIndex);
+                        EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+                        if(hoveredSquad.SelfEntity != Entity.Null &&
+                            entityManager.Exists(hoveredSquad.SelfEntity) &&
+                            entityManager.HasComponent<SquadMovementComponent>(hoveredSquad.SelfEntity)) {
+                            castPoint = entityManager.GetComponentData<SquadMovementComponent>(hoveredSquad.SelfEntity).SquadCenter;
+                            targetedSquadSelfEntity = hoveredSquad.SelfEntity;
+                        } else {
+                            validTarget = false;
+                        }
+                    }
                 }
+
+                validSpellCastPoint = validTarget;
+                spellCursorOrigin = validTarget ? castPoint : MouseWorldPosition.Instance.GetWorldPosition();
             } else if (selectedSpellData.SpellTargetingType == SpellTargetingType.World) {
 
-                if(Physics.Raycast(CastPoint, Vector3.down, 20, validSpellCastLayerMask)) {
+                if(Physics.Raycast(castPoint, Vector3.down, 20, validSpellCastLayerMask)) {
                     validSpellCastPoint = true;
                 } else {
                     validSpellCastPoint = false;
                 }
-                spellCursorOrigin = MouseWorldPosition.Instance.GetWorldPosition();// + Vector3.up * 0.1f;
+                spellCursorOrigin = MouseWorldPosition.Instance.GetWorldPosition();
             }
 
             yield return null;
@@ -172,21 +185,16 @@ public class SpellManager : MonoBehaviour
     }
     public async void CastSpell()
     {
-        if(!spellButtonDictionary.ContainsKey(selectedSpell)){
-            Debug.LogError($"tf not found: {selectedSpell}");
-            return;
-        }
+        if(selectedSpellIndex < 0) return;
 
-        for (int i = 0; i < selectedSpells.Length; i++) {
-            if (selectedSpells[i].SpellName == selectedSpell) {
-                GreyComanySpell spell = Instantiate(GetSpellPrefab(selectedSpells[i].SpellName), spellCursorOrigin, Quaternion.identity);
-                spell.Load(SpellDataLibrary.GetSpellData(selectedSpells[i].SpellName), MouseWorldPosition.Instance.GetWorldPosition());
-                break;
-            }
-        }
+        SpellSlotState slot = slotStates[selectedSpellIndex];
+        ActiveSpell spellInstance = Instantiate(slot.SpellData.SpellPrefab, spellCursorOrigin, Quaternion.identity);
+        spellInstance.Load(slot.SpellData, spellCursorOrigin, targetedSquadSelfEntity);
 
-        spellButtonDictionary[selectedSpell].ApplyCooldown();
-        
+        slot.CooldownDuration = slot.SpellData.SpellCooldown;
+        slot.CooldownRemaining = slot.CooldownDuration;
+        spellCastButtons[selectedSpellIndex].RenderCooldown(1f, true);
+
         spellsCast++;
 
         mouseReleased = false;
@@ -197,26 +205,6 @@ public class SpellManager : MonoBehaviour
             }
             await Task.Yield();
         }
-        // if(spellGO.ShakeOnSpellCast) Runtime.Instance.CameraManager.LittleCameraShake();
-    }
-    public GreyComanySpell GetSpellPrefab(SpellName _spellName)
-    {
-        for (int i = 0; i < spellPrefabs.Count; i++) {
-            if (spellPrefabs[i].SpellName == _spellName) {
-                return spellPrefabs[i];
-            }
-        }
-        Debug.LogError($"Spell prefab not found: {_spellName}");
-        return null;
-    }
-    public void TakeTimeOffCooldowns(float time)
-    {
-        for (int i = 0; i < selectedSpells.Length; i++) {
-
-            if (spellButtonDictionary[selectedSpells[i].SpellName].OnCooldown) {
-                spellButtonDictionary[selectedSpells[i].SpellName].ReduceCooldown(time);
-            }
-        }
     }
     public void CursorModeChanged(CursorMode _cursorMode)
     {
@@ -226,11 +214,18 @@ public class SpellManager : MonoBehaviour
             DeselectSpell();
         }
     }
-    private void OnDestroy() 
+    private void OnDestroy()
     {
-        if(BattleManager.Instance != null)
+        if(BattleManager.HasInstance)
         {
             BattleManager.Instance.OnCursorModeChanged -= CursorModeChanged;
+        }
+        if(InputHandler.HasInstance)
+        {
+            InputHandler.Instance.OnSelectSpell1 -= SelectSpellHotkey1;
+            InputHandler.Instance.OnSelectSpell2 -= SelectSpellHotkey2;
+            InputHandler.Instance.OnSelectSpell3 -= SelectSpellHotkey3;
+            InputHandler.Instance.OnSelectSpell4 -= SelectSpellHotkey4;
         }
     }
 }

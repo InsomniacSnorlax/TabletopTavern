@@ -26,7 +26,7 @@ public partial struct SquadEnemyProximitySystem : ISystem
             playerPositions.Add(movement.SquadCenter);
 
         foreach (var (movement, entity) in SystemAPI.Query<SquadMovementComponent>()
-            .WithAll<EnemySquad, WaitingForCommand>().WithNone<BrokenSquadTag>().WithEntityAccess())
+            .WithAll<EnemySquad, WaitingForCommand>().WithNone<BrokenSquadTag, GarrisonDefenderComponent>().WithEntityAccess())
         {
             float3 center = movement.SquadCenter;
 

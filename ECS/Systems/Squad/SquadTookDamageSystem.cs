@@ -18,6 +18,7 @@ public partial struct SquadTookDamageSystem : ISystem
         foreach (var (squadState, entity) in SystemAPI.Query<SquadStateComponent>()
             .WithAll<WaitingForCommand, EnemySquad>()
             .WithPresent<HasTakenDamage>()
+            .WithAbsent<GarrisonDefenderComponent>()
             .WithEntityAccess())
         {
             if (squadState.CurrentHealthValue < squadState.MaxHealthValue)

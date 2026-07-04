@@ -205,6 +205,7 @@ namespace TJ.Recruit
         public async void AttemptToPurchaseRecruit(SquadStats _squadStats, RecruitCard _recruitCard)
         {
             if(hasSelectedRecruitCard) {
+                Debug.Log("Already selected a recruit card, cannot select another.");
                 return;
             }
 

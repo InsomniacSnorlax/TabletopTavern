@@ -1290,10 +1290,11 @@ namespace TJ
         public void GenerateTown(int _selectedNodeIndex, int level)
         {
             int seed = GetSeededRandom();
-            List<GearID> gearLooted = GearData.GetRandomGear(1, saveData.Gear, seed, saveData.bookNumber);
+            int bookNumber = saveData.bookNumber;
+            List<GearID> gearLooted = GearData.GetRandomGear(1, saveData.Gear, seed, bookNumber);
 
             TownSize townSize = TownSaveData.GenerateTownSize(level);
-            Race townRace = GenerateTownRace(_selectedNodeIndex, saveData.bookNumber);
+            Race townRace = GenerateTownRace(_selectedNodeIndex, bookNumber);
             int bountyAmount = TownSaveData.GenerateBountyAmount(townSize, seed);
 
             //DifficultyMod 14
@@ -1317,7 +1318,7 @@ namespace TJ
 
             //DifficultyMod 16
             bool isImperator = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Imperator;
-            SquadToLoad[] townGarrison = ArmyCreator.GenerateTownGarrison(townSize, townRace, seed, unitsPool, isImperator);
+            SquadToLoad[] townGarrison = ArmyCreator.GenerateTownGarrison(townSize, seed, unitsPool, isImperator, bookNumber);
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.AuraFarming))
             {
                 //remove the last squad from the array

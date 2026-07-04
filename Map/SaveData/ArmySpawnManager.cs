@@ -733,7 +733,7 @@ namespace Memori.SaveData
             for (int i = 0; i < squadsToLoad.Length; i++)
                 perGate[i % gateCount].Add(squadsToLoad[i]);
 
-            const float depthPerRank = 10f;
+            const float depthPerRank = 15f;
             // Half-gap cleared at the gate center for the flanking formation (4+ squads total)
             const float flankGap = 15f;
             squadIndex = 0;
@@ -780,11 +780,24 @@ namespace Memori.SaveData
                         SpawnSquadFromSaveData(inside[i], facing, spawnPos, squadIndex++);
                     }
 
-                    for (int rank = 0; rank < outside.Count; rank++)
+                    const int maxOutsideRowWidth = 3;
+                    int outsideRowIndex = 0;
+                    for (int i = 0; i < outside.Count; i += maxOutsideRowWidth)
                     {
-                        _gateDefenderUniqueIds[gateIdx].Add(outside[rank].UniqueID);
-                        Vector3 spawnPos = gatePos + new Vector3(0f, 0f, depthPerRank * (rank + 2) + 5f);
-                        SpawnSquadFromSaveData(outside[rank], facing, spawnPos, squadIndex++);
+                        int rowCount = Mathf.Min(maxOutsideRowWidth, outside.Count - i);
+                        float rowWidth = (rowCount - 1) * GAP_BETWEEN_SQUADS_X;
+                        float rowStartX = -rowWidth / 2f;
+                        float rowZ = depthPerRank * (outsideRowIndex + 2) + 5f;
+
+                        for (int j = 0; j < rowCount; j++)
+                        {
+                            SquadToLoad squad = outside[i + j];
+                            _gateDefenderUniqueIds[gateIdx].Add(squad.UniqueID);
+                            Vector3 spawnPos = gatePos + new Vector3(rowStartX + j * GAP_BETWEEN_SQUADS_X, 0f, rowZ);
+                            SpawnSquadFromSaveData(squad, facing, spawnPos, squadIndex++);
+                        }
+
+                        outsideRowIndex++;
                     }
                 }
             }

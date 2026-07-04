@@ -279,7 +279,17 @@ namespace TJ.Town
 
             lootGearButton.gameObject.SetActive(!townSaveData.hasLootedGear);
             conscriptUnitsButton.gameObject.SetActive(true);
-            bountyAmountText.text = townSaveData.bountyAmount.ToString();
+            int actBonus = 5 * (campaignSaveManager.SaveData.bookNumber - 1); //add 5 gold per book number to the bounty amount
+            if (actBonus > 0)
+            {
+                string ActLocalized = LocalizationManager.Instance.GetText("Act");
+                string actInRomanNumerals = MemoriUI.ConvertNumberToRomanNumeral(campaignSaveManager.SaveData.bookNumber);
+                bountyAmountText.text = $"{townSaveData.bountyAmount} <color={ColorData.Green}>+{actBonus} {ActLocalized} {actInRomanNumerals}</color>";
+            }
+            else
+            {
+                bountyAmountText.text = $"{townSaveData.bountyAmount}";
+            }
             sackTownCanvasGroup.FadeInAsync(0.25f);
 
             SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_SACK_CITY);
@@ -350,14 +360,18 @@ namespace TJ.Town
         {
             townSaveData.hasLootedGear = true;
             campaignSaveManager.SetTownData(townSaveData);
+
+            lootGearButton.OnPointerExit(null);
             lootGearButton.gameObject.SetActive(false);
         }
         public void OnLootGoldButtonClicked()
         {
             string localizedString = LocalizationManager.Instance.GetText("Loot Gold");
-            goldManager.ModifyGold(townSaveData.bountyAmount, localizedString);
+            int actBonus = 5 * (campaignSaveManager.SaveData.bookNumber - 1); //add 5 gold per book number to the bounty amount
+            goldManager.ModifyGold(townSaveData.bountyAmount + actBonus, localizedString);
             townSaveData.bountyAmount = 0;
             campaignSaveManager.SetTownData(townSaveData);
+            lootGoldButton.OnPointerExit(null);
 
             lootGoldButton.gameObject.SetActive(false);
         }

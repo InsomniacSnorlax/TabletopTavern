@@ -12,6 +12,7 @@ namespace TJ
         private bool _isPaused;
         private bool _isSettingsOpen;
         private int _currentSpeedIndex;
+        private GameSpeedButton _prePauseButton;
         private ReportABugScreen _reportABugScreen;
         private void Start()
         {
@@ -38,7 +39,7 @@ namespace TJ
 
             if (_isPaused) {
                 Debug.Log("Battle unpaused.");
-                SetTimeScale(normalButton);
+                SetTimeScale(_prePauseButton);
             } else {
                 Debug.Log("Battle paused.");
                 SetTimeScale(pauseButton);
@@ -62,6 +63,8 @@ namespace TJ
 
         public void SetTimeScale(GameSpeedButton _gameSpeedButton)
         {
+            if (_gameSpeedButton == pauseButton && !_isPaused)
+                _prePauseButton = gameSpeedButtons[_currentSpeedIndex];
             for (int i = 0; i < gameSpeedButtons.Length; i++) {
                 if (gameSpeedButtons[i] == _gameSpeedButton) {
                     gameSpeedButtons[i].Select();

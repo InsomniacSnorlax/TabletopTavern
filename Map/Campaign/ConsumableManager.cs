@@ -18,25 +18,17 @@ namespace TJ.Map
         public void UseConsumable(ConsumableEnum _consumable)
         {
             CampaignManager.Instance.CampaignSaveManager.RemoveConsumable(_consumable);
+
             switch (_consumable)
             {
                 case ConsumableEnum.MinorHealth:
                 {
                     SquadToLoad targetedSquad = CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Where(squad => squad.UniqueID == targetUnitGuid).FirstOrDefault();
                     float amountToHeal = 0.5f;
-                    // Debug.Log($"ConsumableManager.UseConsumable({_consumable}) amountToHeal = {amountToHeal}");
 
                     //The Light of Nytherial: Units recieve 2x Healing from all sources,
                     if (HeroBonusManager.Instance.ActiveHeroID == 8)
-                    {
                         amountToHeal = 1;
-                    }
-
-                    //Sister Morvayne: Common Units gain 3x Healing from all sources
-                    // if(HeroBonusManager.Instance.ActiveHeroID == 9 && TabletopTavernData.Instance.GetUnitTierFromUnitName(targetedSquad.UnitName) == 1)
-                    // {
-                    //     amountToHeal = 1;
-                    // }
 
                     CampaignManager.Instance.CampaignSaveManager.ModifySpecificUnitHealth(amountToHeal, targetUnitGuid);
                     break;
@@ -44,7 +36,6 @@ namespace TJ.Map
                 case ConsumableEnum.MajorHealth:
                 {
                     SquadToLoad targetedSquad = CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Where(squad => squad.UniqueID == targetUnitGuid).FirstOrDefault();
-                    // Debug.Log($"ConsumableManager.UseConsumable({_consumable}) amountToHeal = {1}");
                     CampaignManager.Instance.CampaignSaveManager.ModifySpecificUnitHealth(1, targetUnitGuid);
                     break;
                 }
@@ -135,6 +126,9 @@ namespace TJ.Map
                 Debug.LogError($"ConsumableManager.UseConsumable({_consumable}) not implemented");
                     break;
             }
+
+            Debug.Log($"[ConsumableManager] Used Consumable ({_consumable})");
+
             OnConsumableUsed?.Invoke();
         }
         public bool AttemptToUseConsumable(ConsumableEnum _consumable, int _targetUnitIndex)

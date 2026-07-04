@@ -753,6 +753,8 @@ namespace TJ.Map
 
         private void EnterFreeCameraMode()
         {
+            if (hudCanvas == null) return;
+
             hudChildCanvases.Clear();
             foreach (Canvas c in hudCanvas.GetComponentsInChildren<Canvas>(true))
                 if (c != hudCanvas) hudChildCanvases.Add(c);
@@ -768,8 +770,14 @@ namespace TJ.Map
 
         public void ExitFreeCameraMode()
         {
+            if (hudCanvas == null) return;
+
             hudCanvas.enabled = true;
-            foreach (Canvas c in hudChildCanvases) c.enabled = true;
+            foreach (Canvas c in hudChildCanvases) 
+            {
+                if(c != null)
+                    c.enabled = true;
+            }
             freeCameraOverlay.SetActive(false);
             CampaignManager.Instance.MapCamera.RestoreFreeCameraState();
             mapSceneUIManager.MapSceneManager.SetMapInput(true);

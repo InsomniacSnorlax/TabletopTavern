@@ -290,6 +290,12 @@ namespace TJ
                 query.Dispose();
             }
 
+            if (!em.Exists(_cameraPositionEntity))
+            {
+                _cameraPositionEntity = Entity.Null;
+                return;
+            }
+
             em.SetComponentData(_cameraPositionEntity, new CameraPositionComponent
             {
                 Position = battlefieldCamera.transform.position

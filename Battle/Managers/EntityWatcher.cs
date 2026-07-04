@@ -785,7 +785,7 @@ namespace TJ
         private void OnGateDestroyed(int gateIndex)
         {
             if (!setup) return;
-            // Debug.Log($"[GarrisonGate] Gate {gateIndex} destroyed — releasing defender squads");
+            Debug.Log($"[GarrisonGate] Gate {gateIndex} destroyed — releasing defender squads");
 
             _entityManager.CompleteAllTrackedJobs();
 
@@ -796,7 +796,8 @@ namespace TJ
             foreach (Entity squadEntity in defenders)
             {
                 if (!_entityManager.Exists(squadEntity)) continue;
-                if (_entityManager.GetComponentData<GarrisonDefenderComponent>(squadEntity).GateIndex != gateIndex) continue;
+                // if (_entityManager.GetComponentData<GarrisonDefenderComponent>(squadEntity).GateIndex == gateIndex)
+                    
 
                 _entityManager.RemoveComponent<GarrisonDefenderComponent>(squadEntity);
                 // Debug.Log($"[GarrisonGate] Removed GarrisonDefenderComponent from squad entity {squadEntity}");

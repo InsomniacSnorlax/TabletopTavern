@@ -61,7 +61,7 @@ public static class TabletopTavernConstants
 
     // Damage Modifiers
     public const float MELEE_TOTAL_DAMAGE_MODIFIER = 0.25f;
-    public const float RANGED_TOTAL_DAMAGE_MODIFIER = 1.10f;
+    public const float RANGED_TOTAL_DAMAGE_MODIFIER = 1.0f;
     public const float MORALE_LOSS_MODIFIER = 0.75f;
     public const float ARTILLERY_VS_ARTILLERY_DAMAGE_MODIFIER = 0.5f;
 
