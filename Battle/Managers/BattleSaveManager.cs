@@ -24,12 +24,13 @@ namespace TJ.Battle
             seed = saveData.seed + saveData.GetSelectedNodeIndex();
 
             if (SceneHandler.Instance.EditorOverride == SceneHandler.EditorOverrides.TavernBattle
-                && !SceneHandler.Instance.EditorLoadCampaignBattle)
+                && !SceneHandler.Instance.EditorLoadCampaignBattle
+                && !SceneHandler.Instance.EditorLoadCustomBattleSaveData)
             {
                 editorCustomBattle = true;
                 SetCustomBattle();
             }
-            isCustomBattle = SaveDataHandler.LoadPlayerSaveData().customBattle;
+            isCustomBattle = SceneHandler.Instance.EditorLoadCustomBattleSaveData || SaveDataHandler.LoadPlayerSaveData().customBattle;
             isGarrisonBattle = saveData.townData != null && saveData.townData.townInteractionStatus == TownInteractionStatus.GarrisonBattleStarted;
 
             if(isCustomBattle) isGarrisonBattle = false;

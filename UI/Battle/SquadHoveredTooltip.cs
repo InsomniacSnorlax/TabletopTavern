@@ -1,11 +1,6 @@
-using Memori.Utilities;
-using TJ;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Memori.UI;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Unity.Entities;
 using Memori.Localization;
 using TJ.Morale;
@@ -31,17 +26,11 @@ namespace TJ
         bool shown, loading;
         EntityManager entityManager;
         RectTransform rt;
-        // List<UnitAttributesUI> allPossibleUnitAttributes = new();
 
         private void Awake()
         {
             squadHoverPopup = GetComponent<MemoriCanvasGroup>();
             rt = transform as RectTransform;
-            //get count of all possible unit attributes
-            // int totalAttributes = System.Enum.GetNames(typeof(UnitAttribute)).Length;
-            // for(int i = 0; i < totalAttributes; i++) {
-            //     allPossibleUnitAttributes.Add(Instantiate(unitAttributePrefab, unitAttributesParent));
-            // }
         }
         public void Load(SquadEntity _squadEntity)
         {
@@ -126,10 +115,9 @@ namespace TJ
             inForestGO.SetActive(entityManager.HasComponent<InForestTag>(squadEntity.SelfEntity));
             inSwampGO.SetActive(entityManager.HasComponent<InSwampTag>(squadEntity.SelfEntity));
             bloodFrenzyGO.SetActive(entityManager.HasComponent<BloodFrenzyActiveTag>(squadEntity.SelfEntity));
-            rageGO.SetActive(entityManager.HasComponent<RageActiveTag>(squadEntity.SelfEntity));
+            rageGO.SetActive(entityManager.HasComponent<RageActiveTag>(squadEntity.SelfEntity) || entityManager.HasComponent<SlayerActiveTag>(squadEntity.SelfEntity));
             armorSunderedGO.SetActive(entityManager.HasComponent<ArmorSunderedTag>(squadEntity.SelfEntity));
             attackedInFlanksGO.SetActive(entityManager.IsComponentEnabled<TakingFlankingDamage>(squadEntity.SelfEntity));
-            rageGO.SetActive(entityManager.HasComponent<SlayerActiveTag>(squadEntity.SelfEntity));
             onFireGO.SetActive(entityManager.IsComponentEnabled<TakingFireDamage>(squadEntity.SelfEntity));
             bracedGO.SetActive(entityManager.IsComponentEnabled<BracedTag>(squadEntity.SelfEntity));
             defensiveStanceGO.SetActive(entityManager.IsComponentEnabled<DefensiveStanceTag>(squadEntity.SelfEntity));
@@ -141,7 +129,7 @@ namespace TJ
             if(isExhausted) {
                 isChargingGO.SetActive(false);
             }
-            exhaustedGO.SetActive(isExhausted);
+            exhaustedGO.SetActive(isExhausted && squadStats.unitName != UnitName.Gate);
             
             LayoutRebuilder.ForceRebuildLayoutImmediate(this.transform as RectTransform);
             loading = false;

@@ -91,6 +91,7 @@ partial struct BattlefieldBonusSystem : ISystem
 
         state.Dependency = new BattlefieldBonusJob
         {
+            ElapsedTime             = SystemAPI.Time.ElapsedTime,
             RemoveRainLookup        = _removeRainLookup,
             RemoveSnowLookup        = _removeSnowLookup,
             RemoveFogLookup         = _removeFogLookup,
@@ -141,6 +142,7 @@ partial struct BattlefieldBonusJob : IJobEntity
     [NativeDisableParallelForRestriction] public ComponentLookup<ShootAttack>     ShootAttackLookup;
     [NativeDisableParallelForRestriction] public ComponentLookup<ArmoredTag>      ArmoredTagLookup;
     [NativeDisableParallelForRestriction] public ComponentLookup<MoraleComponent> MoraleComponentLookup;
+    [ReadOnly] public double ElapsedTime;
     public EntityCommandBuffer.ParallelWriter Ecb;
 
     public void Execute([ChunkIndexInQuery] int sortKey, Entity entity,
@@ -506,9 +508,10 @@ partial struct BattlefieldBonusJob : IJobEntity
                 }
             }
 
-            // Distance-based removal
+            // Distance- or duration-based removal
             float distance = math.distance(squadMovement.SquadCenter, bonus.OriginationPoint);
-            if (distance - 5 > bonus.Range)
+            bool expired = bonus.ExpiresAtTime > 0 && ElapsedTime >= bonus.ExpiresAtTime;
+            if (distance - 5 > bonus.Range || expired)
             {
                 if (bonus.Applied)
                 {

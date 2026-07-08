@@ -22,12 +22,20 @@ public class BattlefieldBonusAuthoring : MonoBehaviour
         }
     }
 }
-public enum BattlefieldBonusEnum { None, StatueOfBoromid, Rain, Blacksmith, GoblinBarracks, GoblinCamp, ShrineToTheAllMother, Watchtower, ChargeBonus, Forest, Swamp, BloodFrenzy, Rage, Emblazing, Fog, Snow, CrashingHorde, Deathcry, HuntersPatience, KenseiEye, Oathcarved, ApexHunters }
+public enum BattlefieldBonusEnum { None, StatueOfBoromid, Rain, Blacksmith, GoblinBarracks, GoblinCamp, ShrineToTheAllMother, Watchtower, ChargeBonus, Forest, Swamp, BloodFrenzy, Rage, Emblazing, Fog, Snow, CrashingHorde, Deathcry, HuntersPatience, KenseiEye, Oathcarved, ApexHunters, 
+LesserWeaponStrengthSpell, 
+Slayer, 
+LesserWindSpell 
+}
 public struct BattlefieldBonusApplicator : IComponentData
 {
     public BattlefieldBonus BattlefieldBonus;
     public float Timer;
     public float TimerMax;
+    // 0 = permanent (world fixtures like shrines/statues never set this). >0 = a relative
+    // lifetime in seconds; BattlefieldBonusApplicationSystem converts it to an absolute
+    // BattlefieldBonus.ExpiresAtTime once, then self-destroys when that deadline passes.
+    public float Lifetime;
 }
 public struct InForestTag : IComponentData { }
 public struct InSwampTag : IComponentData { }
@@ -70,8 +78,20 @@ public struct ApplyBiomeBonusTag : IComponentData { public BattlefieldBonusEnum 
     public float Range;
     public bool Applied;
     public int TargetedUnit;
+    // 0 = never expires (default for world fixtures). Otherwise the World.Time.ElapsedTime
+    // value at which BattlefieldBonusSystem force-removes this bonus regardless of distance.
+    public double ExpiresAtTime;
 }
 [InternalBufferCapacity(8)] // Optional: set the internal buffer capacity
 [System.Serializable] public struct BattlefieldBonusBufferElement : IBufferElementData {
     public BattlefieldBonus Value;
+}
+public struct BattlefieldBonusSeenMask : IComponentData {
+    public ulong SeenMask;
+}
+[System.Serializable] public struct BattlefieldBonusAppliedBufferElement : IBufferElementData {
+    public int SquadId;
+    public BattlefieldBonusEnum BonusEnum;
+    public UnitStat UnitStat;
+    public float Value;
 }

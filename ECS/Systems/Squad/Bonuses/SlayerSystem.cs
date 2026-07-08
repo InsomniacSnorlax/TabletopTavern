@@ -41,7 +41,7 @@ partial struct SlayerSystem : ISystem
                 
                 if(!entityManager.HasComponent<MonsterousSquadTag>(enemySquad.ValueRO.SelfEntity)) continue;
 
-                entityCommandBuffer.AddComponent<RageActiveTag>(entity);
+                entityCommandBuffer.AddComponent<SlayerActiveTag>(entity);
                 SquadStats squadStats = statsBlob.GetStats(squad.ValueRO.UnitName);
                 int bonus = squadStats.WeaponStrength;
 
@@ -50,7 +50,7 @@ partial struct SlayerSystem : ISystem
                     Value = new BattlefieldBonus
                     {
                         UnitStat = UnitStat.WeaponStrength,
-                        BattlefieldBonusEnum = BattlefieldBonusEnum.Rage,
+                        BattlefieldBonusEnum = BattlefieldBonusEnum.Slayer,
                         Team = Team.Neutral,
                         Value = bonus,
                         Range = Mathf.Infinity,

@@ -39,7 +39,10 @@ namespace TJ
         [SerializeField] private TMP_Text spawnErrorText;
         [SerializeField] private GameObject addingOrQueuingIconParent;
         [SerializeField] private Image addingOrQueuingIcon;
+        [SerializeField] private GameObject _spellQuickCast;
+        private SpellQuickCastMenu spellQuickCastMenu;
         private bool isOverUI;
+        private CursorMode cursorModeBeforeQuickCastMenu;
 
         [Header("Battle")]
         [SerializeField] private Button startBattleButton;
@@ -157,6 +160,8 @@ namespace TJ
             if (addingOrQueuingIcon != null) addingOrQueuingIcon.enabled = false;
             InputHandler.Instance.OnQueueOrder += EnableAddingOrQueuingIcon;
             InputHandler.Instance.OnQueueOrderCanceled += CancelAddingOrQueuingIcon;
+            InputHandler.Instance.OnSpellQuickCast += ShowSpellQuickCastMenu;
+            InputHandler.Instance.OnSpellQuickCastCanceled += HideSpellQuickCastMenu;
             InputHandler.Instance.OnFireAtWillModeToggle += SetFireAtWillMode;
             InputHandler.Instance.OnVolleyFireModeToggle += SetVolleyFireMode;
             InputHandler.Instance.OnBalancedStanceToggle += SetBalancedStance;
@@ -166,6 +171,8 @@ namespace TJ
 
             endBattlePanel.SetActive(false);
             UpdateBattleButtons(false);
+            spellQuickCastMenu = _spellQuickCast.GetComponent<SpellQuickCastMenu>();
+            _spellQuickCast.SetActive(false);
 
             if (BattleManager.Instance.BattleSaveManager.IsGarrisonBattle)
             {
@@ -200,6 +207,11 @@ namespace TJ
             {
                 isOverUI = overUI;
                 addingOrQueuingIconParent.SetActive(!isOverUI);
+            }
+
+            if (BattleManager.Instance.CursorMode == CursorMode.QuickCastMenu && Input.GetMouseButtonDown(1))
+            {
+                HideSpellQuickCastMenu();
             }
 
             foreach (HealthBar healthBar in healthBars.Values)
@@ -887,6 +899,8 @@ namespace TJ
                 InputHandler.Instance.OnWithdrawCommand -= OnWithdrawSquadButtonClicked;
                 InputHandler.Instance.OnQueueOrder -= EnableAddingOrQueuingIcon;
                 InputHandler.Instance.OnQueueOrderCanceled -= CancelAddingOrQueuingIcon;
+                InputHandler.Instance.OnSpellQuickCast -= ShowSpellQuickCastMenu;
+                InputHandler.Instance.OnSpellQuickCastCanceled -= HideSpellQuickCastMenu;
                 InputHandler.Instance.OnFireAtWillModeToggle -= SetFireAtWillMode;
                 InputHandler.Instance.OnVolleyFireModeToggle -= SetVolleyFireMode;
                 InputHandler.Instance.OnBalancedStanceToggle -= SetBalancedStance;
@@ -1076,6 +1090,30 @@ namespace TJ
         {
             if (addingOrQueuingIcon == null) return;
             addingOrQueuingIcon.enabled = false;
+        }
+        private void ShowSpellQuickCastMenu()
+        {
+#if !UNITY_EDITOR && !SPELLS
+            return;
+#endif
+            if (_spellQuickCast == null || isOverUI) return;
+            if (BattleManager.Instance.CursorMode == CursorMode.Reposition) return;
+
+            cursorModeBeforeQuickCastMenu = BattleManager.Instance.CursorMode;
+            BattleManager.Instance.SetCursorMode(CursorMode.QuickCastMenu);
+            _spellQuickCast.SetActive(true);
+        }
+        private void HideSpellQuickCastMenu()
+        {
+            if (_spellQuickCast == null) return;
+            _spellQuickCast.SetActive(false);
+
+            int queuedSlotIndex = spellQuickCastMenu.ConsumeQueuedSlotIndex();
+            if (queuedSlotIndex >= 0)
+                BattleManager.Instance.SpellManager.SelectSpell(queuedSlotIndex);
+
+            if (BattleManager.Instance.CursorMode == CursorMode.QuickCastMenu)
+                BattleManager.Instance.SetCursorMode(cursorModeBeforeQuickCastMenu);
         }
         public void UpdateBalanceOfPower(BalanceOfPower balanceOfPower)
         {

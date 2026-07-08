@@ -377,7 +377,7 @@ namespace TJ.Engagement
                     // Debug.Log($"Selected Biome: {biome}, Weather: {weather}");
 
                     // override weather if player has specific gear
-                    if (CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess)) weather = Weather.ClearSkies;
+                    if (weather == Weather.Rain && CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess)) weather = Weather.ClearSkies;
 
                     string localizedWeather = LocalizationManager.Instance.GetText(weather.ToString());
                     battlefieldWeatherText.SetText(localizedWeather);
@@ -538,7 +538,8 @@ namespace TJ.Engagement
         {
             Weather currentWeather = campaignSaveManager.SaveData.battleFieldPreset.weather;
             MapRegion mapRegion = campaignSaveManager.SaveData.battleFieldPreset.mapRegion;
-            var candidates = mapRegion.possibleWeathers.Where(w => w.weather != currentWeather).ToList();
+            bool blockRain = CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess);
+            var candidates = mapRegion.possibleWeathers.Where(w => w.weather != currentWeather && !(blockRain && w.weather == Weather.Rain)).ToList();
             if (candidates.Count == 0) return;
 
             heavensongButton.gameObject.SetActive(false);
@@ -556,7 +557,8 @@ namespace TJ.Engagement
         }
         private System.Collections.IEnumerator RollWeatherText(Weather finalWeather, MapRegion mapRegion, Weather excludeWeather)
         {
-            var possibleWeathers = mapRegion.possibleWeathers.Where(w => w.weather != excludeWeather).ToList();
+            bool blockRain = CampaignManager.Instance.GearManager.CheckForGear(GearID.BraceletoftheSunGoddess);
+            var possibleWeathers = mapRegion.possibleWeathers.Where(w => w.weather != excludeWeather && !(blockRain && w.weather == Weather.Rain)).ToList();
             float elapsed = 0f;
             float duration = 0.35f;
             float interval = 0.035f;
@@ -1037,6 +1039,7 @@ namespace TJ.Engagement
 
             HidePostBattleOptionalRewards();
             CampaignManager.Instance.CampaignSaveManager.AquireGear(gearID);
+            lootBattlefieldButton.gameObject.SetActive(false);
             ForceContinueIfAllRewardsClaimed();
         }
         public void RaiseDeadButtonClicked()

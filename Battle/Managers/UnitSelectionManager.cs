@@ -91,6 +91,14 @@ public class UnitSelectionManager : MonoBehaviour
             return;
         }
 
+        if (battleInputManager.CursorMode == CursorMode.CastSpell)
+        {
+            //hover detection still needed so Squad-targeted spells know what's under the cursor,
+            //but selection-area clicks must not run while a spell is armed (SpellManager owns the click)
+            battleInputManager.HandleHoverSquad();
+            return;
+        }
+
         if (battleInputManager.RepositioningSelectedUnits)
         {
             HoverSquad(0, true);

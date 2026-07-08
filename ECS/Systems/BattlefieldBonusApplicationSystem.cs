@@ -17,8 +17,27 @@ partial struct BattlefieldBonusApplicationSystem : ISystem
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
-        foreach (var battlefieldBonusApplicator in SystemAPI.Query<RefRW<BattlefieldBonusApplicator>>())
+        EntityCommandBuffer ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+        double elapsedTime = SystemAPI.Time.ElapsedTime;
+
+        foreach (var (battlefieldBonusApplicator, applicatorEntity) in SystemAPI.Query<RefRW<BattlefieldBonusApplicator>>().WithEntityAccess())
         {
+            // Stamp a relative Lifetime (set by e.g. a spell) into an absolute deadline once,
+            // so every squad granted this bonus - even ones that join later - expires in sync.
+            if (battlefieldBonusApplicator.ValueRO.Lifetime > 0f && battlefieldBonusApplicator.ValueRO.BattlefieldBonus.ExpiresAtTime == 0)
+            {
+                BattlefieldBonus bonus = battlefieldBonusApplicator.ValueRO.BattlefieldBonus;
+                bonus.ExpiresAtTime = elapsedTime + battlefieldBonusApplicator.ValueRO.Lifetime;
+                battlefieldBonusApplicator.ValueRW.BattlefieldBonus = bonus;
+            }
+
+            if (battlefieldBonusApplicator.ValueRO.BattlefieldBonus.ExpiresAtTime > 0
+                && elapsedTime >= battlefieldBonusApplicator.ValueRO.BattlefieldBonus.ExpiresAtTime)
+            {
+                ecb.DestroyEntity(applicatorEntity);
+                continue;
+            }
+
             //only fire if timer is up
             battlefieldBonusApplicator.ValueRW.Timer -= SystemAPI.Time.DeltaTime;
             if (battlefieldBonusApplicator.ValueRO.Timer > 0f)

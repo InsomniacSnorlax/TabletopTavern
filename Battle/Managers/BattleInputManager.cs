@@ -13,7 +13,7 @@ using Memori.Notifications;
 using Memori.Localization;
 using Memori.Audio;
 
-public enum CursorMode {Free, MouseDown, UnitsSelected, Reposition, SpawnSquad, CastSpell, PostGame }
+public enum CursorMode {Free, MouseDown, UnitsSelected, Reposition, SpawnSquad, CastSpell, QuickCastMenu, PostGame }
 public class BattleInputManager : MonoBehaviour
 {
     public static BattleInputManager Instance { get; private set; }

@@ -1,29 +1,46 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Memori.Audio;
+using Memori.Localization;
 
 namespace TJ.Spells
 {
-    public enum SpellType { None, LightningStrike, NaturesWrath, Heal, Fireball }
+    public enum Spell { None, LesserMoraleSpell, LesserDamageSpell, LesserWindSpell, LesserWeaponStrengthSpell, LightningStrike, NaturesWrath, Heal, Fireball }
+    // World: raycast ground point, stays fixed. Squad: follows the target squad's live
+    // position through warmup and damage resolution.
     public enum SpellTargetingType { World, Squad }
+    public enum SpellType { AOE, SingleTarget }
 
     [CreateAssetMenu(fileName = "SpellData", menuName = "GameData/SpellData", order = 1)]
     public class SpellData : ScriptableObject
     {
-        public SpellType SpellType;
+        public Spell Spell;
         public Race Race;
-        public List<int> SpellModifierValues;
+        public int SpellModifierValue;
         public SpellTargetingType SpellTargetingType;
+        public SpellType SpellType;
         public float SpellCooldown;
         public Sprite SpellSprite;
-        public DamageBufferElement damageBufferElement;
         public float SpellRadius;
         public float SpellWarmUpDuration;
         public float SpellDuration;
         public float SpellForce;
         public bool IsOneOff;
-        public string spellWarmupSound;
-        public string spellHitSound;
+        public SFXReference warmupSound;
+        public SFXReference hitSound;
         public Team TargetTeam;
         public ActiveSpell SpellPrefab;
+
+        [Header("Battlefield Bonus")]
+        public bool GrantsBattlefieldBonus;
+        public UnitStat BonusUnitStat;
+        public BattlefieldBonusEnum BonusType;
+
+        public string GetLocalizedSpellDescription()
+        {
+            string localizedSpellDescription = LocalizationManager.Instance.GetText(Spell.ToString() + "_Desc");
+            localizedSpellDescription = string.Format(localizedSpellDescription, SpellType, SpellModifierValue, SpellDuration);
+            return localizedSpellDescription;
+        }
     }
 }

@@ -32,6 +32,7 @@ namespace TJ
         private EntityQuery _sfxQuery;
         private EntityQuery _bloodQuery;
         private EntityQuery _dustCloudQuery;
+        private EntityQuery _battlefieldBonusAppliedQuery;
         private EntityQuery _archerRangeUpdatedQuery;
         private EntityQuery _queryOnFormationsCollide;
         private EntityQuery _queryOnExplosionShake;
@@ -76,6 +77,7 @@ namespace TJ
             _sfxQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<SFXBufferElement>());
             _bloodQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<BloodBufferElement>());
             _dustCloudQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<DustCloudBufferElement>());
+            _battlefieldBonusAppliedQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<BattlefieldBonusAppliedBufferElement>());
             _archerRangeUpdatedQuery = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<ArcherRangeUpdated>());
             _queryOnFormationsCollide = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<OnFormationsCollide>());
             _queryOnExplosionShake = _entityManager.CreateEntityQuery(ComponentType.ReadOnly<OnExplosionShake>());
@@ -111,6 +113,7 @@ namespace TJ
             _sfxQuery.Dispose();
             _bloodQuery.Dispose();
             _dustCloudQuery.Dispose();
+            _battlefieldBonusAppliedQuery.Dispose();
             _archerRangeUpdatedQuery.Dispose();
             _queryOnFormationsCollide.Dispose();
             _queryOnExplosionShake.Dispose();
@@ -589,6 +592,19 @@ namespace TJ
                     BattleManager.Instance.MeshTextureUpdater.SpawnDustCloudAt(new Vector3(element.Position.x, element.Position.y, element.Position.z));
                 }
                 dustCloudBuffer.Clear();
+            }
+            #endregion
+
+            #region Battlefield Bonus Applied
+            _entityManager.CompleteAllTrackedJobs();
+            if (!_battlefieldBonusAppliedQuery.IsEmptyIgnoreFilter)
+            {
+                DynamicBuffer<BattlefieldBonusAppliedBufferElement> appliedBuffer = _battlefieldBonusAppliedQuery.GetSingletonBuffer<BattlefieldBonusAppliedBufferElement>();
+                foreach (var element in appliedBuffer)
+                {
+                    BattleManager.Instance.SquadManager.RaiseBattlefieldBonusApplied(element.SquadId, element.BonusEnum, element.UnitStat, element.Value);
+                }
+                appliedBuffer.Clear();
             }
             #endregion
 

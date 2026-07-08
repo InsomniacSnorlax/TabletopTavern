@@ -323,7 +323,7 @@ namespace TJ.Event
             continueButtonText.text = acceptLocalized;
 
             //DifficultyMod 8
-            bool rerollLocked = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel > TT_Difficulty.Baron;
+            bool rerollLocked = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Baron;
             string difficultyLocalized = LocalizationManager.Instance.GetText("Difficulty");
             string difficultyLevelLocalized = LocalizationManager.Instance.GetText("difficultyName" + (int)CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel);
             rerollLockedButton.SetLockedState(rerollLocked, $"{difficultyLocalized}: {difficultyLevelLocalized}");

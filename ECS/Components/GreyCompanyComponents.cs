@@ -222,13 +222,15 @@ public struct UnitPrestigeSetUpTag : IComponentData { public int PrestigeLevel; 
 public struct UnitStatsSetUpTag : IComponentData { public int HealthOverride; }
 public struct UnitParentEntityTag : IComponentData { public Entity parentSquadEntity; }
 
-public struct SpellEntity : IComponentData { 
+public struct SpellEntity : IComponentData {
     public Entity Entity;
     public DamageBufferElement DamageBufferElement;
     public float SpellRadius;
     public float3 SpellPosition;
     public bool IsOneOff;
     public float SpellForce;
+    public float RemainingDuration;
+    public Entity TargetSquadEntity; // Entity.Null unless lock-on, in which case SpellSystem re-resolves live position each tick
 }
 // public struct UnitHitBySpell : IComponentData { public float3 SpellPosition; public float SpellForce; public float3 InitHitLocation;}
 public struct BattleOver : IComponentData {public bool PlayerWon; }

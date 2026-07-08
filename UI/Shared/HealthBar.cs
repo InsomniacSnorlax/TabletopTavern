@@ -58,7 +58,9 @@ namespace TJ
             }
             
             if(isGate)
+            {
                 moraleSlider.gameObject.SetActive(false);
+            }
         }
         private void DisableAllStatusIcons()
         {

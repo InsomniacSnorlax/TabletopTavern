@@ -60,6 +60,7 @@ namespace TJ
         bool isPrestigeAvailable;
         Canvas canvas;
         bool isEnemy;
+        public Team CardTeam => isEnemy ? Team.Enemy : Team.Player;
         bool inReserve;
         public bool InReserve => inReserve;
         bool cachedOverDeployedArea, cachedOverReserveArea;

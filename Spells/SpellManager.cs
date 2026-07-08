@@ -14,6 +14,7 @@ public class SpellManager : MonoBehaviour
     //temp, only for testing
     [SerializeField] private SpellData[] defaultSpells;
     [SerializeField] private SpellCastButton[] spellCastButtons;
+    [SerializeField] private SpellQuickCastMenu spellQuickCastMenu;
 
     private class SpellSlotState
     {
@@ -69,9 +70,11 @@ public class SpellManager : MonoBehaviour
         for (int i = 0; i < spellCastButtons.Length; i++) {
             slotStates[i] = new SpellSlotState { SpellData = defaultSpells[i] };
             int slotIndex = i;
-            spellCastButtons[i].LoadSpellUI(defaultSpells[i], () => SelectSpell(slotIndex));
+            spellCastButtons[i].LoadSpellUI(defaultSpells[i], () => SelectSpell(slotIndex), slotIndex + 1);
         }
         selectedSpellIndex = -1;
+
+        spellQuickCastMenu.Load(defaultSpells);
     }
     private void SelectSpellHotkey1() => SelectSpellByHotkeyIndex(1);
     private void SelectSpellHotkey2() => SelectSpellByHotkeyIndex(2);
@@ -92,7 +95,13 @@ public class SpellManager : MonoBehaviour
     {
         if(slotStates == null || slotIndex < 0 || slotIndex >= slotStates.Length) return;
 
+#if !UNITY_EDITOR && !SPELLS
+            Debug.Log($"SpellManager: Select failed for slot {slotIndex}, spell selection is disabled in this build (define SPELLS to enable)");
+            return;
+#endif
+
         if(slotStates[slotIndex].OnCooldown) {
+            Debug.Log($"SpellManager: Select failed for slot {slotIndex} ({slotStates[slotIndex].SpellData.name}), on cooldown ({slotStates[slotIndex].CooldownRemaining:F1}s remaining)");
             spellCastButtons[slotIndex].FlashCooldownImage(Color.red);
             return;
         }
@@ -102,6 +111,7 @@ public class SpellManager : MonoBehaviour
 
         selectedSpellIndex = slotIndex;
         spellCastButtons[selectedSpellIndex].SetSelected(true);
+        // Debug.Log($"SpellManager: Selected slot {slotIndex} ({slotStates[slotIndex].SpellData.name})");
 
         if(BattleManager.Instance.CursorMode != CursorMode.CastSpell){
             BattleManager.Instance.SetCursorMode(CursorMode.CastSpell);
@@ -117,6 +127,7 @@ public class SpellManager : MonoBehaviour
     public void AttemptCastSpell()
     {
         if(!validSpellCastPoint){
+            Debug.Log($"SpellManager: Cast failed, invalid cast point (selected slot {selectedSpellIndex}, cursor {spellCursorOrigin})");
             NotificationManager.Instance.ErrorNotification("Invalid Spell Cast Point");
             return;
         }
@@ -152,7 +163,8 @@ public class SpellManager : MonoBehaviour
                     //positive squadId = player squad, negative = enemy squad (see UnitSelectionManager.IsHoveringEnemySquad)
                     bool hoveredIsPlayerSquad = hoveredSquadIndex > 0;
                     validTarget = (selectedSpellData.TargetTeam == Team.Player && hoveredIsPlayerSquad)
-                               || (selectedSpellData.TargetTeam == Team.Enemy && !hoveredIsPlayerSquad);
+                               || (selectedSpellData.TargetTeam == Team.Enemy && !hoveredIsPlayerSquad)
+                               || selectedSpellData.TargetTeam == Team.Neutral; //Neutral spells can target either team
 
                     if(validTarget) {
                         SquadEntity hoveredSquad = BattleManager.Instance.SquadManager.GetSquad(hoveredSquadIndex);
@@ -185,11 +197,15 @@ public class SpellManager : MonoBehaviour
     }
     public async void CastSpell()
     {
-        if(selectedSpellIndex < 0) return;
+        if(selectedSpellIndex < 0) {
+            Debug.Log("SpellManager: Cast failed, no spell selected");
+            return;
+        }
 
         SpellSlotState slot = slotStates[selectedSpellIndex];
         ActiveSpell spellInstance = Instantiate(slot.SpellData.SpellPrefab, spellCursorOrigin, Quaternion.identity);
         spellInstance.Load(slot.SpellData, spellCursorOrigin, targetedSquadSelfEntity);
+        // Debug.Log($"SpellManager: Cast succeeded, {slot.SpellData.name} at {spellCursorOrigin} (targeting={slot.SpellData.SpellTargetingType}, targetSquad={targetedSquadSelfEntity})");
 
         slot.CooldownDuration = slot.SpellData.SpellCooldown;
         slot.CooldownRemaining = slot.CooldownDuration;
@@ -202,6 +218,7 @@ public class SpellManager : MonoBehaviour
             if(Input.GetMouseButtonUp(0)){
                 mouseReleased = true;
                 BattleManager.Instance.SetCursorMode(CursorMode.Free);
+                // Debug.Log($"SpellManager: Mouse released, exiting cast mode (spells cast this session: {spellsCast})");
             }
             await Task.Yield();
         }

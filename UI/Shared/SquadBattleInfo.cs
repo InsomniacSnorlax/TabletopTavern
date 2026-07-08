@@ -472,7 +472,9 @@ namespace TJ
             {
                 bloodFrenzyAttribute.Load(UnitAttribute.BloodFrenzy);
             }
-            rageAttribute.gameObject.SetActive(entityManager.HasComponent<RageActiveTag>(squadEntity.SelfEntity));
+            bool isRageActive = entityManager.HasComponent<RageActiveTag>(squadEntity.SelfEntity);
+            bool isSlayerActive = entityManager.HasComponent<SlayerActiveTag>(squadEntity.SelfEntity);
+            rageAttribute.gameObject.SetActive(isRageActive || isSlayerActive);
             if (rageAttribute.gameObject.activeSelf)
             {
                 rageAttribute.Load(UnitAttribute.Rage);
@@ -487,7 +489,6 @@ namespace TJ
             {
                 isOnFireAttribute.Load(UnitAttribute.IsOnFire);
             }
-            rageAttribute.gameObject.SetActive(entityManager.HasComponent<SlayerActiveTag>(squadEntity.SelfEntity));
             garrisonDefenderAttribute.gameObject.SetActive(entityManager.HasComponent<GarrisonDefenderComponent>(squadEntity.SelfEntity));
             if (garrisonDefenderAttribute.gameObject.activeSelf)
                 garrisonDefenderAttribute.Load(UnitCondition.GarrisonDefender);

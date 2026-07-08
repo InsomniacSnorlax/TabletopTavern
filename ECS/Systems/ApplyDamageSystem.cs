@@ -55,8 +55,8 @@ namespace TJ
                     switch (damageElement.DamageType)
                     {
                         case DamageType.Physical:
-                            // Ignore friendly fire
-                            if (entityTeam.Value == damageElement.TeamOfSource) continue;
+                            // Ignore friendly fire (Neutral source bypasses team checks entirely - hits everyone)
+                            if (damageElement.TeamOfSource != Team.Neutral && entityTeam.Value == damageElement.TeamOfSource) continue;
                             var physicalHitPoints = damageElement.AttackStrength;
                             bool flankAttack =
                                 physicalHitPoints > 0 &&
@@ -111,8 +111,8 @@ namespace TJ
 
                         case DamageType.Magical:
 
-                            // Ignore friendly fire
-                            if (entityTeam.Value == damageElement.TeamOfSource) continue;
+                            // Ignore friendly fire (Neutral source bypasses team checks entirely - hits everyone)
+                            if (damageElement.TeamOfSource != Team.Neutral && entityTeam.Value == damageElement.TeamOfSource) continue;
                             var magicHitPoints = damageElement.AttackStrength;
                             if (SystemAPI.HasComponent<MagicalDamageMultiplier>(damageReceivingEntity))
                             {
@@ -124,8 +124,8 @@ namespace TJ
 
                         case DamageType.Healing:
 
-                            // Only apply healing if coming from the same team
-                            if (entityTeam.Value != damageElement.TeamOfSource) continue;
+                            // Only apply healing if coming from the same team (Neutral source heals everyone)
+                            if (damageElement.TeamOfSource != Team.Neutral && entityTeam.Value != damageElement.TeamOfSource) continue;
                             healingHitPoints += damageElement.AttackStrength;
                             break;
 
@@ -198,7 +198,7 @@ namespace TJ
                 health.ValueRW.Value = math.min(health.ValueRO.Value, maxHealth.Value);
                 health.ValueRW.onHealthChanged = true;
 
-                if (maxDamageSquadId == 100)
+                if (damageHitPoints > 0 && maxDamageSquadId == 100)
                 {
                     Debug.LogError($"ApplyDamageSystem: maxDamageSquadId is 100, this means damage was applied without a valid source. Check if damage is being added to the DamageBuffer without setting the DamageSourceSquadId.");
                 }

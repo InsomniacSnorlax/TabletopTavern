@@ -1,8 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using Memori.Input;
+using Memori.Tooltip;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using Memori.Localization;
 
 namespace TJ.Spells
 {
@@ -11,6 +15,7 @@ public class SpellCastButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
     [Header("Icon")]
     [SerializeField] private Image spellIcon;
     [SerializeField] private Button selectSpellButton;
+    [SerializeField] private MemoriTooltipTrigger tooltipTrigger;
 
     [Header("Cooldown")]
     [SerializeField] private Image cooldownImage;
@@ -30,7 +35,7 @@ public class SpellCastButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
         cachedCooldownColor = cooldownImage.color;
     }
 
-    public void LoadSpellUI(SpellData spellData, Action onSelectRequested)
+    public void LoadSpellUI(SpellData spellData, Action onSelectRequested, int hotkeyNumber)
     {
         spellIcon.sprite = spellData.SpellSprite;
 
@@ -39,6 +44,29 @@ public class SpellCastButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
 
         SetSelected(false);
         RenderCooldown(0f, false);
+
+        string localizedSpellName = LocalizationManager.Instance.GetText(spellData.Spell.ToString()) + " (" + GetHotkeyLabel(hotkeyNumber) + ")";
+        string localizedSpellDescription = spellData.GetLocalizedSpellDescription();
+
+        tooltipTrigger.SetUpToolTip(localizedSpellName, localizedSpellDescription);
+    }
+
+    private string GetHotkeyLabel(int hotkeyNumber)
+    {
+        InputAction hotkeyAction = hotkeyNumber switch
+        {
+            1 => InputHandler.Instance.GameControls.Battle.SelectSpell1,
+            2 => InputHandler.Instance.GameControls.Battle.SelectSpell2,
+            3 => InputHandler.Instance.GameControls.Battle.SelectSpell3,
+            4 => InputHandler.Instance.GameControls.Battle.SelectSpell4,
+            _ => null
+        };
+        if (hotkeyAction == null) return "";
+
+        return InputControlPath.ToHumanReadableString(
+            hotkeyAction.bindings[0].effectivePath,
+            InputControlPath.HumanReadableStringOptions.OmitDevice
+        );
     }
 
     public void SetSelected(bool selected)

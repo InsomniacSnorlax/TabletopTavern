@@ -243,6 +243,9 @@ public class BattleManager : Singleton<BattleManager>
         Entity squadDamageBufferSingletonEntity = entityManager.CreateEntity();
         entityManager.AddBuffer<SquadDamageBufferElement>(squadDamageBufferSingletonEntity);
 
+        Entity battlefieldBonusAppliedBufferSingletonEntity = entityManager.CreateEntity();
+        entityManager.AddBuffer<BattlefieldBonusAppliedBufferElement>(battlefieldBonusAppliedBufferSingletonEntity);
+
         amySaveDataManager.SpawnDeferredEnemy();
         amySaveDataManager.NotifyOutridersIfPresent();
 

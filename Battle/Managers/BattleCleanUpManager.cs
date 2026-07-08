@@ -179,6 +179,9 @@ namespace TJ
             }
             else
             {
+                if (SceneHandler.Instance.EditorLoadCustomBattleSaveData)
+                    await BattleManager.Instance.ArmySpawnManager.LoadBothArmies();
+
                 SceneHandler.Instance.AlertOfSceneSetUpComlete();
             }
         }

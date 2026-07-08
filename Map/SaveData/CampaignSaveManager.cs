@@ -589,10 +589,6 @@ namespace TJ
                 TutorialManager.Instance.LoadStepsFromRandomSpot(new TutorialStep[1] { TutorialData.Artillery });
             }
 
-            if(_squadsStats.unitType == UnitType.Ranged) {
-                saveData.archerRecruited = true;
-            }
-
             Debug.Log($"[Unit] Recruited {_squadsStats.unitName} ({_squadsStats.RarityTier} {_squadsStats.unitType}) at slot {nextEmptyUnitIndex}");
             saveData.RunStats.unitsRecruited++;
             OnArmyStructureChanged?.Invoke();
@@ -1409,6 +1405,15 @@ namespace TJ
             foreach (var squadKill in _squadIdKillCounter) totalKills += squadKill.Kills;
             saveData.RunStats.enemiesSlain += totalKills;
 
+            foreach (var playerSquad in _playerSquads)
+            {
+                if (TabletopTavernData.Instance.GetSquadStats(playerSquad.UnitName).unitType == UnitType.Ranged)
+                {
+                    saveData.archerUsedInBattle = true;
+                    break;
+                }
+            }
+
             if (!DisableSaving) SaveDataHandler.SaveCampaignSnapshot(saveData);
         }
         public void PrestigeUnitsOnKills()
@@ -1479,7 +1484,7 @@ namespace TJ
                 SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_NO_GEAR_RUN);
             }
 
-            if(!saveData.archerRecruited)
+            if(!saveData.archerUsedInBattle)
             {
                 Debug.Log($"Unlocking No Archers Achievement");
                 SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_NO_ARCHERS_RUN);

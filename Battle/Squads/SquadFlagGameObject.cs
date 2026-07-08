@@ -111,6 +111,7 @@ namespace TJ
             squadManager.OnTerrifiedSquadsChanged += OnTerrifiedSquadsChanged;
             squadManager.OnChargingSquadsChanged += OnChargingSquadsChanged;
             squadManager.OnDestroyedSquad += OnDestroyedSquad;
+            squadManager.OnBattlefieldBonusApplied += OnBattlefieldBonusApplied;
             unitSelectionManager.OnSelectedSquadsChanged += OnSelectedSquadsChanged;
             unitSelectionManager.OnHoverSquadsChanged += OnHoverSquadsChanged;
 
@@ -243,12 +244,15 @@ namespace TJ
             }
             void HandleWeaponStrengthBonuses()
             {
+                // Rage/BloodFrenzy/Slayer tags still drive the persistent healthbar icon on/off
+                // (only reliable off-signal); the activation flash itself now comes from
+                // OnBattlefieldBonusApplied (see SquadManager), which covers these plus every
+                // other battlefield bonus generically.
                 if (EntityManager.HasComponent<RageActiveTag>(squadEntity) || EntityManager.HasComponent<BloodFrenzyActiveTag>(squadEntity) || EntityManager.HasComponent<SlayerActiveTag>(squadEntity))
                 {
                     if (!healthBarGO.WeaponStrengthBonusActive)
                     {
                         healthBarGO.SetWeaponStrengthActive(true);
-                        weaponStrengthEffect.Play();
                     }
                 }
                 else
@@ -534,6 +538,11 @@ namespace TJ
             if (_destroyedSquadId != squadId) return;
             Destroy(gameObject);
         }
+        private void OnBattlefieldBonusApplied(int _squadId, BattlefieldBonusEnum _bonus, UnitStat _stat, float _value)
+        {
+            if (_squadId != squadId) return;
+            weaponStrengthEffect.Play();
+        }
         #endregion
 
         public void OnDestroy()
@@ -552,6 +561,7 @@ namespace TJ
                 squadManager.OnTerrifiedSquadsChanged -= OnTerrifiedSquadsChanged;
                 squadManager.OnChargingSquadsChanged -= OnChargingSquadsChanged;
                 squadManager.OnDestroyedSquad -= OnDestroyedSquad;
+                squadManager.OnBattlefieldBonusApplied -= OnBattlefieldBonusApplied;
             }
 
             if (unitSelectionManager != null)

@@ -47,7 +47,7 @@ namespace Memori.SaveData
         public bool blank;
         public int signatureUnitPacksPurchased;
         public int townsSacked;
-        public bool archerRecruited;
+        public bool archerUsedInBattle;
         public Guid runUUID;
 
         public CampaignSaveData(int _seed, int _hero, int _startingGold, SquadToLoad[] _playerArmy, TT_Difficulty _difficulty, GearID _startingGear, Guid _runUUID)
@@ -382,6 +382,18 @@ namespace Memori.SaveData
                 SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_ONLY_CAV_BATTLE);
             }
 
+            //achievement tracking - archer used in battle
+            for (int i = 0; i < 10; i++)
+            {
+                if (saveData.playerArmy[i].UnitIndex == -1) continue;
+
+                if (TabletopTavernData.Instance.GetSquadStats(saveData.playerArmy[i].UnitName).unitType == UnitType.Ranged)
+                {
+                    saveData.archerUsedInBattle = true;
+                    break;
+                }
+            }
+
             SaveCampaign(saveData);
 
             //update the last snapshot to overwrite the snapshot of the pre battle state since the battle is now completed
@@ -607,7 +619,6 @@ namespace Memori.SaveData
                 playerArmy[i].UnitIndex = -1;
             }
             float startingHealth = 1f;
-            bool archerRecruited = false;
 
             //DifficultyMod 18
             if(_difficultyLevelSelected >= TT_Difficulty.Overlord) startingHealth = 0.75f;
@@ -627,20 +638,11 @@ namespace Memori.SaveData
                 playerArmy[i].maxUnitCount = baseUnitCount;
                 playerArmy[i].HitPointsPerUnit = maxUnitCount;
                 AquiredTroop(playerArmy[i].UnitName);
-
-                SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(playerArmy[i].UnitName);
-
-                if(squadStats.unitType == UnitType.Ranged) {
-                    archerRecruited = true;
-                }
             }
 
             int seed = UnityEngine.Random.Range(0, 1000000);
             CampaignSaveData campaignSaveData = new (seed, hero.HeroID, startingGold, playerArmy, _difficultyLevelSelected, _startingGear, _runUUID);
             
-            if(archerRecruited) {
-                campaignSaveData.archerRecruited = true;
-            }
             SaveCampaign(campaignSaveData);
             SaveCampaignSnapshot(campaignSaveData);
             SaveLastCampaignStats(hero.HeroID, _difficultyLevelSelected, _startingGear, squadsToLoad, startingGold);

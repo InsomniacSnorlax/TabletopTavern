@@ -56,14 +56,13 @@ public class SquadManager : MonoBehaviour
 
     public delegate void DestroyedSquad(int _squadId);
     public event DestroyedSquad OnDestroyedSquad;
+
+    public delegate void BattlefieldBonusApplied(int _squadId, BattlefieldBonusEnum _bonus, UnitStat _stat, float _value);
+    public event BattlefieldBonusApplied OnBattlefieldBonusApplied;
     public List<GameObject> stuffToDestroy = new();
-    [SerializeField] private bool lockEnemiesToGuardMode = false;
 
     private void Start()
     {
-        #if !UNITY_EDITOR
-        lockEnemiesToGuardMode = false;
-        #endif
         InputHandler.Instance.OnShowUnitMovement += ToggleAllRanges;
         BattleManager.Instance.SquadOrderManager.OnSquadOrderChanged += OnSquadOrderChanged;
     }
@@ -320,9 +319,11 @@ public class SquadManager : MonoBehaviour
         } else {
             squadId = (enemySquadsRegistered + 1) * -1;
             enemySquadsRegistered++;
-            if(lockEnemiesToGuardMode){
+#if UNITY_EDITOR
+            if(SceneHandler.Instance.LockEnemiesToGuardMode) {
                 guardMode = true;
             }
+#endif
         }
 
         Entity squadEntity = entityManager.CreateEntity();
@@ -1327,6 +1328,11 @@ public class SquadManager : MonoBehaviour
             OnDestroyedSquad?.Invoke(squadId);
             Debug.Log($"squad {squadId} destroyed");
         }
+    }
+    public void RaiseBattlefieldBonusApplied(int squadId, BattlefieldBonusEnum bonus, UnitStat stat, float value)
+    {
+        Debug.Log($"[BattlefieldBonusApplied] squad {squadId}: {bonus} ({stat} +{value})");
+        OnBattlefieldBonusApplied?.Invoke(squadId, bonus, stat, value);
     }
     public void OnDestroy()
     {

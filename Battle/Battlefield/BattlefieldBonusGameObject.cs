@@ -58,9 +58,10 @@ public class BattlefieldBonusGameObject : MonoBehaviour
         disc2.ColorOuter = color;
         disc1.Radius = battlefieldBonus.Range;
         disc2.Radius = battlefieldBonus.Range;
-        colliderTransform.localScale = new Vector3(battlefieldBonus.Range, battlefieldBonus.Range, 1f);
+        if(colliderTransform != null)
+            colliderTransform.localScale = new Vector3(battlefieldBonus.Range, battlefieldBonus.Range, 1f);
 
-        if(_battlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Rain || _battlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog || _battlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Snow)
+        if(_battlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Rain || _battlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog || _battlefieldBonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Snow || colliderTransform == null)
         {
             UnityEngine.MeshCollider meshCollider = colliderTransform.GetComponent<UnityEngine.MeshCollider>();
             meshCollider.enabled = false;

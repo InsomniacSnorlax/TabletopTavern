@@ -39,6 +39,7 @@ partial struct SquadEntitySetUpSystem : ISystem
             entityCommandBuffer.AddComponent(entity, new SquadEntityGameObjectsProcessingNeeded());
             entityCommandBuffer.AddComponent(entity, new SquadCameraDistanceComponent());
             entityCommandBuffer.AddBuffer<BattlefieldBonusBufferElement>(entity);
+            entityCommandBuffer.AddComponent(entity, new BattlefieldBonusSeenMask());
         }
     }
 }

@@ -322,7 +322,7 @@ namespace TJ.Map
             }
             else if (selectedCards.Count > 0)
             {
-                squadBattleInfo.SetUpCampaign(selectedCards[0].GetSquadToLoad(), team);
+                squadBattleInfo.SetUpCampaign(selectedCards[0].GetSquadToLoad(), selectedCards[0].CardTeam);
             }
             else
             {
@@ -347,7 +347,7 @@ namespace TJ.Map
             selectedCards.Add(card);
             card.SelectSquad(true);
             UpdateSelectionOptions();
-            squadBattleInfo.SetUpCampaign(card.GetSquadToLoad(), Team.Player);
+            squadBattleInfo.SetUpCampaign(card.GetSquadToLoad(), card.CardTeam);
         }
         public void ToggleCardInSelection(SquadDisplayCardMenu card)
         {
