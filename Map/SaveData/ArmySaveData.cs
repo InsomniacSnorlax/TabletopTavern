@@ -10,6 +10,7 @@ namespace Memori.SaveData
         public UnitName UnitName;
         public string UniqueID;
         public int UnitPrestige;
+        public UnitAttribute PrestigeTrait;
 
         //Sorting
         public int UnitIndex;
@@ -27,6 +28,7 @@ namespace Memori.SaveData
             UnitName = _unitName;
             UniqueID = System.Guid.NewGuid().ToString();
             UnitPrestige = _prestige;
+            PrestigeTrait = UnitAttribute.None;
             UnitIndex = _unitIndex;
             maxUnitCount = TabletopTavernData.Instance.GetBaseUnitCount(_unitName);
             HitPointsPerUnit = TabletopTavernData.Instance.GetHitPointsPerUnit(_unitName);

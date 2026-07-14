@@ -45,6 +45,7 @@ public class SquadManager : MonoBehaviour
     public delegate void SquadAmmoUpdated(int _squadId, int _currentAmmo);
     [SerializeField] private Dictionary<int, int> unitPrestigeDict = new ();
     public Dictionary<int, int> UnitPrestigeDict => unitPrestigeDict;
+    private Dictionary<int, UnitAttribute> squadPrestigeTraitDict = new ();
 
     public List<int> TerrifiedSquadIds = new ();
     public delegate void TerrifiedSquadsChanged(List<int> _squadId);
@@ -285,7 +286,7 @@ public class SquadManager : MonoBehaviour
     }
     
     #region Register Squad
-    public void RegisterSquad(List<Entity> _entities, SquadSpawnData _enemyData, int _spawnPrestige, string _uniqueID, int _healthOverride = -1)
+    public void RegisterSquad(List<Entity> _entities, SquadSpawnData _enemyData, int _spawnPrestige, string _uniqueID, int _healthOverride = -1, UnitAttribute _prestigeTrait = UnitAttribute.None)
     {
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         EntityQuery query = entityManager.CreateEntityQuery(ComponentType.ReadOnly<EntitiesReferences>());
@@ -295,7 +296,10 @@ public class SquadManager : MonoBehaviour
         CampaignSaveDataHolder campaignSaveDataHolder = query2.GetSingleton<CampaignSaveDataHolder>();
 
         SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(_enemyData.unitName);
-        
+        if (_prestigeTrait != UnitAttribute.None) {
+            TabletopTavernConstants.SetAttribute(ref squadStats.SquadAttributes, _prestigeTrait);
+        }
+
         //Override health for structures
         if (squadStats.unitType == UnitType.Structure)
         {
@@ -339,6 +343,9 @@ public class SquadManager : MonoBehaviour
         int currentHealth = _entities.Count * squadStats.HitPointsPerUnit;
         // Debug.Log($"Registering squad {squadId} with {initialSquadSize} entities and {maxHealth} max health");
         float leadership = squadStats.Leadership;
+        if (squadStats.unitType == UnitType.Melee || squadStats.unitType == UnitType.Hybrid || TabletopTavernConstants.UsesMeleePrestige(squadStats.unitName)) {
+            leadership += _spawnPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
+        }
         var ecb = ecbSystem.CreateCommandBuffer();
 
         //hero stuff
@@ -637,7 +644,7 @@ public class SquadManager : MonoBehaviour
             agentLocomotion.Acceleration = (speed + 10) / 10f;
             entityManager.SetComponentData(unitEntity, agentLocomotion);
 
-            if (_spawnPrestige > 0) ecb.AddComponent(_entities[i], new UnitPrestigeSetUpTag { PrestigeLevel = _spawnPrestige });
+            if (_spawnPrestige > 0) ecb.AddComponent(_entities[i], new UnitPrestigeSetUpTag { PrestigeLevel = _spawnPrestige, GrantedTrait = _prestigeTrait });
 
             if(squadStats.unitType == UnitType.Structure)
             {
@@ -661,6 +668,9 @@ public class SquadManager : MonoBehaviour
 
         if (unitPrestigeDict.ContainsKey(squadId)) unitPrestigeDict[squadId] = _spawnPrestige;
         else unitPrestigeDict.Add(squadId, _spawnPrestige);
+
+        if (squadPrestigeTraitDict.ContainsKey(squadId)) squadPrestigeTraitDict[squadId] = _prestigeTrait;
+        else squadPrestigeTraitDict.Add(squadId, _prestigeTrait);
 
         BattleManager.Instance.ArmySpawnManager.RecordSquadUniqueID(_uniqueID, squadId, _entities.Count);
         // Debug.Log($"Registered squad {squadId} with {_entities.Count} entities and {_spawnPrestige} prestige");
@@ -1255,6 +1265,11 @@ public class SquadManager : MonoBehaviour
     {
         if(unitPrestigeDict.ContainsKey(_squadId)) return unitPrestigeDict[_squadId];
         return 0;
+    }
+    public UnitAttribute GetSquadPrestigeTrait(int _squadId)
+    {
+        if(squadPrestigeTraitDict.ContainsKey(_squadId)) return squadPrestigeTraitDict[_squadId];
+        return UnitAttribute.None;
     }
     public void ToggleAllRanges()
     {

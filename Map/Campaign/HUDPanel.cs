@@ -634,6 +634,7 @@ namespace TJ.Map
             }
 
             IAudioRequester.Instance.PlaySFX(SFXData.PrestigeUnit);
+            mapSceneUIManager.TryDrainPendingPrestigeChoices();
         }
         public void CheckForPrestigeAvailability(PrestigeUnitButton _prestigeUnitButton, UnitName _unitName, int _unitLevel)
         {

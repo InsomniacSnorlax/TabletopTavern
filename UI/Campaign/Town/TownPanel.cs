@@ -54,11 +54,6 @@ namespace TJ.Town
         [Header("Sack Town")]
         [SerializeField] Button conscriptUnitsButton;
 
-        [Header("Deposit Gold")]
-        [SerializeField] DepositGoldPopup _depositGoldPopup;
-        [SerializeField] MemoriTooltipTrigger _depositGoldButtonTooltipTrigger, _depositGoldButtonTooltipTrigger2;
-        [SerializeField] Button _depositGoldButton1, _depositGoldButton2;
-
         CampaignSaveManager campaignSaveManager;
         MapSceneUIManager mapSceneUIManager;
         TownSaveData townSaveData;
@@ -81,8 +76,6 @@ namespace TJ.Town
 
             enterTownButton.onClick.AddListener(OnEnterTown);
             recruitUnitsButton.onClick.AddListener(OnRecruitUnitsButtonClicked);
-            _depositGoldButton1.onClick.AddListener(OnDepositGoldButtonClicked);
-            _depositGoldButton2.onClick.AddListener(OnDepositGoldButtonClicked);
             conscriptUnitsButton.onClick.AddListener(OnConscriptUnitsButtonClicked);
 
             continueAfterSackTownButton.onClick.AddListener(CompleteTown);
@@ -99,17 +92,11 @@ namespace TJ.Town
 
             lootGoldButton.gameObject.SetActive(false);
             goldManager = CampaignManager.Instance.GoldManager;
-
-            string depositGoldTitleLocalized = LocalizationManager.Instance.GetText("Deposit Gold");
-            string depositGoldDescLocalized = LocalizationManager.Instance.GetText("depositGoldDesc");
-            _depositGoldButtonTooltipTrigger.SetUpToolTip(depositGoldTitleLocalized, depositGoldDescLocalized);
-            _depositGoldButtonTooltipTrigger2.SetUpToolTip(depositGoldTitleLocalized, depositGoldDescLocalized);
         }
         public void LoadTownPanel(int _selectedNodeIndex, int level)
         {
             goldManager.OnGoldAmountChanged -= UpdateAffordability;
             goldManager.OnGoldAmountChanged += UpdateAffordability;
-            _depositGoldPopup.ResetSession();
             StartCoroutine(CampaignManager.Instance.MapCamera.LerpFocusedOnNodeVolume(0.5f, 0.25f));
             if (!campaignSaveManager.SaveData.nodeGenerated) {
                 Debug.Log($"generating town for node {_selectedNodeIndex}");
@@ -233,7 +220,6 @@ namespace TJ.Town
         private void OnSackTown()
         {
             CampaignManager.Instance.MapSceneUIManager.EngagementPanel.LoadEngagementPanelFromTown();
-            _depositGoldButton2.gameObject.SetActive(true);
             townOptionsCanvasGroup.FadeOutAsync(0.25f);
             HideEnemyCompany();
         }
@@ -342,7 +328,6 @@ namespace TJ.Town
 
             TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.TownExplanation);
             enterTownCanvasGroup.FadeInAsync(0.25f);
-            _depositGoldButton1.gameObject.SetActive(true);
             HideEnemyCompany();
         }
         public void OnLootGearButtonClicked()
@@ -427,13 +412,9 @@ namespace TJ.Town
             recruitPanel.LoadRecruitPanelFromTown(townSaveData.townRace, townSaveData.townSize);
             conscriptUnitsButton.gameObject.SetActive(false);
         }
-        private void OnDepositGoldButtonClicked()
-        {
-            _depositGoldPopup.Open();
-        }
         public void CompleteTown()
         {
-            mapSceneUIManager.CompleteLayerAction();
+            mapSceneUIManager.TryDrainPendingPrestigeChoices(() => mapSceneUIManager.CompleteLayerAction());
         }
         public override void ClosePanel()
         {

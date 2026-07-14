@@ -19,6 +19,10 @@ namespace TJ
         [Header("Status Effect Icons")]
         [SerializeField] private GameObject fireAtWillGO;
         [SerializeField] private GameObject chargeGO, terrifiedGO, exhaustedGO, weaponStrengthGO, armorSunderedGO, isTakingFlankingDamageGO, isFlankingGO, isOnFireGO, defensiveStanceGO, bracedGO, outOfAmmoGO;
+
+        [Header("Prestige Icons")]
+        [SerializeField] private GameObject prestige1GO;
+        [SerializeField] private GameObject prestige2GO, prestige1RangedGO, prestige2RangedGO;
         private bool _isExhausted = false;
         public bool IsExhausted => _isExhausted;
         private bool _weaponStrengthBonusActive = false;
@@ -87,6 +91,7 @@ namespace TJ
             ammoSlider.gameObject.SetActive(false);
 
             DisableAllStatusIcons();
+            DisablePrestigeIcons();
         }
         public void SetCharge(bool isCharge)
         {
@@ -156,6 +161,20 @@ namespace TJ
             _isOutOfAmmo = isOutOfAmmo;
             if (outOfAmmoGO != null)
             outOfAmmoGO.SetActive(isOutOfAmmo);
+        }
+        public void SetPrestige(int prestige, bool isRanged)
+        {
+            if (prestige1GO != null) prestige1GO.SetActive(!isRanged && prestige == 1);
+            if (prestige2GO != null) prestige2GO.SetActive(!isRanged && prestige == 2);
+            if (prestige1RangedGO != null) prestige1RangedGO.SetActive(isRanged && prestige == 1);
+            if (prestige2RangedGO != null) prestige2RangedGO.SetActive(isRanged && prestige == 2);
+        }
+        public void DisablePrestigeIcons()
+        {
+            if (prestige1GO != null) prestige1GO.SetActive(false);
+            if (prestige2GO != null) prestige2GO.SetActive(false);
+            if (prestige1RangedGO != null) prestige1RangedGO.SetActive(false);
+            if (prestige2RangedGO != null) prestige2RangedGO.SetActive(false);
         }
     }
 }

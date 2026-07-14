@@ -435,40 +435,6 @@ namespace TJ
                 recruitableNames[i] = recruitmentOptions[i].unitName;
             }
 
-            //10% chance to get the hero's signature unit
-            // float rollRequired = 0.1f;
-            // if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_signatureUnitDropChanceMetaprogressionModel)) {
-            //     rollRequired *= (float)_signatureUnitDropChanceMetaprogressionModel.NodeValue;
-            //     Debug.Log($"Signature Unit Roll Required: {rollRequired}");
-            // }
-
-            // float roll = UnityEngine.Random.value;
-            // Debug.Log($"Signature Unit Roll Before Mods: {roll}");
-
-            // //DifficultyMod 10
-            // if(CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Duke) {
-            //     roll += 0.05f;
-            //     Debug.Log($"Difficulty Mod applied to Signature Unit Roll, new roll: {roll}");
-            // }
-
-            // Debug.Log($"Signature Unit Roll: {roll}");
-            // if (roll < rollRequired)
-            // {
-            //     Hero hero = HeroData.GetHeroByID(_hero);
-
-            //     if(SaveDataHandler.IsMetaprogressionNodeUnlocked(_otherSignatureUnitDropMetaprogressionModel)) 
-            //     {
-            //         Debug.Log($"Other Signature Unit Drop Metaprogression Unlocked, getting random signature");
-            //         List<UnitName> heroesOfRace = HeroData.GetSignatureUnitsByRace(hero.Race);
-            //         recruitableNames[UnityEngine.Random.Range(0, recruitableNames.Length)] = heroesOfRace[UnityEngine.Random.Range(0, heroesOfRace.Count)];
-
-            //     } 
-            //     else 
-            //     {
-            //         recruitableNames[UnityEngine.Random.Range(0, recruitableNames.Length)] = hero.SignatureUnit;
-            //     }
-            // }
-
             if (_cardPackID==4)
             {
                 Hero hero = HeroData.GetHeroByID(_hero);

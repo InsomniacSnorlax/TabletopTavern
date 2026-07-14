@@ -173,6 +173,7 @@ namespace TJ
             if(gear.GearName == GearData.Mitre.GearName)
             {
                 CampaignManager.Instance.CampaignSaveManager.PrestigeRandomUnit();
+                CampaignManager.Instance.MapSceneUIManager.TryDrainPendingPrestigeChoices();
             }
             CampaignManager.Instance.CampaignSaveManager.SellGear(gearID, sellValue + bonusValue);
         }

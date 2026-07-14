@@ -59,7 +59,7 @@ namespace TJ.Campfire
             if (scavengeButton != null) scavengeButton.onClick.AddListener(OnScavenge);
             if (scoutAheadButton != null) scoutAheadButton.onClick.AddListener(OnScoutAhead);
             // if (viewMapButton != null) viewMapButton.onClick.AddListener(OnViewMap);
-            if (continueButton != null) continueButton.onClick.AddListener(() => mapSceneUIManager.CompleteLayerAction());
+            if (continueButton != null) continueButton.onClick.AddListener(() => mapSceneUIManager.TryDrainPendingPrestigeChoices(() => mapSceneUIManager.CompleteLayerAction()));
         }
 
         public void LoadCampfirePanel()

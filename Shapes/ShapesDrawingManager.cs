@@ -45,13 +45,13 @@ public class ShapesDrawingManager : ImmediateModeShapeDrawer
                 bloomColor.a = _outerRingBloomIntensity;
 
                 //Inner ring
-                Draw.Ring(
-                    _spellManager.SpellCursorOrigin,
-                    Quaternion.Euler(90, 0, 0),
-                    _spellCursorRadius,
-                    _spellCursorThickness,
-                    DiscColors.Radial(Color.clear, bloomColor)
-                );
+                // Draw.Ring(
+                //     _spellManager.SpellCursorOrigin,
+                //     Quaternion.Euler(90, 0, 0),
+                //     _spellCursorRadius,
+                //     _spellCursorThickness,
+                //     DiscColors.Radial(Color.clear, bloomColor)
+                // );
 
                 Draw.DashedScope(new DashStyle(){ size = _dashSize, spacing = _dashSpace, offset = 0, });
 

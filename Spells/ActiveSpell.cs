@@ -18,6 +18,7 @@ public class ActiveSpell : MonoBehaviour
     [Header("Battlefield Bonus Display")]
     [SerializeField] private Disc disc1;
     [SerializeField] private Disc disc2;
+    [SerializeField] private ParticleSystem particleSystemTransform, particleSystem2, particleSystem3;
     [SerializeField] private Color positiveColor, positiveInnerColor;
     [SerializeField] private Color negativeColor, negativeInnerColor;
     [SerializeField] private AnimationCurve radiusCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
@@ -50,7 +51,15 @@ public class ActiveSpell : MonoBehaviour
         if(disc1.TryGetComponent(out ShapesBloom bloom)) bloom.Bloom(isPositive ? positiveColor : negativeColor);
 
         disc2.ColorOuter = isPositive ? positiveInnerColor : negativeInnerColor;
-        StartCoroutine(AnimateDiscRadius(range, radiusCurve));
+        var mainModule = particleSystemTransform.main;
+        mainModule.startColor = isPositive ? positiveColor : negativeColor;
+        var mainModule2 = particleSystem2.main;
+        mainModule2.startColor = isPositive ? positiveColor : negativeColor;
+        var mainModule3 = particleSystem3.main;
+        mainModule3.startColor = isPositive ? positiveColor : negativeColor;
+        disc1.Radius = range;
+        disc2.Radius = range;
+        particleSystemTransform.transform.localScale = new Vector3(range, range, range);
     }
     private IEnumerator AnimateDiscRadius(float range, AnimationCurve curve)
     {
@@ -62,11 +71,13 @@ public class ActiveSpell : MonoBehaviour
             float radius = curve.Evaluate(t) * range;
             disc1.Radius = radius;
             disc2.Radius = radius;
+            particleSystemTransform.transform.localScale = new Vector3(radius, radius, radius);
             yield return null;
         }
         float finalRadius = curve.Evaluate(1f) * range;
         disc1.Radius = finalRadius;
         disc2.Radius = finalRadius;
+        particleSystemTransform.transform.localScale = new Vector3(finalRadius, finalRadius, finalRadius);
     }
     private IEnumerator FlashDiscThickness()
     {

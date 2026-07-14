@@ -218,7 +218,7 @@ public struct HaltCommandTag : IComponentData { public bool DropTarget; public b
 public struct DeleteSquadTag : IComponentData { }
 public struct WithdrawSquadTag : IComponentData { }
 public struct WithdrawCompleteTag : IComponentData { }
-public struct UnitPrestigeSetUpTag : IComponentData { public int PrestigeLevel; }
+public struct UnitPrestigeSetUpTag : IComponentData { public int PrestigeLevel; public UnitAttribute GrantedTrait; }
 public struct UnitStatsSetUpTag : IComponentData { public int HealthOverride; }
 public struct UnitParentEntityTag : IComponentData { public Entity parentSquadEntity; }
 

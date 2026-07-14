@@ -100,9 +100,10 @@ namespace TJ
             EditorGUILayout.Space(4);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            GUILayout.Label("Gold", EditorStyles.boldLabel);
-            IntField("Gold To Deposit", ref _data.goldToDeposit);
-            IntField("Deposited Gold", ref _data.depositedGold);
+            GUILayout.Label("Renown", EditorStyles.boldLabel);
+            // IntField("Gold To Deposit", ref _data.goldToDeposit); // legacy, see Renown migration
+            // IntField("Deposited Gold", ref _data.depositedGold); // legacy, see Renown migration
+            IntField("Renown", ref _data.renown);
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(4);

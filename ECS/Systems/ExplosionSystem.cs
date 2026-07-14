@@ -126,6 +126,7 @@ partial struct ExplosionSystem : ISystem
                 }
             }
 
+            //look into passing the archetype then setting the component as add component changes the archetype so this is a little inefficient
             Entity shakeEntity = entityCommandBuffer.CreateEntity();
             entityCommandBuffer.AddComponent(shakeEntity, new OnExplosionShake { Position = Explosion.ValueRO.ExplosionPosition });
             entityCommandBuffer.RemoveComponent<Explosion>(Entity);

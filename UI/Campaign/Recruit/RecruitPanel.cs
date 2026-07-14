@@ -265,6 +265,7 @@ namespace TJ.Recruit
 
                     campaignSaveManager.PrestigeAndCombineWithRecruit(uid1, uid2);
                 }
+                mapSceneUIManager.TryDrainPendingPrestigeChoices();
             }
             else
             {

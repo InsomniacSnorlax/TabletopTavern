@@ -11,6 +11,7 @@ using Memori.Audio;
 using Memori.Localization;
 using Memori.Scenes;
 using System.Threading.Tasks;
+using UnityEngine.Serialization;
 
 
 namespace TJ.MainMenu
@@ -26,7 +27,8 @@ namespace TJ.MainMenu
         [SerializeField] private Transform cameraSceneParent;
 
         [Header("UI")]
-        [SerializeField] private TMP_Text _depositedGoldText;
+        [FormerlySerializedAs("_depositedGoldText")]
+        [SerializeField] private TMP_Text _renownText;
         [SerializeField] private MetaprogressionManager _metaprogressionManager;
         [SerializeField] private Button _resetButton, _depositButton;
         [SerializeField] private TooltipDropdown _tavernThemeDropdown;
@@ -37,7 +39,7 @@ namespace TJ.MainMenu
         MetaprogressionPresenter _selectedNode;
         // Index 0 is always "None"; subsequent entries map 1:1 to _tavernThemes
         int _lastValidThemeIndex = 0;
-        int _goldAvailable = 0;
+        int _renownAvailable = 0;
         bool _isOpen = false;
 
         [ContextMenu("Display Nodes")]
@@ -46,7 +48,7 @@ namespace TJ.MainMenu
             _metaprogressionCamera.enabled = false;
             cameraSceneParent.gameObject.SetActive(false);
             _resetButton.onClick.AddListener(ResetMetaprogression);
-            _depositButton.onClick.AddListener(OverrideDepositGold);
+            _depositButton.onClick.AddListener(OverrideAddRenown);
             _tavernThemeDropdown.onValueChanged.AddListener(OnTavernThemeChanged);
 
             List<int> unlockedNodeIds = SaveDataHandler.GetUnlockedMetaprogressionNodes();
@@ -135,9 +137,9 @@ namespace TJ.MainMenu
                 return;
             }
 
-            if(_goldAvailable < _selectedNode.MetaprogressionModel.NodeCost)
+            if(_renownAvailable < _selectedNode.MetaprogressionModel.NodeCost)
             {
-                NotificationManager.Instance.DisplayNotification(LocalizationManager.Instance.GetText("upgradesInsufficientDepositedGold"));
+                NotificationManager.Instance.DisplayNotification(LocalizationManager.Instance.GetText("upgradesInsufficientRenown"));
                 return;
             }
 
@@ -146,10 +148,10 @@ namespace TJ.MainMenu
             _unlockedNodes = GetUnlockedNodesFromIds(unlockedNodeIds);
             _selectedNode.Unlock(false);
             IAudioRequester.Instance.PlaySFX(SFXData.SelectHero);
-            CalculateDepositedGoldSpent();
-            _metaprogressionManager.HighlightAvailableUpgrades(_unlockedNodes, _goldAvailable);
+            CalculateRenownSpent();
+            _metaprogressionManager.HighlightAvailableUpgrades(_unlockedNodes, _renownAvailable);
         }
-        private void CalculateDepositedGoldSpent()
+        private void CalculateRenownSpent()
         {
             List<int> unlockedNodeIds = SaveDataHandler.GetUnlockedMetaprogressionNodes();
             _unlockedNodes = GetUnlockedNodesFromIds(unlockedNodeIds);
@@ -159,9 +161,9 @@ namespace TJ.MainMenu
                 if(node == null) continue;
                 totalSpent += node.NodeCost;
             }
-            int depositedGold = SaveDataHandler.GetDepositedGold();
-            _goldAvailable = depositedGold - totalSpent;
-            _depositedGoldText.text =  $"{_goldAvailable}/{depositedGold}";
+            int renown = SaveDataHandler.GetRenown();
+            _renownAvailable = renown - totalSpent;
+            _renownText.text =  $"{_renownAvailable}/{renown}";
         }
         public override async void OpenPanel()
         {
@@ -180,8 +182,8 @@ namespace TJ.MainMenu
             List<int> unlockedNodeIds = SaveDataHandler.GetUnlockedMetaprogressionNodes();
             _unlockedNodes = GetUnlockedNodesFromIds(unlockedNodeIds);
             _metaprogressionManager.DisplayNodes(_unlockedNodes);
-            _metaprogressionManager.HighlightAvailableUpgrades(_unlockedNodes, SaveDataHandler.GetDepositedGold());
-            CalculateDepositedGoldSpent();
+            _metaprogressionManager.HighlightAvailableUpgrades(_unlockedNodes, SaveDataHandler.GetRenown());
+            CalculateRenownSpent();
         }
         public override async void ClosePanel()
         {
@@ -199,13 +201,12 @@ namespace TJ.MainMenu
             SaveDataHandler.ResetMetaprogression();
             DisplayNodes();
         }
-        private void OverrideDepositGold()
+        private void OverrideAddRenown()
         {
             PlayerSaveData playerSaveData = SaveDataHandler.LoadPlayerSaveData();
-            playerSaveData.goldToDeposit += 100;
+            playerSaveData.renown += 100;
             SaveDataHandler.SavePlayerSaveData(playerSaveData);
-            SaveDataHandler.DepositGold();
-            CalculateDepositedGoldSpent();
+            CalculateRenownSpent();
         }
         private void CheckForAvailableUpgrades()
         {
@@ -213,7 +214,7 @@ namespace TJ.MainMenu
             List<MetaprogressionModel> unlockedNodes = GetUnlockedNodesFromIds(unlockedNodeIds);
             MetaprogressionTreeModel treeModel = _metaprogressionManager.MetaprogressionTreeModel;
 
-            int depositedGold = SaveDataHandler.GetDepositedGold();
+            int renown = SaveDataHandler.GetRenown();
             int totalSpent = 0;
             foreach(MetaprogressionModel node in _unlockedNodes)
             {
@@ -229,8 +230,8 @@ namespace TJ.MainMenu
                 //check if parent is unlocked
                 if(pair.Parent != null && !unlockedNodes.Contains(pair.Parent)) continue;
 
-                //check if enough gold to unlock
-                if(depositedGold - totalSpent >= node.NodeCost)
+                //check if enough renown to unlock
+                if(renown - totalSpent >= node.NodeCost)
                 {
                     // Debug.Log($"Upgrade available: {node.NodeId} with cost {node.NodeCost}");
                     upgradesAvailableIndicator.SetActive(true);

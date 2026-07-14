@@ -426,7 +426,7 @@ namespace TJ.Event
         }
         public void CompleteEvent()
         {
-            mapSceneUIManager.CompleteLayerAction();
+            mapSceneUIManager.TryDrainPendingPrestigeChoices(() => mapSceneUIManager.CompleteLayerAction());
         }
         public TT_Event GetRandomEvent()
         {

@@ -1,6 +1,8 @@
 using UnityEngine;
 using TJ;
 using Unity.Mathematics;
+using System.Collections.Generic;
+using System.Linq;
 
 public static class TabletopTavernConstants
 {
@@ -70,8 +72,18 @@ public static class TabletopTavernConstants
     public const float ENDLESS_HORDES_HEAL_AMOUNT = 0.30f;
     public const float CONSUME_CAPTIVES_HEAL_AMOUNT = 0.33f;
 
-    //Prestige + Melee attack by 10, + Speed +5, + Charge Bonus +5, 
-    public const int PRESTIGE_BONUS = 10;
+    //Prestige: melee gains MeleeAttack/MeleeDefense/Leadership, ranged gains Range/Accuracy/Ammunition, all scaled by prestige level
+    public const int PRESTIGE_BONUS = 5;
+    public const int PRESTIGE_AMMO_BONUS_RANGED = 100;
+    public const int PRESTIGE_AMMO_BONUS_ARTILLERY = 6;
+
+    // Random trait pool granted once when a unit reaches max prestige (level 2 / "Prestige 3")
+    public static readonly UnitAttribute[] PRESTIGE_TRAIT_POOL = {
+        UnitAttribute.ArmorPiercing, UnitAttribute.AntiInfantry, UnitAttribute.AntiLarge,
+        UnitAttribute.Terrifying, UnitAttribute.Stalwart, UnitAttribute.Rage,
+        UnitAttribute.Emblazing, UnitAttribute.FlamingAmmo,
+        UnitAttribute.BackStabbers, UnitAttribute.MonsterSlayer, UnitAttribute.BloodFrenzy
+    };
 
 
     public const int VILLAGE_RECRUIT_COST = 10;
@@ -118,4 +130,44 @@ public static class TabletopTavernConstants
 
     public static bool IsAGoblinUnit(UnitName unitName) =>
         unitName == UnitName.GoblinRabble || unitName == UnitName.GoblinScrapShooters || unitName == UnitName.StonegulletEnforcers;
+
+    public static bool GetAttribute(SquadAttributes attributes, UnitAttribute trait) => trait switch
+    {
+        UnitAttribute.ArmorPiercing => attributes.ArmorPiercing,
+        UnitAttribute.AntiInfantry => attributes.AntiInfantry,
+        UnitAttribute.AntiLarge => attributes.AntiLarge,
+        UnitAttribute.Terrifying => attributes.Terrifying,
+        UnitAttribute.Stalwart => attributes.Stalwart,
+        UnitAttribute.Rage => attributes.Rage,
+        UnitAttribute.Emblazing => attributes.Emblazing,
+        UnitAttribute.FlamingAmmo => attributes.FlamingAmmo,
+        UnitAttribute.BackStabbers => attributes.BackStabbers,
+        UnitAttribute.MonsterSlayer => attributes.MonsterSlayer,
+        UnitAttribute.BloodFrenzy => attributes.BloodFrenzy,
+        _ => false,
+    };
+
+    public static List<UnitAttribute> GetEligiblePrestigeTraits(SquadStats squadStats) =>
+        PRESTIGE_TRAIT_POOL
+            .Where(trait => !GetAttribute(squadStats.SquadAttributes, trait))
+            .Where(trait => trait != UnitAttribute.FlamingAmmo || squadStats.unitType == UnitType.Ranged)
+            .ToList();
+
+    public static void SetAttribute(ref SquadAttributes attributes, UnitAttribute trait)
+    {
+        switch (trait)
+        {
+            case UnitAttribute.ArmorPiercing: attributes.ArmorPiercing = true; break;
+            case UnitAttribute.AntiInfantry: attributes.AntiInfantry = true; break;
+            case UnitAttribute.AntiLarge: attributes.AntiLarge = true; break;
+            case UnitAttribute.Terrifying: attributes.Terrifying = true; break;
+            case UnitAttribute.Stalwart: attributes.Stalwart = true; break;
+            case UnitAttribute.Rage: attributes.Rage = true; break;
+            case UnitAttribute.Emblazing: attributes.Emblazing = true; break;
+            case UnitAttribute.FlamingAmmo: attributes.FlamingAmmo = true; break;
+            case UnitAttribute.BackStabbers: attributes.BackStabbers = true; break;
+            case UnitAttribute.MonsterSlayer: attributes.MonsterSlayer = true; break;
+            case UnitAttribute.BloodFrenzy: attributes.BloodFrenzy = true; break;
+        }
+    }
 }

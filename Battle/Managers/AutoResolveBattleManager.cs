@@ -36,9 +36,9 @@ namespace TJ.Engagement
         public AutoResolveSquad[] EnemyAutoResolveStats => enemyAutoResolveStats;
         List<int3> unitsSlainData = new();
         private float ENEMY_AUTORESOLVE_SPECIAL_BONUS => CampaignManager.Instance.CampaignSaveManager.SaveData.bookNumber switch {
-            2 => 1.6f,
-            3 => 1.7f,
-            _ => 1.5f,
+            2 => 1.25f,
+            3 => 1.50f,
+            _ => 1.00f,
         };
         private const float GARRISON_AUTORESOLVE_BONUS = 1.4f;
         private bool _isGarrisonBattle;
@@ -155,6 +155,9 @@ namespace TJ.Engagement
     {
         SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(_squadToLoad.UnitName);
         UnitType unitType = TabletopTavernData.Instance.GetUnitTypeFromUnitName(_squadToLoad.UnitName);
+        if (_squadToLoad.PrestigeTrait != UnitAttribute.None) {
+            TabletopTavernConstants.SetAttribute(ref squadStats.SquadAttributes, _squadToLoad.PrestigeTrait);
+        }
 
         int meleeAttack = squadStats.MeleeAttack;
         int meleeDefense = squadStats.MeleeDefense;
@@ -227,10 +230,11 @@ namespace TJ.Engagement
         {
             meleeAttack += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
             meleeDefense += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
+            squadStats.Leadership += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
         }
         else if (squadStats.unitType == UnitType.Ranged || squadStats.unitType == UnitType.Artillery)
         {
-            accuracy += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
+            accuracy += (_squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS) / 100f;
             range += _squadToLoad.UnitPrestige * TabletopTavernConstants.PRESTIGE_BONUS;
         }
 

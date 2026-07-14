@@ -61,7 +61,6 @@ public struct SquadAttributes
     public bool ArmorSundering;
     public bool MonsterSlayer;
     public bool ForgefuryTempering;
-    // public bool TowerShields;
     public bool FlamingAmmo;
     public bool DragonsHoard;
     public bool BackStabbers;

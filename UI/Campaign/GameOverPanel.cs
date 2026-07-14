@@ -23,10 +23,10 @@ public class GameOverPanel : MonoBehaviour
 
     [Header("Game Over Stats")]
     [SerializeField] private TMP_Text chaptersCompletedText;
-    [SerializeField] private TMP_Text goldEarnedText, goldDepositedText, goldDepositedOutcomeText;
+    [SerializeField] private TMP_Text goldEarnedText, renownEarnedText, renownBreakdownText;
     [SerializeField] private TMP_Text enemiesSlainText;
     [SerializeField] private MemoriCanvasGroup completionMessageRow, heroNameRow, difficultyRow, backgroundRow;
-    [SerializeField] private MemoriCanvasGroup chaptersCompletedRow, goldEarnedRow, goldDepositedRow, enemiesSlainRow;
+    [SerializeField] private MemoriCanvasGroup chaptersCompletedRow, goldEarnedRow, renownEarnedRow, enemiesSlainRow;
     public MemoriButtonV2 mainMenuButton;
     [SerializeField] private MemoriCanvasGroup mainGameOverGroup, textGroup, fadeCanvasGroup;
     [SerializeField] private GameObject defeatObject, victoryObject;
@@ -84,7 +84,7 @@ public class GameOverPanel : MonoBehaviour
             }
         }
 
-        SaveDataHandler.RecordGameOver(_beatDemo);
+        RenownAward renownAward = SaveDataHandler.RecordGameOver(_beatDemo);
 
         string heroNameLocalized = LocalizationManager.Instance.GetText(HeroData.GetHeroByID(saveData.heroID).HeroName);
         heroNameText.text = heroNameLocalized;
@@ -94,16 +94,17 @@ public class GameOverPanel : MonoBehaviour
         DifficultyLevel difficultyData = DifficultyData.GetDifficultyLevelData(_difficulty);
         string levelLocalized = LocalizationManager.Instance.GetText("Level");
         string difficultyNamestring = LocalizationManager.Instance.GetText(difficultyData.difficultyName);
+        string chaptersLocalized = LocalizationManager.Instance.GetText("Chapters");
+        string actsLocalized = LocalizationManager.Instance.GetText("Acts");
+
         difficultyNameText.text = $"{levelLocalized} {(int)_difficulty}: {difficultyNamestring}";
 
         chaptersCompletedText.text = runStats.chaptersCompleted.ToString();
         goldEarnedText.text = runStats.goldEarned.ToString();
         enemiesSlainText.text = runStats.enemiesSlain.ToString();
 
-        int bonusGold = _beatDemo ? saveData.goldAmount : 0;
-        string bonusColor = _beatDemo ? ColorData.Green : ColorData.Error;
-        goldDepositedText.text = $"{runStats.goldDeposited} <color={bonusColor}>+ {bonusGold}</color> = {runStats.goldDeposited + bonusGold}";
-        goldDepositedOutcomeText.text = $"<color={bonusColor}>{LocalizationManager.Instance.GetText(_beatDemo ? "Victory" : "Defeat")}</color>";
+        renownEarnedText.text = $"<color={ColorData.Legendary}>{renownAward.total}</color>";
+        renownBreakdownText.text = $"{renownAward.chaptersCompleted} {chaptersLocalized}  |  {renownAward.actsCompleted} {actsLocalized} (+{renownAward.actRenown})  |  {difficultyNamestring} (x{renownAward.difficultyMultiplier:0.00})";
 
         // AnalyticsManager.Instance.LogRunEnd(
         //     saveData.runUUID.ToString(),
@@ -143,7 +144,7 @@ public class GameOverPanel : MonoBehaviour
     {
         textGroup.CGEnable();
 
-        MemoriCanvasGroup[] rows = { backgroundRow, difficultyRow, heroNameRow, chaptersCompletedRow, enemiesSlainRow, goldEarnedRow, goldDepositedRow,  completionMessageRow };
+        MemoriCanvasGroup[] rows = { backgroundRow, difficultyRow, heroNameRow, chaptersCompletedRow, enemiesSlainRow, goldEarnedRow, renownEarnedRow,  completionMessageRow };
         foreach (var row in rows) row.CGDisable();
 
         const float rowFade = 0.4f;

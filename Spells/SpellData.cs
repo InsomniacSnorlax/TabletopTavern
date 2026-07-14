@@ -40,6 +40,7 @@ namespace TJ.Spells
         {
             string localizedSpellDescription = LocalizationManager.Instance.GetText(Spell.ToString() + "_Desc");
             localizedSpellDescription = string.Format(localizedSpellDescription, SpellType, SpellModifierValue, SpellDuration);
+            ColorData.XMLTagColorApplicator(ref localizedSpellDescription);
             return localizedSpellDescription;
         }
     }

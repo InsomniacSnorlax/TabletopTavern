@@ -1210,7 +1210,7 @@ namespace Memori.SaveData
                 entities.Add(entity);
             }
         
-            BattleManager.Instance.SquadManager.RegisterSquad(entities, squadData, squadToLoad.UnitPrestige, squadToLoad.UniqueID, squadToLoad.HitPointsPerUnit);
+            BattleManager.Instance.SquadManager.RegisterSquad(entities, squadData, squadToLoad.UnitPrestige, squadToLoad.UniqueID, squadToLoad.HitPointsPerUnit, squadToLoad.PrestigeTrait);
 
             query.Dispose();
         }

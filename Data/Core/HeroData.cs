@@ -207,7 +207,7 @@ namespace TJ
         {
             HeroName = "heroName14",
             HeroDescription = "heroDescription14",
-            HeroBonusDescription = new string[] { "heroBonusDescription27", "heroBonusDescription28" }, //Blasting Barrels: Artillery units gain +10 [Accuracy] and +4 [Missile Strength]. //Supply Lines: All ranged units gain 50% increased ammunition capacity.
+            HeroBonusDescription = new string[] { "heroBonusDescription27", "heroBonusDescription28" }, //Blasting Barrels: Artillery units gain +10 [Accuracy] and +10 [Range]. //Supply Lines: All ranged units gain 50% increased ammunition capacity.
             HeroPrefabName = "BerthaBarrelstorm",
             UnlockCondition = UnlockCondition.HeroCompletion,
             DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,

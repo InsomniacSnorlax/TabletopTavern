@@ -17,6 +17,7 @@ namespace TJ
     public class SquadFlagGameObject : MonoBehaviour
     {
         [SerializeField] private MeshRenderer flagMeshRenderer;
+        [SerializeField] private GameObject normalRarityFlagPostGO, legendaryRarityFlagPostGO;
         [SerializeField] private Transform flagTransform, healthBarTransform;
         [SerializeField] private Slider healthBar;
         [SerializeField] private Slider moraleBar;
@@ -72,6 +73,10 @@ namespace TJ
             flagMeshRenderer.material = _flagMaterial;
             squadId = _squadId;
             unitSize = _unitSize;
+
+            bool isLegendary = TabletopTavernData.Instance.GetSquadStats(unitName).RarityTier == UnitRarity.Legendary;
+            normalRarityFlagPostGO.SetActive(!isLegendary);
+            legendaryRarityFlagPostGO.SetActive(isLegendary);
             ammunition = _ammunition;
             broken = false;
             _block = new MaterialPropertyBlock();
@@ -105,6 +110,8 @@ namespace TJ
             moraleBar.maxValue = morale.MaxMorale;
             moraleBar.value = morale.MaxMorale;
             moraleBar.minValue = morale.MoraleThreshold;
+
+            healthBarGO.SetPrestige(squadManager.GetSquadPrestige(squadId), ammunition > 0);
 
             battleManager.OnSquadBrokenEvent += OnSquadBroken;
             battleManager.OnGamePhaseChanged += OnGamePhaseChanged;

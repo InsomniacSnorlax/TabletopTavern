@@ -44,6 +44,7 @@ namespace TJ.Map
                     SquadToLoad targetedSquad = CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Where(squad => squad.UniqueID == targetUnitGuid).FirstOrDefault();
                     CampaignManager.Instance.CampaignSaveManager.PrestigeSpecificUnit(targetedSquad);
                     IAudioRequester.Instance.PlaySFX(SFXData.PrestigeUnit);
+                    CampaignManager.Instance.MapSceneUIManager.TryDrainPendingPrestigeChoices();
                     break;
                 }
                 case ConsumableEnum.Duplicate:
@@ -100,6 +101,7 @@ namespace TJ.Map
                     SquadToLoad targetedSquad = CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Where(squad => squad.UniqueID == targetUnitGuid).FirstOrDefault();
                     CampaignManager.Instance.CampaignSaveManager.TrialOfGrassesPrestigeSpecificUnit(targetedSquad);
                     IAudioRequester.Instance.PlaySFX(SFXData.PrestigeUnit);
+                    CampaignManager.Instance.MapSceneUIManager.TryDrainPendingPrestigeChoices();
                     break;
                 }
                 case ConsumableEnum.FateshineElixir:

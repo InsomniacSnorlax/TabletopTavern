@@ -43,6 +43,8 @@ namespace TJ.Map
 
         [Header("Town Stuff")]
         [SerializeField] private Transform townTextCanvas;
+        [SerializeField] private Shader alwaysOnTopFontShader; // TextMeshPro/Distance Field Overlay
+        [SerializeField] private Shader alwaysOnTopUIShader; // MoreMountains/MMZTestAlways
         [SerializeField] private GameObject townGameObject;
         [SerializeField] private GameObject villageGO, castleGO, cityGO;
         [SerializeField] private TMP_Text townNameText;
@@ -70,6 +72,9 @@ namespace TJ.Map
             }
             mMF_Player = GetComponent<MMF_Player>();
             selectionParticles.SetActive(false);
+            ApplyAlwaysOnTop(townTextCanvas);
+            ApplyAlwaysOnTop(weatherFlagText);
+            ApplyAlwaysOnTop(biomeFlagText);
         }
         private void Start()
         {
@@ -146,6 +151,33 @@ namespace TJ.Map
                 manager.Register(text.transform, r, lockY: false);
             else
                 manager.Register(text.transform, lockY: false);
+        }
+
+        // Forces every Graphic under canvasRoot (TMP text + UI images) to render through 3D geometry
+        // instead of being depth-tested against it, since World Space canvases share the scene depth buffer.
+        private void ApplyAlwaysOnTop(Transform canvasRoot)
+        {
+            if (canvasRoot == null) return;
+            foreach (var graphic in canvasRoot.GetComponentsInChildren<Graphic>(true))
+            {
+                if (graphic is TMP_Text tmpText)
+                {
+                    ApplyAlwaysOnTop(tmpText);
+                    continue;
+                }
+                if (alwaysOnTopUIShader == null) continue;
+                var mat = new Material(alwaysOnTopUIShader) { renderQueue = 4000 };
+                graphic.material = mat;
+                _alwaysOnTopMaterials.Add(mat);
+            }
+        }
+
+        private void ApplyAlwaysOnTop(TMP_Text text)
+        {
+            if (text == null || alwaysOnTopFontShader == null) return;
+            var mat = new Material(text.fontSharedMaterial) { shader = alwaysOnTopFontShader };
+            text.fontMaterial = mat;
+            _alwaysOnTopMaterials.Add(mat);
         }
         private void UpdateIcon()
         {
@@ -387,6 +419,7 @@ namespace TJ.Map
         }
         private Material _biomeMaterial;
         private Material _weatherMaterial;
+        private readonly List<Material> _alwaysOnTopMaterials = new();
 
         private void OnDestroy()
         {
@@ -400,6 +433,10 @@ namespace TJ.Map
             }
             if (_biomeMaterial != null) Destroy(_biomeMaterial);
             if (_weatherMaterial != null) Destroy(_weatherMaterial);
+            foreach (var mat in _alwaysOnTopMaterials)
+            {
+                if (mat != null) Destroy(mat);
+            }
         }
 
         public void SetMiniSkirmishBiome(Sprite biomeSprite)

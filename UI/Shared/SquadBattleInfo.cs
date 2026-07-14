@@ -2,7 +2,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
-using System.Collections.Generic;
 using Memori.SaveData;
 using Memori.Utilities;
 using Memori.Tooltip;
@@ -39,6 +38,7 @@ namespace TJ
 
         [Header("Race Passive")]
         [SerializeField] private TMP_Text passiveNameText;
+        [SerializeField] private TMP_Text passiveTitleText;
         [SerializeField] private Image raceColorImage1;
         [SerializeField] private Image raceColorImage2;
         [SerializeField] private MemoriTooltipTrigger passiveTooltipTrigger;
@@ -48,6 +48,7 @@ namespace TJ
         [SerializeField] private UnitAttributesUI inSwampAttribute, isChargingAttribute, inCombatAttribute, isTerrifiedAttribute, isExhaustedAttribute, isOutOfAmmoAttribute, bloodFrenzyAttribute, rageAttribute, armorSunderedAttribute, isOnFireAttribute, garrisonDefenderAttribute, defendersResolveAttribute;
 
         int currentEntityCount, maxEntityCount, prestige, health, maxHealth, battlefieldBonusCount, lastCrashingHordeStacks = -1, lastDeathcryBonus = -1, lastHuntersPatienceBonus = -1, lastKenseiEyeStage = -1, lastOathcarvedDeaths = -1, lastApexHuntersStacks = -1, lastAmmunition = -1, lastHealth = -1, lastEntityCount = -1;
+        UnitAttribute prestigeTrait;
         const float AMMO_REFRESH_INTERVAL = 0.5f;
         float ammoRefreshTimer;
         SquadToLoad squadToLoad;
@@ -81,6 +82,7 @@ namespace TJ
             if (squadToLoad.SquadCurrentHealth > 0 && currentEntityCount == 0) currentEntityCount = 1;
             maxEntityCount = squadToLoad.maxUnitCount;
             prestige = squadToLoad.UnitPrestige;
+            prestigeTrait = squadToLoad.PrestigeTrait;
             healthBarFillImage.color = friendlyColor;
             applyGearBonuses = team == Team.Player;
 
@@ -104,6 +106,7 @@ namespace TJ
             currentEntityCount = squadToLoad.SquadCurrentHealth / squadToLoad.HitPointsPerUnit;
             maxEntityCount = squadToLoad.maxUnitCount;
             prestige = squadToLoad.UnitPrestige;
+            prestigeTrait = squadToLoad.PrestigeTrait;
             healthBarFillImage.color = friendlyColor;
             applyGearBonuses = team == Team.Player;
 
@@ -112,7 +115,7 @@ namespace TJ
             maxHealth = maxEntityCount * squadStats.HitPointsPerUnit;
             unitCount.text = $"{maxEntityCount} ({maxEntityCount})";
 
-            GetHistoricalSquadKillCount();
+            GetUnitNameHistoricalKillCount();
             Load();
             TurnOffBattlefieldConditions();
         }
@@ -133,6 +136,7 @@ namespace TJ
             squadEntity = _squadEntity;
             currentEntityCount = _currentEntityCount;
             prestige = _prestige;
+            prestigeTrait = BattleManager.Instance.SquadManager.GetSquadPrestigeTrait(squadEntity.SquadId);
             maxEntityCount = squadEntity.initialSquadSize;
             healthBarFillImage.color = squadEntity.SquadId > 0 ? friendlyColor : enemyColor;
             UpdateSquadKillCount();
@@ -170,6 +174,7 @@ namespace TJ
 
             unitCount.text = $"{maxEntityCount} ({maxEntityCount})";
             prestige = _prestige;
+            prestigeTrait = UnitAttribute.None;
             healthBarFillImage.color = friendlyColor;
             squadEntity = default;
             Load();
@@ -287,7 +292,7 @@ namespace TJ
         {
             // Debug.Log($"Loading SquadBattleInfo for {applyGearBonuses} applying gear bonuses.");
             unitAttributesUIContainer = GetComponent<UnitAttributesUIContainer>();
-            unitAttributesUIContainer.Load(squadStats.unitName, applyGearBonuses);
+            unitAttributesUIContainer.Load(squadStats.unitName, applyGearBonuses, prestigeTrait);
 
             unitStatsUIContainer = GetComponent<UnitStatsUIContainer>();
             unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
@@ -375,9 +380,14 @@ namespace TJ
 
             raceColorImage1.color = passiveColor;
             raceColorImage2.color = new Color(passiveColor.r, passiveColor.g, passiveColor.b, alpha / 255f);
+
+            string campaignBonusTitle = LocalizationManager.Instance.GetText("Campaign Bonus");
+            string campaignRaceTitle = LocalizationManager.Instance.GetText(race.ToString());
+            passiveTitleText.text = $"{campaignBonusTitle} - {campaignRaceTitle}";
             string passiveName = LocalizationManager.Instance.GetText(race.ToString() + "PassiveName");
             string passiveDesc = LocalizationManager.Instance.GetText(race.ToString() + "PassiveDescription");
             passiveNameText.text = passiveName;
+
             passiveTooltipTrigger.SetUpToolTip(_title: passiveName, _description: passiveDesc);
         }
         private void HandlePrestige()
@@ -424,6 +434,10 @@ namespace TJ
                 return;
             }
             unitKillsText.text = CampaignManager.Instance.CampaignSaveManager.GetSquadHistoricalKillCount(squadToLoad.UniqueID).ToString();
+        }
+        public void GetUnitNameHistoricalKillCount()
+        {
+            unitKillsText.text = SaveDataHandler.GetUnitNameHistoricalKillCount(squadToLoad.UnitName).ToString();
         }
         public void UpdateSquadKillCount()
         {

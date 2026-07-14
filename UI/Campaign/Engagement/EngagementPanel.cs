@@ -334,6 +334,11 @@ namespace TJ.Engagement
                             battlesFought += 1;
                         }
 
+                        //DifficultyMod 10
+                        bool enemyPrestigeEligible = campaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Duke;
+                        //DifficultyMod 14
+                        bool enemyPrestigeEnhanced = campaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Emperor;
+
                         enemyArmy = ArmyCreator.GenerateEnemyArmy(
                             campaignSaveManager.SaveData.bookNumber,
                             battlesFought,
@@ -341,7 +346,9 @@ namespace TJ.Engagement
                             engagementType == EngagementType.Horde,
                             unitsPool,
                             //DifficultyMod 6
-                            campaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Knight
+                            campaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Knight,
+                            enemyPrestigeEligible,
+                            enemyPrestigeEnhanced
                         );
 
                         if (CampaignManager.Instance.GearManager.CheckForGear(GearID.BearSpray))
@@ -1253,24 +1260,30 @@ namespace TJ.Engagement
         #region Closing
         public void CompleteEngagement(bool garrisonEngagement)
         {
-            if (garrisonEngagement)
+            // Resolve the kobold hero-bonus auto-prestige (and anything PrestigeUnitsOnKills already
+            // queued up during results display) before deciding where to go next, so the trait picker
+            // gates leaving this screen rather than surfacing later on whatever screen comes after.
+            CampaignManager.Instance.CampaignSaveManager.HandleSpecialSquadsOnBattleEnd();
+            mapSceneUIManager.TryDrainPendingPrestigeChoices(() =>
             {
-                ClosePanel();
-                CampaignManager.Instance.MapSceneUIManager.TownPanel.LoadTownPostGarrisonEngagement();
-                lootTownButton.gameObject.SetActive(false);
-            }
-            else
-            {
-                if(engagementType == EngagementType.Horde) 
+                if (garrisonEngagement)
                 {
-                    mapSceneUIManager.CompleteHordeBattle();
+                    ClosePanel();
+                    CampaignManager.Instance.MapSceneUIManager.TownPanel.LoadTownPostGarrisonEngagement();
+                    lootTownButton.gameObject.SetActive(false);
                 }
                 else
                 {
-                    mapSceneUIManager.CompleteLayerAction();
+                    if(engagementType == EngagementType.Horde)
+                    {
+                        mapSceneUIManager.CompleteHordeBattle();
+                    }
+                    else
+                    {
+                        mapSceneUIManager.CompleteLayerAction();
+                    }
                 }
-            }
-            CampaignManager.Instance.CampaignSaveManager.HandleSpecialSquadsOnBattleEnd();
+            });
             continueButton.enabled = false;
         }
         private void LoseRun()

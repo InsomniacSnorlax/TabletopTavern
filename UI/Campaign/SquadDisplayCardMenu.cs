@@ -573,16 +573,19 @@ namespace TJ
             string unitsGainLocalised = LocalizationManager.Instance.GetText("UnitsGain");
             string meleeAttackLocalised = LocalizationManager.Instance.GetText("MeleeAttack");
             string meleeDefenseLocalised = LocalizationManager.Instance.GetText("MeleeDefense");
+            string leadershipLocalised = LocalizationManager.Instance.GetText("Leadership");
             string accuracyLocalised = LocalizationManager.Instance.GetText("Accuracy");
             string rangeLocalised = LocalizationManager.Instance.GetText("Range");
+            string ammunitionLocalised = LocalizationManager.Instance.GetText("Ammunition");
             string andLocalised = LocalizationManager.Instance.GetText("and");
             string perLevelLocalised = LocalizationManager.Instance.GetText("PerLevel");
             string mergeUnitsDescriptionLocalised = LocalizationManager.Instance.GetText("MergeUnitsDescription");
 
             if(unitType == UnitType.Melee || unitType == UnitType.Hybrid || TabletopTavernConstants.UsesMeleePrestige(squad.UnitName)) {
-                prestigeTooltipLocalised += $"[{unitTypeLocalised}] {unitsGainLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{meleeAttackLocalised}</color> {andLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{meleeDefenseLocalised}</color> {perLevelLocalised}";
+                prestigeTooltipLocalised += $"[{unitTypeLocalised}] {unitsGainLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{meleeAttackLocalised}</color>, <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{meleeDefenseLocalised}</color> {andLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{leadershipLocalised}</color> {perLevelLocalised}";
             } else if(unitType == UnitType.Ranged || unitType == UnitType.Artillery) {
-                prestigeTooltipLocalised += $"[{unitTypeLocalised}] {unitsGainLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{accuracyLocalised}</color> {andLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{rangeLocalised}</color> {perLevelLocalised}";
+                int ammoBonusPerLevel = unitType == UnitType.Artillery ? TabletopTavernConstants.PRESTIGE_AMMO_BONUS_ARTILLERY : TabletopTavernConstants.PRESTIGE_AMMO_BONUS_RANGED;
+                prestigeTooltipLocalised += $"[{unitTypeLocalised}] {unitsGainLocalised} <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{accuracyLocalised}</color>, <color={ColorData.Green}>+{TabletopTavernConstants.PRESTIGE_BONUS}</color> <color={ColorData.UnitStat}>{rangeLocalised}</color> {andLocalised} <color={ColorData.Green}>+{ammoBonusPerLevel}</color> <color={ColorData.UnitStat}>{ammunitionLocalised}</color> {perLevelLocalised}";
             }
 
             string renameLocalised = LocalizationManager.Instance.GetText("Rename Unit");

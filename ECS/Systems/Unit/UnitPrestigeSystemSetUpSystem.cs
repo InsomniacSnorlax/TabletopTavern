@@ -35,7 +35,21 @@ partial struct UnitPrestigeSystemSetUpSystem : ISystem
                 MeleeAttack.ValueRW.MeleeAttackValue += TabletopTavernConstants.PRESTIGE_BONUS * UnitPrestigeSetUpTag.ValueRO.PrestigeLevel;
                 MeleeDefense.ValueRW.Value += TabletopTavernConstants.PRESTIGE_BONUS * UnitPrestigeSetUpTag.ValueRO.PrestigeLevel;
             }
-  
+
+            // Granted trait tags that live on the per-unit ECS blob (UnitSetUpSystem) rather than
+            // the squad-level SquadStats copy, so they can't be granted via RegisterSquad alone.
+            switch (UnitPrestigeSetUpTag.ValueRO.GrantedTrait) {
+                case UnitAttribute.ArmorPiercing:
+                    entityCommandBuffer.AddComponent<ArmorPiercingTag>(entity);
+                    break;
+                case UnitAttribute.AntiInfantry:
+                    entityCommandBuffer.AddComponent<AntiInfantryTag>(entity);
+                    break;
+                case UnitAttribute.AntiLarge:
+                    entityCommandBuffer.AddComponent<AntiLargeTag>(entity);
+                    break;
+            }
+
             entityCommandBuffer.RemoveComponent<UnitPrestigeSetUpTag>(entity);
         }
     }

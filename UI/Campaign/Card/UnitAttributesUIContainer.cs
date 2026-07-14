@@ -16,6 +16,8 @@ namespace TJ
         [Header("Unit Attributes")]
         [SerializeField] private UnitAttributesUI unitAttributePrefab;
         [SerializeField] private Transform unitAttributesParent;
+        [Tooltip("Distinct-colored variant of unitAttributePrefab, used only for the slot showing the prestige-granted trait.")]
+        [SerializeField] private UnitAttributesUI prestigeTraitAttributePrefab;
 
         [Header("Unit Bonuses")]
         [SerializeField] private UnitBonusUI unitBonusUIPrefab;
@@ -34,7 +36,7 @@ namespace TJ
             unitBonusesParent.transform.localScale = Vector3.one;
             overriden = true;
         }
-        public void Load(UnitName _unitName, bool _applyGearBonuses = false)
+        public void Load(UnitName _unitName, bool _applyGearBonuses = false, UnitAttribute _prestigeTrait = UnitAttribute.None)
         {
             switch(SceneHandler.Instance.CurrentGameState)
             {
@@ -50,6 +52,11 @@ namespace TJ
             }
 
             List<UnitAttribute> unitAttributes = TabletopTavernData.Instance.GetUnitAttributesForDisplay(_unitName);
+
+            // Prestige-granted trait is intrinsic to this squad instance (not a player loadout bonus),
+            // so it's shown regardless of team/gear settings.
+            if (_prestigeTrait != UnitAttribute.None && !unitAttributes.Contains(_prestigeTrait))
+                unitAttributes.Add(_prestigeTrait);
 
             if (gearManager != null && _applyGearBonuses)
             {
@@ -72,10 +79,30 @@ namespace TJ
             _unitAttributeUIs = unitAttributesParent.GetComponentsInChildren<UnitAttributesUI>().ToList();
             List<UnitBonusUI> unitBonusUIs = unitBonusesParent.GetComponentsInChildren<UnitBonusUI>().ToList();
 
+            // The prestige trait (if any) always needs the distinct-colored prefab, but which pooled
+            // slot it lands on shifts depending on how many other attributes this unit has. Rather than
+            // patch individual slots in place, wipe and rebuild the pool whenever the current layout
+            // doesn't match — cheap for a handful of icons and avoids the special color sticking to the
+            // wrong attribute after switching between units.
+            int prestigeIndex = _prestigeTrait != UnitAttribute.None ? unitAttributes.IndexOf(_prestigeTrait) : -1;
+            bool poolMatchesLayout = true;
+            for (int i = 0; i < _unitAttributeUIs.Count; i++) {
+                bool expectSpecial = i == prestigeIndex && prestigeTraitAttributePrefab != null;
+                if (_unitAttributeUIs[i].IsPrestigeVariant != expectSpecial) {
+                    poolMatchesLayout = false;
+                    break;
+                }
+            }
+            if (!poolMatchesLayout) {
+                foreach (UnitAttributesUI ui in _unitAttributeUIs) Destroy(ui.gameObject);
+                _unitAttributeUIs.Clear();
+            }
+
             //if more attributes than the ones already loaded add them
             if(unitAttributes.Count > _unitAttributeUIs.Count) {
                 for(int i = _unitAttributeUIs.Count; i < unitAttributes.Count; i++) {
-                    _unitAttributeUIs.Add(Instantiate(unitAttributePrefab, unitAttributesParent));
+                    bool useSpecialPrefab = i == prestigeIndex && prestigeTraitAttributePrefab != null;
+                    _unitAttributeUIs.Add(Instantiate(useSpecialPrefab ? prestigeTraitAttributePrefab : unitAttributePrefab, unitAttributesParent));
                 }
             } else if(unitAttributes.Count < _unitAttributeUIs.Count) {
                 for(int i = _unitAttributeUIs.Count - 1; i >= unitAttributes.Count; i--) {

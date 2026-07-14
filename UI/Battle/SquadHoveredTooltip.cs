@@ -14,8 +14,8 @@ namespace TJ
         [SerializeField] private TMP_Text troopNameText, troopTypeText, unitCountText;
         [SerializeField] private Slider healthSlider;
         [SerializeField] private Image squadFactionColorImage;
-        [SerializeField] private Transform unitAttributesParent;
-        [SerializeField] private UnitAttributesUI unitAttributePrefab;
+        // [SerializeField] private Transform unitAttributesParent;
+        // [SerializeField] private UnitAttributesUI unitAttributePrefab;
         [SerializeField] private GameObject isChargingGO, inCombatGO, isTerrifiedGO, inForestGO, inSwampGO, chargeBonusCooldownGO, exhaustedGO, bloodFrenzyGO, rageGO, armorSunderedGO, attackedInFlanksGO, onFireGO, defensiveStanceGO, bracedGO, retreatingAlliesGO, garrisonDefenderGO, defendersResolveGO;
 
         [Header("Combat Status Indicators")]

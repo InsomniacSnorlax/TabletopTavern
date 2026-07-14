@@ -174,10 +174,10 @@ partial struct UnitSetUpSystem : ISystem
                         }
                         break;
                     case 14:
-                         //Blasting Barrels: Artillery units gain +10 [Accuracy] and +4 [Missile Strength]. 
+                         //Blasting Barrels: Artillery units gain +10 [Accuracy] and +10 [Range]. 
                         if(unit.ValueRO.unitType == UnitType.Artillery) {
                             accuracy += 10;
-                            missileStrength += 4;
+                            range += 10;
                         }
                         break;
                     case 15:

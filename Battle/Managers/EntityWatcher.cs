@@ -216,7 +216,7 @@ namespace TJ
                 //Create Range Drawer for the squad
                 if (unitType == UnitType.Ranged)
                 {
-                    int ammunition = squadStats.Ammunition;
+                    int ammunition = squadStats.Ammunition + TabletopTavernConstants.PRESTIGE_AMMO_BONUS_RANGED * BattleManager.Instance.SquadManager.GetSquadPrestige(squadEntity.SquadId);
 
                     // if hero is Bertha (14) Supply Lines
                     if(HeroBonusManager.Instance.ActiveHeroID == 14)
@@ -240,7 +240,7 @@ namespace TJ
                 }
                 else if (unitType == UnitType.Artillery)
                 {
-                    int ammunition = squadStats.Ammunition;
+                    int ammunition = squadStats.Ammunition + TabletopTavernConstants.PRESTIGE_AMMO_BONUS_ARTILLERY * BattleManager.Instance.SquadManager.GetSquadPrestige(squadEntity.SquadId);
                     // if hero is Bertha (14) Supply Lines
                     if(HeroBonusManager.Instance.ActiveHeroID == 14)
                     {

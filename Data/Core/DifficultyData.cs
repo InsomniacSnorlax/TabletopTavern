@@ -78,13 +78,13 @@ public static class DifficultyData
     //8 "Removes the ability to modify rolls in events."
 
     //9 "Increases the cost to recruit from towns"
-    //10 "Increases the rarity of signature units in recruitment."
+    //10 "Enemy armies may contain prestiged units."
 
     //11 "Reduced heal on entering cities"
     //12 "Lose 1 gold <sprite name=GoldSprite> per turn."
 
     //13 "Recieve no gold for selling gear or consumables."
-    //14 "Reduced gold from sacking cities"
+    //14 "Increases the chance and severity of enemy unit prestige."
 
     //15 "Reduces gold rewards from ransoming captives."
     //16 "Cities have stronger garrisons."

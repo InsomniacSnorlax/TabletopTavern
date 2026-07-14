@@ -126,7 +126,7 @@ namespace TJ
         {
             if (DisableSaving) return;
             OnGameSaved?.Invoke();
-            SaveDataHandler.DepositGold();
+            // SaveDataHandler.DepositGold(); // legacy deposited-gold flush, disabled - see Renown system
             SaveDataHandler.SaveCampaignSnapshot(saveData);
             saveData = SaveDataHandler.Load();
         }
@@ -933,7 +933,7 @@ namespace TJ
             _squadToPrestige.SquadCurrentHealth = _squadToPrestige.SquadMaxHealth;
             _squadToPrestige.UnitPrestige++;
             Debug.Log($"[Unit] Prestiged {_squadToPrestige.UnitName} to prestige {_squadToPrestige.UnitPrestige}");
-            
+
             if (_squadToPrestige.UnitPrestige == 1) {
                 SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_PRESTIGE_2);
             }
@@ -942,6 +942,46 @@ namespace TJ
             }
             saveData.RunStats.unitsPrestiged++;
             return _squadToPrestige;
+        }
+        public List<UnitAttribute> GetEligiblePrestigeTraitsForUnit(UnitName _unitName) =>
+            TabletopTavernConstants.GetEligiblePrestigeTraits(TabletopTavernData.Instance.GetSquadStats(_unitName));
+
+        public List<UnitAttribute> GetPrestigeTraitOptions(UnitName _unitName, int _count = 3)
+        {
+            List<UnitAttribute> pool = GetEligiblePrestigeTraitsForUnit(_unitName);
+            List<UnitAttribute> options = new();
+            while (options.Count < _count && pool.Count > 0)
+            {
+                int index = UnityEngine.Random.Range(0, pool.Count);
+                options.Add(pool[index]);
+                pool.RemoveAt(index);
+            }
+            return options;
+        }
+
+        public bool TryGetNextPendingPrestigeTraitChoice(out SquadToLoad pending)
+        {
+            for (int i = 0; i < saveData.playerArmy.Length; i++)
+            {
+                SquadToLoad squad = saveData.playerArmy[i];
+                if (squad.UnitIndex == -1 || squad.UnitPrestige != 2 || squad.PrestigeTrait != UnitAttribute.None) continue;
+                if (GetEligiblePrestigeTraitsForUnit(squad.UnitName).Count == 0) continue;
+
+                pending = squad;
+                return true;
+            }
+            pending = default;
+            return false;
+        }
+        public void ResolvePrestigeTraitChoice(string _uniqueID, UnitAttribute _chosenTrait)
+        {
+            for (int i = 0; i < saveData.playerArmy.Length; i++)
+            {
+                if (saveData.playerArmy[i].UniqueID != _uniqueID) continue;
+                saveData.playerArmy[i].PrestigeTrait = _chosenTrait;
+                break;
+            }
+            OnArmyStructureChanged?.Invoke();
         }
             public void PrestigeSpecificUnit(SquadToLoad _squadToPrestige)
             {
@@ -1293,11 +1333,6 @@ namespace TJ
             Race townRace = GenerateTownRace(_selectedNodeIndex, bookNumber);
             int bountyAmount = TownSaveData.GenerateBountyAmount(townSize, seed);
 
-            //DifficultyMod 14
-            if(CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Emperor) {
-                bountyAmount = (int)(bountyAmount * 0.5f);
-            }
-
             //Burn them all: 2x gold from sacking cities
             if (HeroBonusManager.Instance.ActiveHeroID == 4)
             {
@@ -1314,7 +1349,11 @@ namespace TJ
 
             //DifficultyMod 16
             bool isImperator = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Imperator;
-            SquadToLoad[] townGarrison = ArmyCreator.GenerateTownGarrison(townSize, seed, unitsPool, isImperator, bookNumber);
+            //DifficultyMod 10
+            bool enemyPrestigeEligible = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Duke;
+            //DifficultyMod 14
+            bool enemyPrestigeEnhanced = CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel >= TT_Difficulty.Emperor;
+            SquadToLoad[] townGarrison = ArmyCreator.GenerateTownGarrison(townSize, seed, unitsPool, isImperator, bookNumber, enemyPrestigeEligible, enemyPrestigeEnhanced);
             if (CampaignManager.Instance.GearManager.CheckForGear(GearID.AuraFarming))
             {
                 //remove the last squad from the array
@@ -1399,6 +1438,7 @@ namespace TJ
             saveData.playerWonBattle = _playerWon;
             saveData.SquadKillsStore = _squadIdKillCounter;
             saveData.HistoricalKillStore = SaveDataHandler.AddToHistoricalKills(saveData.HistoricalKillStore, _squadIdKillCounter);
+            SaveDataHandler.RecordUnitNameKills(_playerSquads, _squadIdKillCounter);
             // Debug.Log($"new historical kill store count: {saveData.HistoricalKillStore.Count}");
 
             int totalKills = 0;

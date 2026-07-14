@@ -11,6 +11,9 @@ namespace TJ
     {
         [SerializeField] private TMP_Text attributeText;
         public TMP_Text AttributeText => attributeText;
+        [Tooltip("Set true only on the distinct-colored prefab variant used for the prestige-granted trait.")]
+        [SerializeField] private bool isPrestigeVariant;
+        public bool IsPrestigeVariant => isPrestigeVariant;
         MemoriTooltipTrigger tooltipTrigger;
         UnitAttribute unitAttribute;
         UnitCondition unitCondition;

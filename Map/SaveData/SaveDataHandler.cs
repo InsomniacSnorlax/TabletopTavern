@@ -102,11 +102,21 @@ namespace Memori.SaveData
     {
         public int chaptersCompleted;
         public int goldEarned;
-        public int goldDeposited;
+        // public int goldDeposited; // legacy deposited-gold system, disabled in favor of Renown
         public int unitsPrestiged;
         public int unitsRecruited;
         public int gearAquired;
         public int enemiesSlain;
+    }
+    public struct RenownAward
+    {
+        public int chaptersCompleted;
+        public int chapterRenown;
+        public int actsCompleted;
+        public int actRenown;
+        public TT_Difficulty difficulty;
+        public float difficultyMultiplier;
+        public int total;
     }
     [System.Serializable] public struct UnitNameOverrides
     {
@@ -140,8 +150,11 @@ namespace Memori.SaveData
         public List<int> consumablesAcknowledged = new ();
         public List<int> metaprogressionNodesUnlocked = new ();
         public List<string> BattlefieldInfoSectionsViewed = new ();
+        // Legacy deposited-gold system, disabled in favor of Renown. Fields kept (not removed)
+        // so JsonUtility can still deserialize existing saves for MigrateLegacyDepositedGoldToRenown.
         public int goldToDeposit;
         public int depositedGold;
+        public int renown;
         #endregion
 
         public int gameCompletions;
@@ -155,10 +168,16 @@ namespace Memori.SaveData
         public bool hasTavernThemeSelected = false;
         public Race activeTavernThemeRace;
         public bool isDevToolUser;
+        public List<UnitNameKillsStored> UnitNameHistoricalKillStore = new();
     }
     [System.Serializable] public struct SquadKillsStored
     {
         public string SquadGUID;
+        public int Kills;
+    }
+    [System.Serializable] public struct UnitNameKillsStored
+    {
+        public UnitName UnitName;
         public int Kills;
     }
     [System.Serializable] public struct HeroDifficultiesCompleted
@@ -211,6 +230,7 @@ namespace Memori.SaveData
             string targetPath = GetPath(filename);
             string tempPath = targetPath + ".tmp";  // Temporary file in same directory
 
+            Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
             File.WriteAllText(tempPath, content);
 
             // Atomically replace/move
@@ -314,6 +334,69 @@ namespace Memori.SaveData
             }
             return _historicalKills;
         }
+        private static List<UnitNameKillsStored> AddToUnitNameHistoricalKills(List<UnitNameKillsStored> _historicalKills, List<UnitNameKillsStored> _currentKills)
+        {
+            _historicalKills ??= new List<UnitNameKillsStored>();
+            for(int i = 0; i < _currentKills.Count; i++) {
+                bool found = false;
+                for(int j = 0; j < _historicalKills.Count; j++) {
+                    if(_currentKills[i].UnitName == _historicalKills[j].UnitName) {
+                        _historicalKills[j] = new UnitNameKillsStored() {
+                            UnitName = _currentKills[i].UnitName,
+                            Kills = _historicalKills[j].Kills + _currentKills[i].Kills
+                        };
+                        found = true;
+                        break;
+                    }
+                }
+                if(!found) {
+                    _historicalKills.Add(_currentKills[i]);
+                }
+            }
+            return _historicalKills;
+        }
+        /// <summary>
+        /// Folds a battle's GUID-keyed kill counts into the player save's lifetime per-UnitName kill tracker.
+        /// Only kills scored by squads found in _playerSquads are counted (enemy squad kills are ignored).
+        /// </summary>
+        public static void RecordUnitNameKills(SquadToLoad[] _playerSquads, List<SquadKillsStored> _squadIdKillCounter)
+        {
+            List<UnitNameKillsStored> currentKillsByUnitName = new();
+            foreach (SquadKillsStored squadKill in _squadIdKillCounter)
+            {
+                if (squadKill.Kills <= 0) continue;
+
+                bool foundSquad = false;
+                UnitName unitName = default;
+                for (int i = 0; i < _playerSquads.Length; i++)
+                {
+                    if (_playerSquads[i].UniqueID == squadKill.SquadGUID)
+                    {
+                        unitName = _playerSquads[i].UnitName;
+                        foundSquad = true;
+                        break;
+                    }
+                }
+                if (!foundSquad) continue;
+
+                int existingIndex = currentKillsByUnitName.FindIndex(x => x.UnitName == unitName);
+                if (existingIndex >= 0)
+                {
+                    UnitNameKillsStored entry = currentKillsByUnitName[existingIndex];
+                    entry.Kills += squadKill.Kills;
+                    currentKillsByUnitName[existingIndex] = entry;
+                }
+                else
+                {
+                    currentKillsByUnitName.Add(new UnitNameKillsStored { UnitName = unitName, Kills = squadKill.Kills });
+                }
+            }
+            if (currentKillsByUnitName.Count == 0) return;
+
+            PlayerSaveData playerSaveData = LoadPlayerSaveData();
+            playerSaveData.UnitNameHistoricalKillStore = AddToUnitNameHistoricalKills(playerSaveData.UnitNameHistoricalKillStore, currentKillsByUnitName);
+            SavePlayerSaveData(playerSaveData);
+        }
         /// <summary>
         /// Saves the squads after a manual battle has been completed.
         /// </summary>
@@ -347,6 +430,7 @@ namespace Memori.SaveData
             saveData.SquadKillsStore = _squadIdKillCounter;
 
             saveData.HistoricalKillStore = AddToHistoricalKills(saveData.HistoricalKillStore, _squadIdKillCounter);
+            RecordUnitNameKills(_playerSquads, _squadIdKillCounter);
             if(saveData.townData == null) {
                 saveData.townData = new TownSaveData();
                 UnityEngine.Debug.Log($"Created new TownSaveData in SaveSquadsPostBattle");
@@ -469,8 +553,21 @@ namespace Memori.SaveData
         {
             PlayerSaveData loadedSaveData = ReadListFromJSON<PlayerSaveData>("playerSaveData.json");
             loadedSaveData ??= new PlayerSaveData();
-            
+            MigrateLegacyDepositedGoldToRenown(loadedSaveData);
+
             return loadedSaveData;
+        }
+
+        // One-time migration: folds any pre-existing goldToDeposit/depositedGold balance into
+        // Renown. Idempotent - becomes a no-op once both legacy fields are zeroed.
+        private static void MigrateLegacyDepositedGoldToRenown(PlayerSaveData saveData)
+        {
+            if (saveData.depositedGold <= 0 && saveData.goldToDeposit <= 0) return;
+
+            saveData.renown += saveData.depositedGold + saveData.goldToDeposit;
+            saveData.depositedGold = 0;
+            saveData.goldToDeposit = 0;
+            SavePlayerSaveData(saveData);
         }
         public static List<int> GetHeroDifficultiesCompleted(int _heroID)
         {
@@ -723,64 +820,106 @@ namespace Memori.SaveData
             saveData.consumablesAcknowledged.Add((int)_consumable);
             SavePlayerSaveData(saveData);
         }
-        public static void RecordGameOver(bool _playerWon)
+        // Placeholder tuning values - adjust to taste.
+        private const int RENOWN_PER_CHAPTER = 1;
+        private const int RENOWN_PER_ACT_COMPLETED = 50;
+        private const float RENOWN_DIFFICULTY_MULTIPLIER_PER_LEVEL = 0.25f; // e.g. difficulty 3 (Knight) => x1.5
+
+        private static RenownAward ComputeRenownReward(RunStats runStats, int bookNumber, TT_Difficulty difficulty)
+        {
+            int chapterRenown = runStats.chaptersCompleted * RENOWN_PER_CHAPTER;
+            int actRenown = bookNumber * RENOWN_PER_ACT_COMPLETED;
+            // TT_Difficulty starts at 1 (Peasant), so offset by 1 to give the lowest difficulty x1.
+            float difficultyMultiplier = 1f + ((int)difficulty - 1) * RENOWN_DIFFICULTY_MULTIPLIER_PER_LEVEL;
+            int total = Mathf.RoundToInt((chapterRenown + actRenown) * difficultyMultiplier);
+
+            return new RenownAward
+            {
+                chaptersCompleted = runStats.chaptersCompleted,
+                chapterRenown = chapterRenown,
+                actsCompleted = bookNumber,
+                actRenown = actRenown,
+                difficulty = difficulty,
+                difficultyMultiplier = difficultyMultiplier,
+                total = total
+            };
+        }
+
+        public static RenownAward RecordGameOver(bool _playerWon)
         {
             UnityEngine.Debug.Log($"Recording game over, player won: {_playerWon}");
-            if(!_playerWon) return;
 
+            CampaignSaveData campaignSaveData = CampaignManager.Instance.CampaignSaveManager.SaveData;
             PlayerSaveData saveData = LoadPlayerSaveData();
-            saveData.gameCompletions++;
-            
-            int currentHeroID = CampaignManager.Instance.CampaignSaveManager.SaveData.heroID;
-            int newDifficulty = (int)CampaignManager.Instance.CampaignSaveManager.SaveData.difficultyLevel;
 
-            //update max difficulty unlocked if needed
-            if(newDifficulty > saveData.MaxDifficultyOverall) {
-                saveData.MaxDifficultyOverall = newDifficulty;
-            }
+            // bookNumber is the act currently in progress. On a win it was actually finished, but on a
+            // loss it wasn't - don't award renown for the act the player died in.
+            int actsCompleted = _playerWon ? campaignSaveData.bookNumber : Mathf.Max(campaignSaveData.bookNumber - 1, 0);
+            RenownAward renownAward = ComputeRenownReward(campaignSaveData.RunStats, actsCompleted, campaignSaveData.difficultyLevel);
+            saveData.renown += renownAward.total;
 
-            bool found = false;
-            for (int i = 0; i < saveData.HeroDifficultiesCompleted.Count; i++)
+            if (saveData.renown >= 100)
+                SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_A_SNACK_FOR_LATER);
+
+            if (_playerWon)
             {
-                //hero has an entry
-                if (saveData.HeroDifficultiesCompleted[i].HeroID == currentHeroID)
+                saveData.gameCompletions++;
+
+                int currentHeroID = campaignSaveData.heroID;
+                int newDifficulty = (int)campaignSaveData.difficultyLevel;
+
+                //update max difficulty unlocked if needed
+                if(newDifficulty > saveData.MaxDifficultyOverall) {
+                    saveData.MaxDifficultyOverall = newDifficulty;
+                }
+
+                bool found = false;
+                for (int i = 0; i < saveData.HeroDifficultiesCompleted.Count; i++)
                 {
-                    // Only update if the new difficulty was not already recorded
-                    if (!saveData.HeroDifficultiesCompleted[i].DifficultiesCompleted.Contains(newDifficulty))
+                    //hero has an entry
+                    if (saveData.HeroDifficultiesCompleted[i].HeroID == currentHeroID)
                     {
-                        saveData.HeroDifficultiesCompleted[i].DifficultiesCompleted.Add(newDifficulty);
+                        // Only update if the new difficulty was not already recorded
+                        if (!saveData.HeroDifficultiesCompleted[i].DifficultiesCompleted.Contains(newDifficulty))
+                        {
+                            saveData.HeroDifficultiesCompleted[i].DifficultiesCompleted.Add(newDifficulty);
+                        }
+                        found = true;
+                        break;
                     }
-                    found = true;
-                    break;
                 }
-            }
 
-            // Only add if no existing entry was found
-            if (!found)
-            {
-                saveData.HeroDifficultiesCompleted.Add(new HeroDifficultiesCompleted()
+                // Only add if no existing entry was found
+                if (!found)
                 {
-                    HeroID = currentHeroID,
-                    DifficultiesCompleted = new List<int>() { newDifficulty }
-                });
-            }
-
-            bool heroLastDiffFound = false;
-            for (int i = 0; i < saveData.HeroLastDifficulties.Count; i++)
-            {
-                if (saveData.HeroLastDifficulties[i].HeroID == currentHeroID)
-                {
-                    saveData.HeroLastDifficulties[i] = new HeroLastDifficulty { HeroID = currentHeroID, LastDifficulty = (TT_Difficulty)newDifficulty };
-                    heroLastDiffFound = true;
-                    break;
+                    saveData.HeroDifficultiesCompleted.Add(new HeroDifficultiesCompleted()
+                    {
+                        HeroID = currentHeroID,
+                        DifficultiesCompleted = new List<int>() { newDifficulty }
+                    });
                 }
-            }
-            if (!heroLastDiffFound)
-                saveData.HeroLastDifficulties.Add(new HeroLastDifficulty { HeroID = currentHeroID, LastDifficulty = (TT_Difficulty)newDifficulty });
 
-            saveData.goldToDeposit += CampaignManager.Instance.CampaignSaveManager.SaveData.goldAmount;
+                bool heroLastDiffFound = false;
+                for (int i = 0; i < saveData.HeroLastDifficulties.Count; i++)
+                {
+                    if (saveData.HeroLastDifficulties[i].HeroID == currentHeroID)
+                    {
+                        saveData.HeroLastDifficulties[i] = new HeroLastDifficulty { HeroID = currentHeroID, LastDifficulty = (TT_Difficulty)newDifficulty };
+                        heroLastDiffFound = true;
+                        break;
+                    }
+                }
+                if (!heroLastDiffFound)
+                    saveData.HeroLastDifficulties.Add(new HeroLastDifficulty { HeroID = currentHeroID, LastDifficulty = (TT_Difficulty)newDifficulty });
+            }
+
+            // --- Legacy deposited-gold sweep, disabled - kept in case this system is restored ---
+            // saveData.goldToDeposit += campaignSaveData.goldAmount;
+            // SavePlayerSaveData(saveData);
+            // DepositGold();
+
             SavePlayerSaveData(saveData);
-            DepositGold();
+            return renownAward;
         }
         public static bool IsUnlockConditionUnlocked(UnlockCondition _unlockCondition, int heroID)
         {
@@ -801,27 +940,38 @@ namespace Memori.SaveData
             int heroID = CampaignSaveExists() ? Load().heroID : HeroData.EdricValeward.HeroID;
             return await TabletopTavernData.Instance.LoadHeroPrefabAsync(heroID);
         }
-        public static void DepositGold()
+        // Legacy deposited-gold system, disabled in favor of Renown. Kept commented out in case
+        // this system is restored.
+        // public static void DepositGold()
+        // {
+        //     PlayerSaveData playerSaveData = LoadPlayerSaveData();
+        //     // UnityEngine.Debug.Log($"Depositing gold: {playerSaveData.goldToDeposit}");
+        //     playerSaveData.depositedGold += playerSaveData.goldToDeposit;
+        //     //cap at 500
+        // #if DEMO
+        //             if(playerSaveData.depositedGold > TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD) {
+        //                 playerSaveData.depositedGold = TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD;
+        //             }
+        // #endif
+        //     playerSaveData.goldToDeposit = 0;
+        //
+        //     if(playerSaveData.depositedGold >= 100) {
+        //         SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_A_SNACK_FOR_LATER);
+        //     }
+        //     SavePlayerSaveData(playerSaveData);
+        // }
+        // public static int GetDepositedGold()
+        // {
+        //     return LoadPlayerSaveData().depositedGold;
+        // }
+        public static int GetRenown()
         {
-            PlayerSaveData playerSaveData = LoadPlayerSaveData();
-            // UnityEngine.Debug.Log($"Depositing gold: {playerSaveData.goldToDeposit}");
-            playerSaveData.depositedGold += playerSaveData.goldToDeposit;
-            //cap at 500
-// #if DEMO
-//             if(playerSaveData.depositedGold > TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD) {
-//                 playerSaveData.depositedGold = TabletopTavernConstants.MAX_DEMO_DEPOSITED_GOLD;
-//             }
-// #endif
-            playerSaveData.goldToDeposit = 0;
-
-            if(playerSaveData.depositedGold >= 100) {
-                SteamStatic.UnlockAchievement(SteamData.ACHIEVEMENT_A_SNACK_FOR_LATER);
-            }
-            SavePlayerSaveData(playerSaveData);
+            return LoadPlayerSaveData().renown;
         }
-        public static int GetDepositedGold()
+        public static int GetUnitNameHistoricalKillCount(UnitName _unitName)
         {
-            return LoadPlayerSaveData().depositedGold;
+            PlayerSaveData saveData = LoadPlayerSaveData();
+            return saveData.UnitNameHistoricalKillStore.Find(x => x.UnitName == _unitName).Kills;
         }
         public static void UnlockMetaprogressionNode(MetaprogressionModel _node)
         {

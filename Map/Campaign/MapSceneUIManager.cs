@@ -8,7 +8,10 @@ using TJ.Shop;
 using TJ.Treasure;
 using TJ.Games;
 using TJ.Campfire;
+using TJ.Prestige;
 using Memori.Audio;
+using System;
+using System.Collections.Generic;
 
 namespace TJ.Map
 {
@@ -23,6 +26,7 @@ namespace TJ.Map
         [SerializeField] private TreasurePanel treasurePanel;
         [SerializeField] private GamesPanel tavernPanel;
         [SerializeField] private CampfirePanel campfirePanel;
+        [SerializeField] private PrestigeTraitPanel prestigeTraitPanel;
 
         [Header("Other Panels")]
         [SerializeField] private HUDPanel hudPanel;
@@ -57,6 +61,7 @@ namespace TJ.Map
         private int layerNodeSelected = -1;
         public int LayerNodeSelected => layerNodeSelected;
         private int activeLayer = 0;
+        private bool isDrainingPrestigeChoices = false;
 
         public void SetUp(MapSceneManager _mapSceneManager)
         {
@@ -74,12 +79,46 @@ namespace TJ.Map
             treasurePanel.SetUp(campaignSaveManager, this);
             tavernPanel.SetUp(campaignSaveManager, this);
             campfirePanel.SetUp(campaignSaveManager, this);
+            prestigeTraitPanel.SetUp(campaignSaveManager, this);
             armyJuiceManager.SetUp(campaignSaveManager, this);
 
             legendCanvasGroup.FadeInAsync();
+
+            // Safety net: resolve any prestige trait choice left pending from a previous session.
+            TryDrainPendingPrestigeChoices();
+        }
+
+        // Checks for a unit sitting at max prestige with no trait chosen yet, and shows the picker
+        // for it (recursively, one at a time) before invoking onDrained. No-ops immediately if
+        // nothing is pending. See the prestige trait picker call sites for how this is used.
+        public void TryDrainPendingPrestigeChoices(Action onDrained = null)
+        {
+            if (!campaignSaveManager.TryGetNextPendingPrestigeTraitChoice(out Memori.SaveData.SquadToLoad pending))
+            {
+                if (isDrainingPrestigeChoices)
+                {
+                    isDrainingPrestigeChoices = false;
+                    mapSceneManager.SetMapInput(true);
+                }
+                onDrained?.Invoke();
+                return;
+            }
+
+            if (!isDrainingPrestigeChoices)
+            {
+                isDrainingPrestigeChoices = true;
+                mapSceneManager.SetMapInput(false);
+            }
+
+            List<UnitAttribute> options = campaignSaveManager.GetPrestigeTraitOptions(pending.UnitName);
+            prestigeTraitPanel.LoadPrestigeTraitPanel(pending, options, () => TryDrainPendingPrestigeChoices(onDrained));
         }
 
         public void LoadPanelFromNode(MapNode _node)
+        {
+            TryDrainPendingPrestigeChoices(() => LoadPanelFromNodeInternal(_node));
+        }
+        private void LoadPanelFromNodeInternal(MapNode _node)
         {
             Debug.Log($"[Map] LoadPanelFromNode — index {_node.Value.index} type {_node.Value.type} layer {_node.Value.layer}");
             legendCanvasGroup.FadeOutAsync();

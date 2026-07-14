@@ -53,7 +53,7 @@ namespace TJ
                 UnitType unitType = TabletopTavernData.Instance.GetUnitTypeFromUnitName(_unitName);
                 if(TabletopTavernConstants.UsesMeleePrestige(_unitName) || (unitType != UnitType.Ranged && unitType != UnitType.Artillery))
                 {
-                    if(UnitStat.MeleeAttack == unitStat || UnitStat.MeleeDefense == unitStat)
+                    if(UnitStat.MeleeAttack == unitStat || UnitStat.MeleeDefense == unitStat || UnitStat.Leadership == unitStat)
                     {
                         static string PrestigeRomanNumeral(int _prestige) {
                             return _prestige switch {
@@ -81,6 +81,20 @@ namespace TJ
                         }
                         totalBonus += TabletopTavernConstants.PRESTIGE_BONUS * _prestige;
                         description += $"\n<color {ColorData.Green}>{PrestigeLocalised} {PrestigeRomanNumeral(_prestige)}: +{TabletopTavernConstants.PRESTIGE_BONUS * _prestige}</color>";
+                    }
+                    else if(UnitStat.Ammunition == unitStat)
+                    {
+                        static string PrestigeRomanNumeral(int _prestige) {
+                            return _prestige switch {
+                                0 => "I",
+                                1 => "II",
+                                2 => "III",
+                                _ => "",
+                            };
+                        }
+                        int ammoBonusPerLevel = unitType == UnitType.Artillery ? TabletopTavernConstants.PRESTIGE_AMMO_BONUS_ARTILLERY : TabletopTavernConstants.PRESTIGE_AMMO_BONUS_RANGED;
+                        totalBonus += ammoBonusPerLevel * _prestige;
+                        description += $"\n<color {ColorData.Green}>{PrestigeLocalised} {PrestigeRomanNumeral(_prestige)}: +{ammoBonusPerLevel * _prestige}</color>";
                     }
                 }
             }

@@ -223,14 +223,14 @@ namespace TJ
                     }
                     break;
                 case 14: //Bertha Barrelstorm
-                    //Blasting Barrels: Artillery units gain +10 [Accuracy] and +4 [Missile Strength].
+                    //Blasting Barrels: Artillery units gain +10 [Accuracy] and +10 [Range].
                     if (_unitStat == UnitStat.Accuracy && UnitType.Artillery == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
                     {
                         unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle27"), 10));
                     }
-                    if (_unitStat == UnitStat.MissileStrength && UnitType.Artillery == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
+                    if (_unitStat == UnitStat.Range && UnitType.Artillery == TabletopTavernData.Instance.GetUnitTypeFromUnitName(_requestingUnit))
                     {
-                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle27"), 4));
+                        unitStatBonuses.Add(new UnitStatBonus(_unitStat, LocalizationManager.Instance.GetText("heroBonusTitle27"), 10));
                     }
                     //Supply Lines: All ranged units gain 50% increased ammunition capacity.
                     if (_unitStat == UnitStat.Ammunition)

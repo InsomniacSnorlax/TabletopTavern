@@ -11,7 +11,68 @@ namespace TJ
             public int unitTier;
             public int unitsToGet;
         }
-        public static SquadToLoad[] GenerateTownGarrison(TownSize _townSize, int _seed, List<UnitTier> unitsPool, bool difficultyImperator, int _bookNumber)
+
+        private struct EnemyPrestigeProfile { public float chancePerSquad; public int maxPrestigedSquads; public float prestigeTwoChance; }
+
+        // Duke+ (DifficultyMod 10) — base rates, indexed by Act (bookNumber - 1)
+        private static readonly EnemyPrestigeProfile[] ENEMY_PRESTIGE_BASE = {
+            new() { chancePerSquad = 0.10f, maxPrestigedSquads = 1, prestigeTwoChance = 0.00f }, // Act 1
+            new() { chancePerSquad = 0.20f, maxPrestigedSquads = 2, prestigeTwoChance = 0.15f }, // Act 2
+            new() { chancePerSquad = 0.25f, maxPrestigedSquads = 3, prestigeTwoChance = 0.25f }, // Act 3
+        };
+
+        // Emperor+ (DifficultyMod 14) — enhanced rates, replaces the base table when active
+        private static readonly EnemyPrestigeProfile[] ENEMY_PRESTIGE_ENHANCED = {
+            new() { chancePerSquad = 0.20f, maxPrestigedSquads = 2, prestigeTwoChance = 0.00f }, // Act 1
+            new() { chancePerSquad = 0.35f, maxPrestigedSquads = 3, prestigeTwoChance = 0.20f }, // Act 2
+            new() { chancePerSquad = 0.45f, maxPrestigedSquads = 4, prestigeTwoChance = 0.30f }, // Act 3
+        };
+
+        private const int ENEMY_PRESTIGE_SEED_OFFSET = 104729; // decorrelate from the deck-shuffle RNG in CreateArmyFromUnitsByTier
+
+        // DifficultyMod 10 / DifficultyMod 14: gives enemy squads a chance to spawn already prestiged, scaling with Act and difficulty
+        private static SquadToLoad[] ApplyEnemyPrestige(SquadToLoad[] _squads, int _actNumber, int _seed, bool _enhanced)
+        {
+            if (_squads.Length == 0) return _squads;
+
+            EnemyPrestigeProfile[] profiles = _enhanced ? ENEMY_PRESTIGE_ENHANCED : ENEMY_PRESTIGE_BASE;
+            int actIndex = System.Math.Clamp(_actNumber - 1, 0, profiles.Length - 1);
+            EnemyPrestigeProfile profile = profiles[actIndex];
+
+            System.Random random = new(_seed + ENEMY_PRESTIGE_SEED_OFFSET);
+
+            // Shuffle selection order so the cap doesn't systematically favor whichever tier CreateArmyFromUnitsByTier appended first
+            List<int> order = new();
+            for (int i = 0; i < _squads.Length; i++) order.Add(i);
+            for (int i = order.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(0, i + 1);
+                (order[j], order[i]) = (order[i], order[j]);
+            }
+
+            int prestiged = 0;
+            foreach (int index in order)
+            {
+                if (prestiged >= profile.maxPrestigedSquads) break;
+                if (_squads[index].isEmptySquad) continue;
+                if (random.NextDouble() >= profile.chancePerSquad) continue;
+
+                int level = random.NextDouble() < profile.prestigeTwoChance ? 2 : 1;
+                _squads[index].UnitPrestige = level;
+
+                if (level == 2)
+                {
+                    SquadStats squadStats = TabletopTavernData.Instance.GetSquadStats(_squads[index].UnitName);
+                    List<UnitAttribute> eligible = TabletopTavernConstants.GetEligiblePrestigeTraits(squadStats);
+                    if (eligible.Count > 0)
+                        _squads[index].PrestigeTrait = eligible[random.Next(eligible.Count)];
+                }
+                prestiged++;
+            }
+            return _squads;
+        }
+
+        public static SquadToLoad[] GenerateTownGarrison(TownSize _townSize, int _seed, List<UnitTier> unitsPool, bool difficultyImperator, int _bookNumber, bool enemyPrestigeEligible, bool enemyPrestigeEnhanced)
         {
             // Garrisons don't field cavalry or outriders — filter them out before picking units
             unitsPool = unitsPool.FindAll(u =>
@@ -51,7 +112,9 @@ namespace TJ
                 _ => new()
             };
 
-            return CreateArmyFromUnitsByTier(unitsToGetByTier, unitsPool, _seed);
+            SquadToLoad[] garrison = CreateArmyFromUnitsByTier(unitsToGetByTier, unitsPool, _seed);
+            if (enemyPrestigeEligible) garrison = ApplyEnemyPrestige(garrison, _bookNumber, _seed, enemyPrestigeEnhanced);
+            return garrison;
         }
         private static SquadToLoad[] CreateArmyFromUnitsByTier(List<UnitsToGetByTier> _unitsToGetByTier, List<UnitTier> _unitsPool, int _seed)
         {
@@ -92,7 +155,7 @@ namespace TJ
             return squads.ToArray();
         }
         // NOTE: CustomBattleGeneratorEditor mirrors this switch — update both when changing tier tables.
-        public static SquadToLoad[] GenerateEnemyArmy(int _boardNumber, int _battlesFought, int _seed, bool _finalBattle, List<UnitTier> unitsPool, bool knightDifficulty)
+        public static SquadToLoad[] GenerateEnemyArmy(int _boardNumber, int _battlesFought, int _seed, bool _finalBattle, List<UnitTier> unitsPool, bool knightDifficulty, bool enemyPrestigeEligible, bool enemyPrestigeEnhanced)
         {
             List<UnitsToGetByTier> unitsToGetByTier = new();
             // Debug.Log($"race strength tier: {_raceStrengthTier} for act {_actNumber}, battles fought {_battlesFought}, final battle {_finalBattle}");
@@ -107,9 +170,9 @@ namespace TJ
                             if(knightDifficulty)
                             {
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 1 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
                             }
                             else
                             {
@@ -205,14 +268,14 @@ namespace TJ
                         {
                             if(knightDifficulty)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
                             }
                             else
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 4, unitsToGet = 1 });
@@ -222,32 +285,35 @@ namespace TJ
                         {
                             if (_battlesFought < 3)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 3 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 3 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 3 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 2 });
                             }
                             else if (_battlesFought < 5)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 4 });
                             }
                             else if (_battlesFought < 7)
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 1 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 1, unitsToGet = 2 });
                                 unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 6 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 5 });
                             }
                             else
                             {
-                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 9 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 2, unitsToGet = 2 });
+                                unitsToGetByTier.Add(new UnitsToGetByTier { unitTier = 3, unitsToGet = 7 });
                             }
                         }
                     break;
                 }
             }
 
-            return CreateArmyFromUnitsByTier(unitsToGetByTier, unitsPool, _seed);
+            SquadToLoad[] army = CreateArmyFromUnitsByTier(unitsToGetByTier, unitsPool, _seed);
+            if (enemyPrestigeEligible) army = ApplyEnemyPrestige(army, _boardNumber, _seed, enemyPrestigeEnhanced);
+            return army;
         }
 
         public static SquadToLoad[] ReplaceMonsterUnits(SquadToLoad[] _squadsToLoad, int _seed, List<UnitTier> unitsPool)
