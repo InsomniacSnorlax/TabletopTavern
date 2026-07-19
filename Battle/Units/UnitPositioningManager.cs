@@ -402,6 +402,17 @@ public class UnitPositioningManager : MonoBehaviour
 
 
         entityCommandBuffer.SetComponentEnabled<CeaseFireTag>(squadReceivingAttackOrder.SelfEntity, false);
+
+        SquadOverridesComponent squadOverrides = entityManager.GetComponentData<SquadOverridesComponent>(squadReceivingAttackOrder.SelfEntity);
+        if (squadOverrides.CeaseFire)
+        {
+            squadOverrides.CeaseFire = false;
+            entityCommandBuffer.SetComponent(squadReceivingAttackOrder.SelfEntity, squadOverrides);
+
+            if (!_enemySquad)
+                BattleManager.Instance.UIManager.RefreshSelectedSquadButtonStates();
+        }
+
         // Debug.Log($"Squad {squad.SquadId} is rotating to face target squad {targetSquadEntity.SquadId}");
         if (ownEcb) entityCommandBuffer.Playback(entityManager);
     }

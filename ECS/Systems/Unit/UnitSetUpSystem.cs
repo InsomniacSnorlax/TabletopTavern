@@ -20,7 +20,11 @@ partial struct UnitSetUpSystem : ISystem
         _random = new Unity.Mathematics.Random(1);
     }
 
-    [BurstCompile]
+    // Not Burst-compiled: the hero-bonus block below calls into HeroBonusManager, which uses
+    // managed collections and LocalizationManager, and the gear block calls GearData.GetGear()
+    // (a Dictionary lookup, for mod-overridden GearModifierValue). This system runs once per
+    // soldier entity at spawn time (gated by UnitStatsSetUpTag, removed after processing) - not
+    // a per-frame hot path, so the cost of leaving this unBursted is negligible.
     public void OnUpdate(ref SystemState state)
     {
         EntityManager entityManager = state.EntityManager;
@@ -40,6 +44,16 @@ partial struct UnitSetUpSystem : ISystem
         >().WithEntityAccess()) {
             
             SquadStats squadStats = statsBlob.GetStats(unit.ValueRO.unitName);
+
+            // Prestige-granted trait must be merged before any gear/attribute check below runs,
+            // since gear like Glaives keys its WeaponStrength bonus off squadStats.SquadAttributes.
+            if (entityManager.HasComponent<UnitPrestigeSetUpTag>(entity))
+            {
+                UnitAttribute grantedTrait = entityManager.GetComponentData<UnitPrestigeSetUpTag>(entity).GrantedTrait;
+                if (grantedTrait != UnitAttribute.None)
+                    TabletopTavernConstants.SetAttribute(ref squadStats.SquadAttributes, grantedTrait);
+            }
+
             UnitAttributeSerialized unitAttributes = new();
 
             unitAttributes.ArmorPiercing = squadStats.SquadAttributes.ArmorPiercing;
@@ -89,114 +103,33 @@ partial struct UnitSetUpSystem : ISystem
                 return false;
             }
 
-            //hero stuff
+            //hero stuff - bonus magnitudes and conditions now come from HeroBonusRuleData (plus
+            // any mod overrides, applied by HeroBonusManager in the main assembly and shared here
+            // via HeroBonusRuleEvaluator) instead of a hardcoded switch, so mods can change them
+            // and the values can't drift from what the UI shows. HeroBonusManager itself can't be
+            // referenced from this assembly (TabletopTavern.Core.Systems doesn't reference the
+            // main TabletopTavern.Core assembly), hence the separate evaluator. This system covers
+            // exactly the stats it's responsible for: Leadership is applied in SquadManager,
+            // ChargeBonus in SquadChargeBonusApplicationSystem, Ammunition in EntityWatcher. The
+            // Sakura Dynasty mono-race army gate (OnlySakuraUnits) is unchanged - not yet
+            // generalized to other races.
             if(campaignSaveDataHolder.ActiveHeroID != -1 && team == Team.Player)
             {
-                switch(campaignSaveDataHolder.ActiveHeroID)
+                float SumHeroBonus(UnitStat stat, float currentValue)
                 {
-                    case 2:
-                        //Dúnedain Captain: Deepwood Rangers gain +10 [Accuracy] and +4 [Missile Strength]
-                        if(unit.ValueRO.unitName == UnitName.DeepwoodRangers) {
-                            accuracy += 10;
-                            missileStrength += 4;
-                        }
-                        //The Everyman: [Common] units gain +10 [Leadership] and +4 [Melee Defense]
-                        if((int)squadStats.RarityTier+1 == 1) {
-                            meleeDefense += 4;
-                        }
-                        break;
-                    case 3:
-                        //go forth my hordes: Goblins gain +6 [Melee Defense] and +6 [Melee Attack]
-                        if(TabletopTavernConstants.IsAGoblinUnit(unit.ValueRO.unitName)) {
-                            meleeDefense += 6;
-                            meleeAttack += 6;
-                        }
-                        break;
-                    case 4:
-                        //A taste for blood: Orc Ravagers cause [Terror] and gain +10 [Melee Attack] and +4 [Weapon Strength]
-                        if(unit.ValueRO.unitName == UnitName.OrcRavagers) {
-                            meleeAttack += 10;
-                            weaponStrength += 4;
-                        }
-                        break;
-                    case 5:
-                        //Ironskin: Melee Infantry gain +4 [Melee Defense], Armored Units gain +10 [Armor]
-                        if(UnitType.Melee == squadStats.unitType) {
-                            meleeDefense += 4;
-                            armor += 10;
-                        }
-                        break;
-                    case 6:
-                        //With me sisters!: Shieldmaiden units gain +10 [Leadership] and +4 [Melee Defense]
-                        if(unit.ValueRO.unitName == UnitName.Shieldmaidens) {
-                            meleeDefense += 4;
-                        }
-                        break;
-                    case 7:
-                        //Supernova of the West: All units gain +5 [Charge Bonus] and +4 [Melee Attack]
-                        meleeAttack += 4;
-                        break;
-                    case 8:
-                        //The Forest Walks: Forest Spirits and Treants gain +5 [Melee Defense] and +4 [Weapon Strength]
-                        if(unit.ValueRO.unitName == UnitName.ForestSpirits || unit.ValueRO.unitName == UnitName.Treants) {
-                            meleeDefense += 5;
-                            weaponStrength += 4;
-                        }
-                        break;
-                    case 10:
-                        // Bloodsworn Prince: Bloodsworn and Bloodsworn Knights gain +15 [Leadership] and +4 [Melee Attack]
-                        if(unit.ValueRO.unitName == UnitName.Bloodsworn || unit.ValueRO.unitName == UnitName.BloodswornKnights) {
-                            meleeAttack += 8;
-                        }
-                        break;
-                    case 11:
-                        //Nagoya Steel: All units gain +4 [Weapon Strength]
-                        weaponStrength += 4;
-                        //Bushido Discipline: If army contains only Sakura Dynasty units, all units gain +20 [Leadership] and +4 [Melee Attack]
-                        if (campaignSaveDataHolder.OnlySakuraUnits)
-                            meleeAttack += 4;
-                        break;
-                    case 12:
-                        //Innovator's Legacy: EmperorsArquebusiers Gain +10 [Accuracy] and +4 [Missile Strength]
-                        if(unit.ValueRO.unitName == UnitName.EmperorsArquebusiers) {
-                            accuracy += 10;
-                            missileStrength += 4;
-                        }
-                        //Bushido Discipline: If army contains only Sakura Dynasty units, all units gain +20 [Leadership] and +4 [Melee Attack]
-                        if (campaignSaveDataHolder.OnlySakuraUnits)
-                            meleeAttack += 4;
-                        break;
-                    case 13:
-                        // Ancestral Hatred: All units gain +10 [Melee Attack] and +4 [Weapon Strength] when fignting the Gruntkin
-                        if(campaignSaveDataHolder.EnemyRace == Race.Gruntkin) {
-                            meleeAttack += 10;
-                            weaponStrength += 4;
-                        }
-                        break;
-                    case 14:
-                         //Blasting Barrels: Artillery units gain +10 [Accuracy] and +10 [Range]. 
-                        if(unit.ValueRO.unitType == UnitType.Artillery) {
-                            accuracy += 10;
-                            range += 10;
-                        }
-                        break;
-                    case 15:
-                    //Kobold Kammandos: Kobold units gain +10 [Leadership] and +4 [Melee Attack]
-                        if(unit.ValueRO.unitName == UnitName.KoboldBrawlers || unit.ValueRO.unitName == UnitName.ScalebowKobolds) {
-                            meleeAttack += 4;
-                        }
-                        break;
-                    case 16:
-                         //Beastmaster: Large units gain +10 [Leadership] and +4 [Melee Defense], // Sacred Guard: StegoplateGuard gain +15 [Armor] and +4 [Weapon Strength]
-                        if(squadStats.unitSize == UnitSize.Monstrous || squadStats.unitSize == UnitSize.Cavalry || squadStats.unitSize == UnitSize.SingleUnit) {
-                            meleeDefense += 4;
-                        }
-                        if(unit.ValueRO.unitName == UnitName.StegoplateGuard) {
-                            armor += 15;
-                            weaponStrength += 4;
-                        }
-                        break;
+                    float total = HeroBonusRuleEvaluator.SumHeroStatBonus(stat, unit.ValueRO.unitName, campaignSaveDataHolder.ActiveHeroID, squadStats, campaignSaveDataHolder.EnemyRace, currentValue);
+                    if (campaignSaveDataHolder.OnlySakuraUnits)
+                        total += HeroBonusRuleEvaluator.SumFactionStatBonus(stat, campaignSaveDataHolder.PlayerHeroRace, currentValue);
+                    return total;
                 }
+
+                meleeAttack += (int)SumHeroBonus(UnitStat.MeleeAttack, meleeAttack);
+                meleeDefense += (int)SumHeroBonus(UnitStat.MeleeDefense, meleeDefense);
+                accuracy += SumHeroBonus(UnitStat.Accuracy, accuracy);
+                weaponStrength += (int)SumHeroBonus(UnitStat.WeaponStrength, weaponStrength);
+                armor += SumHeroBonus(UnitStat.Armor, armor);
+                range += SumHeroBonus(UnitStat.Range, range);
+                missileStrength += (int)SumHeroBonus(UnitStat.MissileStrength, missileStrength);
             }
 
             if(!campaignSaveDataHolder.IsCustomBattle && team == Team.Player)
@@ -209,35 +142,36 @@ partial struct UnitSetUpSystem : ISystem
                     squadStats.SquadAttributes.ArmorPiercing = true; 
 
                 if(Contains(GearID.ArmingSwords) && squadStats.unitType == UnitType.Melee)
-                    meleeAttack += GearData.GEAR_ARMINGSWORDS_MODIFIER;
+                    meleeAttack += GearData.GetGear(GearID.ArmingSwords).GearModifierValue;
                 if(Contains(GearID.BucklerShields) && (squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields))
-                    meleeDefense += GearData.GEAR_BUCKLERSHIELDS_MODIFIER;
+                    meleeDefense += GearData.GetGear(GearID.BucklerShields).GearModifierValue;
                 if(Contains(GearID.TowerShields) && (squadStats.SquadAttributes.StandardShields || squadStats.SquadAttributes.HeavyShields))
-                    shieldBlockChance = (float)GearData.GEAR_TOWERSHIELDS_MODIFIER/100f;
+                    shieldBlockChance = (float)GearData.GetGear(GearID.TowerShields).GearModifierValue/100f;
                 if(Contains(GearID.Longbows) && squadStats.unitType == UnitType.Ranged)
-                    range += GearData.GEAR_LONGBOWS_MODIFIER;
+                    range += GearData.GetGear(GearID.Longbows).GearModifierValue;
                 if(Contains(GearID.Glaives) && squadStats.SquadAttributes.AntiLarge)
-                    weaponStrength += GearData.GEAR_GLAIVES_MODIFIER;
+                    weaponStrength += GearData.GetGear(GearID.Glaives).GearModifierValue;
                 if(Contains(GearID.TexanBBQ) && squadStats.unitType == UnitType.Melee)
-                    maxHitPoints += GearData.GEAR_TEXANBBQ_MODIFIER;
+                    weaponStrength += GearData.GetGear(GearID.TexanBBQ).GearModifierValue;
                 if(Contains(GearID.BallisticCharts))
-                    accuracy += GearData.GEAR_BALLISTICCHARTS_MODIFIER;
+                    accuracy += GearData.GetGear(GearID.BallisticCharts).GearModifierValue;
                 if(Contains(GearID.ConscriptionOrders) && squadStats.RarityTier == UnitRarity.Common) {
-                    meleeAttack += GearData.GEAR_CONSCRIPTIONORDERS_MODIFIER;
-                    meleeDefense += GearData.GEAR_CONSCRIPTIONORDERS_MODIFIER;
+                    int conscriptionOrdersModifier = GearData.GetGear(GearID.ConscriptionOrders).GearModifierValue;
+                    meleeAttack += conscriptionOrdersModifier;
+                    meleeDefense += conscriptionOrdersModifier;
                 }
                 if(Contains(GearID.JoustingLances) && squadStats.unitSize == UnitSize.Cavalry)
                 {
-                    weaponStrength += GearData.GEAR_JOUSTINGLANCES_MODIFIER;
+                    weaponStrength += GearData.GetGear(GearID.JoustingLances).GearModifierValue;
                 }
                 if(Contains(GearID.GnomishArmorers) && squadStats.RarityTier == UnitRarity.Rare)
-                    meleeDefense += GearData.GEAR_GNOMISHARMORERS_MODIFIER;
+                    meleeDefense += GearData.GetGear(GearID.GnomishArmorers).GearModifierValue;
                 if(Contains(GearID.WellHonedAxes) && unitAttributes.ArmorPiercing) //must be after diamond tipped arrows
-                    meleeAttack += GearData.GEAR_WELLHONEDAXES_MODIFIER;
+                    meleeAttack += GearData.GetGear(GearID.WellHonedAxes).GearModifierValue;
                 if(Contains(GearID.RavensEye) && squadStats.RarityTier != UnitRarity.Common && squadStats.unitType == UnitType.Ranged)
-                    accuracy += GearData.GEAR_RAVENSEY_MODIFIER;
+                    accuracy += GearData.GetGear(GearID.RavensEye).GearModifierValue;
                 if(Contains(GearID.RingoftheElvenKing) && squadStats.unitType == UnitType.Ranged)
-                    missileStrength += GearData.GEAR_RINGOFTHEELVENKING_MODIFIER;
+                    missileStrength += GearData.GetGear(GearID.RingoftheElvenKing).GearModifierValue;
             } 
 
             entityCommandBuffer.AddComponent(entity, new EntityTeam {
@@ -255,13 +189,14 @@ partial struct UnitSetUpSystem : ISystem
                 entityCommandBuffer.AddComponent<RangedMeleeConverter>(entity);
                 entityCommandBuffer.AddComponent<RangedUnitTag>(entity);
                 bool isArtillery = squadStats.unitType == UnitType.Artillery;
+                bool requestingFireProjectile = entityManager.HasComponent<FlamingRangedAttackTag>(entity);
                 entityCommandBuffer.AddComponent(entity, new ShootAttack {
                     timer = 0,
                     timerMax = timerMax,
                     damageAmount = missileStrength,
                     Range = range * rangeMultiplier,
                     Accuracy = (int)(accuracy * accuracyMultiplier),
-                    ProjectileEntity = entitiesReferences.GetProjectileEntityForUnitName(unit.ValueRO.unitName),
+                    ProjectileEntity = entitiesReferences.GetProjectileEntityForUnitName(unit.ValueRO.unitName, requestingFireProjectile),
                     shootAnimationDelay = isArtillery ? 0.25f : 0.5f,
                 });
 
@@ -398,6 +333,9 @@ partial struct UnitSetUpSystem : ISystem
             }
             if(unitAttributes.AntiLarge) {
                 entityCommandBuffer.AddComponent<AntiLargeTag>(entity);
+            }
+            if(squadStats.SquadAttributes.BackStabbers) {
+                entityCommandBuffer.AddComponent<BackStabbersTag>(entity);
             }
             if (unitAttributes.Armored)
             {

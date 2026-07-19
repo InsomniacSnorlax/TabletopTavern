@@ -23,7 +23,7 @@ namespace TJ
         UnitStat unitStat;
         MemoriTooltipTrigger memoriTooltipTrigger;
         GearManager gearManager;
-        public void LoadUnitStatUI(UnitStatValue _unitStatValue, int _prestige, UnitName _unitName, bool applyGearBonuses)
+        public void LoadUnitStatUI(UnitStatValue _unitStatValue, int _prestige, UnitName _unitName, bool applyGearBonuses, UnitAttribute _prestigeTrait = UnitAttribute.None)
         {
             amount = _unitStatValue.Value;
             unitStat = _unitStatValue.unitStat;
@@ -102,7 +102,7 @@ namespace TJ
             if (gearManager != null && applyGearBonuses)
             {
                 //get gear bonuses
-                List<UnitStatBonus> unitBonues = gearManager.GetGearStatBonus(unitStat, _unitName);
+                List<UnitStatBonus> unitBonues = gearManager.GetGearStatBonus(unitStat, _unitName, _prestigeTrait);
                 foreach (UnitStatBonus unitBonus in unitBonues)
                 {
                     totalBonus += (int)unitBonus.Value;
@@ -144,6 +144,7 @@ namespace TJ
                     if(entityManager.HasComponent<BattlefieldBonusBufferElement>(squadEntity.SelfEntity))
                     {
                         DynamicBuffer<BattlefieldBonusBufferElement> battlefieldBonus = entityManager.GetBuffer<BattlefieldBonusBufferElement>(squadEntity.SelfEntity);
+                        float speedMultiplier = 1f;
                         foreach(BattlefieldBonusBufferElement bonus in battlefieldBonus)
                         {
                             if (bonus.Value.UnitStat == unitStat)
@@ -162,11 +163,11 @@ namespace TJ
                                     {
                                         continue;
                                     }
-                                    //speed bonuses are in percentage such as 0.25 the total bonus should be the amount * (1 - bonus.Value.Value)
-                                    totalBonus -= Mathf.RoundToInt(amount * (1f - bonus.Value.Value));
+                                    // speed bonuses are fractions of remaining speed (e.g. 0.5 = half) and compound multiplicatively,
+                                    // so stack them as a running multiplier instead of subtracting each one from the base amount
+                                    speedMultiplier *= bonus.Value.Value;
                                     string localisedBonusName = LocalizationManager.Instance.GetText(bonus.Value.BattlefieldBonusEnum.ToString());
-                                    description += $"\n<color {ColorData.Error}>{localisedBonusName}: {totalBonus} </color>";
-
+                                    description += $"\n<color {ColorData.Error}>{localisedBonusName}: -{Mathf.RoundToInt((1f - bonus.Value.Value) * 100f)}% </color>";
                                 }
                                 else if (bonus.Value.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog)
                                 {
@@ -201,6 +202,10 @@ namespace TJ
                                     }
                                 }
                             }
+                        }
+                        if (unitStat == UnitStat.Speed && speedMultiplier < 1f)
+                        {
+                            totalBonus += Mathf.RoundToInt(amount * speedMultiplier) - Mathf.RoundToInt(amount);
                         }
                     }
                     if((unitStat == UnitStat.MeleeAttack || unitStat == UnitStat.MeleeDefense) && entityManager.HasComponent<ShieldedStanceSquadComponent>(squadEntity.SelfEntity))

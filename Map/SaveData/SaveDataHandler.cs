@@ -18,6 +18,9 @@ namespace Memori.SaveData
         public int goldAmount;
         public List<int> nodePath;
         public List<GearID> Gear;
+        // Gear sold this run, excluded from future gear-pack/loot draws so a sold item can't
+        // immediately reappear. Cleared automatically once it would exhaust the draw pool.
+        public List<GearID> SoldGear = new();
         public List<ConsumableEnum> consumables = new ();
         public int heroID;
         public SquadToLoad[] playerArmy = new SquadToLoad[13];

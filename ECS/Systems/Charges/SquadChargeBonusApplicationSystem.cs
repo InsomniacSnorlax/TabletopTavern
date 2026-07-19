@@ -15,7 +15,9 @@ partial struct SquadChargeBonusApplicationSystem : ISystem
         state.RequireForUpdate<BattlePhase>();
         state.RequireForUpdate<SquadStatsData>();
     }
-    [BurstCompile]
+    // Not Burst-compiled: applying hero ChargeBonus rules calls into HeroBonusManager (managed
+    // collections, LocalizationManager). Runs once per charge-start event per squad (gated by
+    // ApplyChargeBonusTag, removed after processing) - not a per-frame hot path.
     public void OnUpdate(ref SystemState state)
     {
         EntityCommandBuffer entityCommandBuffer = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
@@ -48,8 +50,12 @@ partial struct SquadChargeBonusApplicationSystem : ISystem
 
             SquadStats squadStats = statsBlob.GetStats(squad.UnitName);
             int bonus = squadStats.ChargeBonus;
-            if(campaignSaveDataHolder.ActiveHeroID == 1 && squad.Team== Team.Player) {
-                bonus +=2;
+            if (squad.Team == Team.Player && campaignSaveDataHolder.ActiveHeroID != -1)
+            {
+                // Rule data lives in HeroBonusRuleData (Components assembly) - HeroBonusManager
+                // itself (main assembly) isn't visible from here. No FactionBonusRule targets
+                // ChargeBonus today, so unlike UnitSetUpSystem this doesn't need the Sakura check.
+                bonus += (int)HeroBonusRuleEvaluator.SumHeroStatBonus(UnitStat.ChargeBonus, squad.UnitName, campaignSaveDataHolder.ActiveHeroID, squadStats, campaignSaveDataHolder.EnemyRace, bonus);
             }
 
             //apply bonus

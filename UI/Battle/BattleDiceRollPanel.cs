@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 using Memori.Audio;
+using Memori.Localization;
+using Memori.SaveData;
 using Memori.Utilities;
 using TMPro;
 using TJ.Games;
@@ -24,11 +26,15 @@ namespace TJ
         [SerializeField] private Color _loseColor = Color.red;
         [SerializeField] private Color _dimColor  = Color.gray;
         [SerializeField] private Button _rerollButton;
+        [SerializeField] private Button _useFateshineElixirButton;
+        [SerializeField] private Button _useRewindButton;
 
         private void Awake()
         {
             _dieObject.SetActive(false);
             _startBattleDirectButton.gameObject.SetActive(false);
+            if (_useFateshineElixirButton != null) _useFateshineElixirButton.gameObject.SetActive(false);
+            if (_useRewindButton != null) _useRewindButton.gameObject.SetActive(false);
 #if !UNITY_EDITOR
             _rerollButton.gameObject.SetActive(false);
 #endif
@@ -38,7 +44,8 @@ namespace TJ
 
         public async Task<int> ShowAndRoll()
         {
-            if (SettingsManager.Instance.AutoRollInitiative.Value)
+            bool hasFateshineElixir = SaveDataHandler.Load().consumables.Contains(ConsumableEnum.FateshineElixir);
+            if (SettingsManager.Instance.AutoRollInitiative.Value && !hasFateshineElixir)
                 return await AutoRoll();
 
             StartBattleRequested = false;
@@ -53,14 +60,31 @@ namespace TJ
             if (_startBattleDirectButton != null) _startBattleDirectButton.gameObject.SetActive(false);
             _rollButton.gameObject.SetActive(true);
 
+            if (_useFateshineElixirButton != null) _useFateshineElixirButton.gameObject.SetActive(hasFateshineElixir);
+
+            bool useElixir = false;
             var rollTCS = new TaskCompletionSource<bool>();
             _rollButton.onClick.AddListener(() => rollTCS.TrySetResult(true));
+            if (_useFateshineElixirButton != null)
+                _useFateshineElixirButton.onClick.AddListener(() => { useElixir = true; rollTCS.TrySetResult(true); });
             await rollTCS.Task;
             _rollButton.onClick.RemoveAllListeners();
             _rollButton.gameObject.SetActive(false);
+            if (_useFateshineElixirButton != null)
+            {
+                _useFateshineElixirButton.onClick.RemoveAllListeners();
+                _useFateshineElixirButton.gameObject.SetActive(false);
+            }
             _dice.StopPrespin();
 
-            int result = Random.Range(1, 7);
+            int result = useElixir ? 6 : Random.Range(1, 7);
+            if (useElixir)
+            {
+                CampaignSaveData saveData = SaveDataHandler.Load();
+                saveData.consumables.Remove(ConsumableEnum.FateshineElixir);
+                SaveDataHandler.SaveCampaign(saveData);
+                IAudioRequester.Instance.PlaySFX(SFXData.Drink);
+            }
 
             bool reroll = true;
             while (reroll)
@@ -81,8 +105,21 @@ namespace TJ
 
                 _continueButton.gameObject.SetActive(true);
 
+                bool lostRoll = result <= 3;
+                bool hasRewind = lostRoll && SaveDataHandler.Load().consumables.Contains(ConsumableEnum.Rewind);
+                if (_useRewindButton != null) _useRewindButton.gameObject.SetActive(hasRewind);
+
                 var choiceTCS = new TaskCompletionSource<bool>(); // true = continue, false = reroll
                 _continueButton.onClick.AddListener(() => choiceTCS.TrySetResult(true));
+                if (hasRewind && _useRewindButton != null)
+                    _useRewindButton.onClick.AddListener(() =>
+                    {
+                        CampaignSaveData rewindSaveData = SaveDataHandler.Load();
+                        rewindSaveData.consumables.Remove(ConsumableEnum.Rewind);
+                        SaveDataHandler.SaveCampaign(rewindSaveData);
+                        IAudioRequester.Instance.PlaySFX(SFXData.Drink);
+                        choiceTCS.TrySetResult(false);
+                    });
 #if UNITY_EDITOR
                 _rerollButton.gameObject.SetActive(true);
                 _rerollButton.onClick.AddListener(() => choiceTCS.TrySetResult(false));
@@ -90,6 +127,11 @@ namespace TJ
                 reroll = !await choiceTCS.Task;
                 _continueButton.onClick.RemoveAllListeners();
                 _continueButton.gameObject.SetActive(false);
+                if (_useRewindButton != null)
+                {
+                    _useRewindButton.onClick.RemoveAllListeners();
+                    _useRewindButton.gameObject.SetActive(false);
+                }
 
                 if (reroll)
                     result = Random.Range(1, 7);

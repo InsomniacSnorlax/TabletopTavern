@@ -50,7 +50,7 @@ namespace TJ
 
             // Shared parameters
             GUILayout.Label("Battle Parameters", EditorStyles.miniBoldLabel);
-            _boardNumber = EditorGUILayout.IntSlider("Board Number", _boardNumber, 1, 3);
+            _boardNumber = EditorGUILayout.IntField("Board Number", _boardNumber); // no hardcoded cap - mods can add rules for boards beyond the base game's 3
             _battlesFought = EditorGUILayout.IntField("Battles Fought", _battlesFought);
             _finalBattle = EditorGUILayout.Toggle("Final Battle (Horde)", _finalBattle);
             _knightDifficulty = EditorGUILayout.Toggle("Knight Difficulty", _knightDifficulty);
@@ -246,59 +246,18 @@ namespace TJ
                 return;
             }
 
-            // Build tier spec — mirrors ArmyCreator.GenerateEnemyArmy switch
-            var spec = new List<(int tier, int count)>();
-            switch (_boardNumber)
+            // Reads the same rule table ArmyCreator.GenerateEnemyArmy uses at runtime (including
+            // any mod overrides currently loaded), so this preview can never drift from real
+            // gameplay the way the old hand-mirrored switch could.
+            TierCount[] tierCounts = ArmyGenerationRuleData.ResolveEnemyArmyTierCounts(_boardNumber, _finalBattle, _knightDifficulty, _battlesFought);
+            if (tierCounts.Length == 0)
             {
-                case 1:
-                    if (_finalBattle)
-                    {
-                        if (_knightDifficulty) { spec.Add((1, 2)); spec.Add((2, 2)); spec.Add((3, 3)); spec.Add((4, 2)); }
-                        else                   { spec.Add((1, 3)); spec.Add((2, 3)); spec.Add((3, 2)); spec.Add((4, 1)); }
-                    }
-                    else
-                    {
-                        if      (_battlesFought < 3) { spec.Add((1, 4)); }
-                        else if (_battlesFought < 5) { spec.Add((1, 3)); spec.Add((2, 2)); }
-                        else if (_battlesFought < 7) { spec.Add((1, 3)); spec.Add((2, 4)); spec.Add((3, 1)); }
-                        else                         { spec.Add((1, 3)); spec.Add((2, 3)); spec.Add((3, 2)); }
-                    }
-                    break;
-
-                case 2:
-                    if (_finalBattle)
-                    {
-                        if (_knightDifficulty) { spec.Add((2, 3)); spec.Add((3, 4)); spec.Add((4, 2)); }
-                        else                   { spec.Add((2, 4)); spec.Add((3, 4)); spec.Add((4, 1)); }
-                    }
-                    else
-                    {
-                        if      (_battlesFought < 3) { spec.Add((2, 4)); spec.Add((3, 2)); }
-                        else if (_battlesFought < 5) { spec.Add((2, 3)); spec.Add((3, 3)); }
-                        else if (_battlesFought < 7) { spec.Add((2, 3)); spec.Add((3, 4)); }
-                        else                         { spec.Add((2, 2)); spec.Add((3, 6)); }
-                    }
-                    break;
-
-                case 3:
-                    if (_finalBattle)
-                    {
-                        if (_knightDifficulty) { spec.Add((1, 1)); spec.Add((2, 3)); spec.Add((3, 5)); spec.Add((4, 1)); }
-                        else                   { spec.Add((1, 2)); spec.Add((2, 3)); spec.Add((3, 4)); spec.Add((4, 1)); }
-                    }
-                    else
-                    {
-                        if      (_battlesFought < 3) { spec.Add((1, 1)); spec.Add((2, 3)); spec.Add((3, 4)); }
-                        else if (_battlesFought < 5) { spec.Add((2, 2)); spec.Add((3, 6)); }
-                        else if (_battlesFought < 7) { spec.Add((2, 2)); spec.Add((3, 6)); }
-                        else                         { spec.Add((3, 9)); }
-                    }
-                    break;
-
-                default:
-                    _errorMessage = $"Board number must be 1–3, got {_boardNumber}.";
-                    return;
+                _errorMessage = $"No army-generation rule matches board={_boardNumber}, finalBattle={_finalBattle}, knightDifficulty={_knightDifficulty}, battlesFought={_battlesFought}.";
+                return;
             }
+            var spec = new List<(int tier, int count)>();
+            foreach (TierCount tc in tierCounts)
+                spec.Add((tc.Tier, tc.Count));
 
             // Pick units — mirrors ArmyCreator.CreateArmyFromUnitsByTier + GetUnitOfTier
             var random = new System.Random(seed);

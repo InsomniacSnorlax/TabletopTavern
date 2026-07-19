@@ -23,6 +23,15 @@ namespace TJ
     //add gear for only positive bonuses
     public static class GearData
     {
+        // Mod-supplied GearModifierValue overrides, keyed by GearID - applied on top of the
+        // hardcoded defaults below by GetGear(). Lives here (not a separate evaluator class like
+        // HeroBonusRuleData) because GearData already sits in the Components assembly, which
+        // UnitSetUpSystem (Systems assembly) already references directly.
+        private static readonly Dictionary<GearID, int> ModifierOverrides = new();
+
+        public static void ClearModifierOverrides() => ModifierOverrides.Clear();
+        public static void SetModifierOverride(GearID gearID, int value) => ModifierOverrides[gearID] = value;
+
         public const int GEAR_ARMINGSWORDS_MODIFIER         = 6;
         public const int GEAR_BUCKLERSHIELDS_MODIFIER       = 5;
         public const int GEAR_TOWERSHIELDS_MODIFIER        = 100;
@@ -43,7 +52,6 @@ namespace TJ
         public const int GEAR_UNCOMMONBUILDER_MODIFIER      = 10;
         public const int GEAR_RAREBUILDER_MODIFIER          = 30;
         public const int GEAR_SHUNGITE_MODIFIER             = 8;
-        // public const int GEAR_ENRONACCOUNTING_MODIFIER      = 2;
         public const int GEAR_JAILERSKEY_MODIFIER           = 2;
 
         public static GearID[] GetGearIDs()
@@ -58,6 +66,14 @@ namespace TJ
             return gearIDList.ToArray();
         }
         public static Gear GetGear(GearID _gear)
+        {
+            Gear gear = GetBaseGear(_gear);
+            if (ModifierOverrides.TryGetValue(_gear, out int overrideValue))
+                gear.GearModifierValue = overrideValue;
+            return gear;
+        }
+
+        private static Gear GetBaseGear(GearID _gear)
         {
             return _gear switch
             {
@@ -597,6 +613,21 @@ namespace TJ
                 newGearList[i] = gearID;
             }
             return newGearList;
+        }
+        // Mirrors GetRandomGear's exclusion rules to predict whether it can satisfy _amount
+        // without looping forever - used to decide when a sold-gear exclusion list must reset.
+        public static bool HasEnoughEligibleGear(List<GearID> _excludedGear, int _amount, bool _isShop = false)
+        {
+            GearID[] allGear = Enum.GetValues(typeof(GearID)) as GearID[];
+            int eligibleCount = 0;
+            for (int i = 1; i < allGear.Length; i++) { // index 0 is GearID.None, never drawn
+                GearID gearID = allGear[i];
+                if (_excludedGear.Contains(gearID)) continue;
+                if (_isShop && GetGear(gearID).BanFromShop) continue;
+                eligibleCount++;
+                if (eligibleCount >= _amount) return true;
+            }
+            return false;
         }
         public static float SkipChance(GearRarity cardRarity) => cardRarity switch
         {

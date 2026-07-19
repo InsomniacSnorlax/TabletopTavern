@@ -132,14 +132,14 @@ namespace TJ.Shop
                 }
                 case 1:
                     if (CampaignManager.Instance.GearManager.CheckForGear(GearID.CommonBuilder)) {
-                        cost -= GearData.CommonBuilder.GearModifierValue;
+                        cost -= GearData.GetGear(GearID.CommonBuilder).GearModifierValue;
                     }
                     break;
                 case 2:
-                    if(CampaignManager.Instance.GearManager.CheckForGear(GearID.UncommonBuilder)) cost -= GearData.UncommonBuilder.GearModifierValue;
+                    if(CampaignManager.Instance.GearManager.CheckForGear(GearID.UncommonBuilder)) cost -= GearData.GetGear(GearID.UncommonBuilder).GearModifierValue;
                     break;
                 case 3:
-                    if(CampaignManager.Instance.GearManager.CheckForGear(GearID.RareBuilder)) cost -= GearData.RareBuilder.GearModifierValue;
+                    if(CampaignManager.Instance.GearManager.CheckForGear(GearID.RareBuilder)) cost -= GearData.GetGear(GearID.RareBuilder).GearModifierValue;
                     break;
                 case 4:
                     cost += CampaignManager.Instance.CampaignSaveManager.SaveData.signatureUnitPacksPurchased * 25;

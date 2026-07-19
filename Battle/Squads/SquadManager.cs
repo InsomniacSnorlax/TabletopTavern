@@ -348,25 +348,29 @@ public class SquadManager : MonoBehaviour
         }
         var ecb = ecbSystem.CreateCommandBuffer();
 
-        //hero stuff
-
-        if(_enemyData.Team == Team.Player)
+        //hero stuff - Leadership magnitudes and attribute grants now come from HeroBonusManager's
+        // rule data instead of hardcoded per-hero checks, so mods can change them. The Sakura
+        // Dynasty mono-race army gate (OnlySakuraUnits) is unchanged - not yet generalized to
+        // other races.
+        if(_enemyData.Team == Team.Player && campaignSaveDataHolder.ActiveHeroID != -1)
         {
-            if(campaignSaveDataHolder.ActiveHeroID == 2 && TabletopTavernData.Instance.GetUnitTierFromUnitName(squadStats.unitName) == 1) {
-                leadership +=10;
-            }
-            if(campaignSaveDataHolder.ActiveHeroID == 4 && squadStats.unitName == UnitName.OrcRavagers){
-                ecb.AddComponent<CausesTerrorTag>(squadEntity);
-            }
-            if(campaignSaveDataHolder.ActiveHeroID == 6 && !squadStats.SquadAttributes.Stalwart) {
-                ecb.AddComponent<StalwartTag>(squadEntity);
-            }
-            if(campaignSaveDataHolder.ActiveHeroID == 6 && squadStats.unitName == UnitName.Shieldmaidens) {
-                leadership +=10;
-            }
-            //Bushido Discipline: If army contains only Sakura Dynasty units, all units gain +20 [Leadership] 
-            if((campaignSaveDataHolder.ActiveHeroID == 11 || campaignSaveDataHolder.ActiveHeroID == 12) && campaignSaveDataHolder.OnlySakuraUnits) {
-                leadership += 20;
+            foreach (var bonus in HeroBonusManager.GetHeroStatBonus(UnitStat.Leadership, squadStats.unitName, campaignSaveDataHolder.ActiveHeroID, leadership))
+                leadership += bonus.Value;
+            if (campaignSaveDataHolder.OnlySakuraUnits)
+                foreach (var bonus in HeroBonusManager.GetFactionBonusForHero(UnitStat.Leadership, campaignSaveDataHolder.ActiveHeroID))
+                    leadership += bonus.Value;
+
+            foreach (var attributeBonus in HeroBonusManager.GetHeroAttributeBonus(squadStats.unitName, campaignSaveDataHolder.ActiveHeroID))
+            {
+                switch (attributeBonus.UnitAttribute)
+                {
+                    case UnitAttribute.Terrifying: ecb.AddComponent<CausesTerrorTag>(squadEntity); break;
+                    case UnitAttribute.Stalwart: ecb.AddComponent<StalwartTag>(squadEntity); break;
+                    case UnitAttribute.Rage: ecb.AddComponent<RageApplicatorTag>(squadEntity); break;
+                    // Outrider is applied contextually in UnitSelectionManager (a deployment-time
+                    // position-validity check), not as a persistent squad tag - intentionally not
+                    // handled here.
+                }
             }
         }
 
@@ -466,13 +470,10 @@ public class SquadManager : MonoBehaviour
             ecb.AddComponent<RageApplicatorTag>(squadEntity);
         }
 
-        // Swarm Breaker: Cragflayers gain the [Rage] ability
-        if(HeroBonusManager.Instance.ActiveHeroID == 13 && squadStats.unitName == UnitName.Cragflayers)
-        {
-            ecb.AddComponent<RageApplicatorTag>(squadEntity);
-        }
+        // Swarm Breaker (Hero 13, Cragflayers -> Rage) is now applied by the consolidated hero
+        // attribute-grant loop above, alongside the other hero-granted attributes.
 
-        if (squadStats.SquadAttributes.Emblazing || 
+        if (squadStats.SquadAttributes.Emblazing ||
             squadStats.SquadAttributes.ArmorSundering
         ) {
             ecb.AddComponent<EmblazerTag>(squadEntity);
@@ -1115,6 +1116,10 @@ public class SquadManager : MonoBehaviour
             if (!BattleManager.Instance.UnitSelectionManager.SelectedSquadIds.Contains(squadEntity.SquadId)) continue;
 
             entityManager.SetComponentEnabled<CeaseFireRequestedTag>(squadEntity.SelfEntity, true);
+
+            SquadOverridesComponent squadOverrides = entityManager.GetComponentData<SquadOverridesComponent>(squadEntity.SelfEntity);
+            squadOverrides.CeaseFire = true;
+            entityManager.SetComponentData(squadEntity.SelfEntity, squadOverrides);
         }
         playerSquads.Dispose();
     }
@@ -1157,10 +1162,12 @@ public class SquadManager : MonoBehaviour
             raceFlagBaseMaterial
         );
         int ammunition = squadStats.Ammunition;
-        // if hero is 14 and is artillery // Supply Lines
-        if(HeroBonusManager.Instance.ActiveHeroID == 14 && (squadStats.unitType == UnitType.Artillery || squadStats.unitType == UnitType.Ranged))
+        // Hero-granted ammunition bonuses (e.g. Bertha/14 Supply Lines) now come from
+        // HeroBonusManager's rule data, same source as EntityWatcher's real Ammunition value.
+        if (HeroBonusManager.Instance.ActiveHeroID != -1)
         {
-            ammunition = (int)(ammunition * 1.5f);
+            foreach (var bonus in HeroBonusManager.GetHeroStatBonus(UnitStat.Ammunition, _squadEntity.UnitName, HeroBonusManager.Instance.ActiveHeroID, ammunition))
+                ammunition += (int)bonus.Value;
         }
         SquadFlagGameObject flag = flagInstance.GetComponent<SquadFlagGameObject>();
         flag.SetUp(flagMaterial, _squadId, unitSize, _moraleComponent, _squadEntity.SelfEntity, ammunition, _squadEntity.UnitName);

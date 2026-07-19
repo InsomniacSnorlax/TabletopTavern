@@ -108,11 +108,16 @@ namespace TJ
                 if (!anyValid) onlySakuraUnits = false;
             }
 
+            int activeHeroID = customBattle ? -1 : SaveDataHandler.GetActiveHeroID();
             entityManager.SetComponentData(entity, new CampaignSaveDataHolder
             {
                 IsCustomBattle = customBattle,
                 Gear = gearIdsSerialized,
-                ActiveHeroID = customBattle ? -1 : SaveDataHandler.GetActiveHeroID(),
+                ActiveHeroID = activeHeroID,
+                // Lets Systems-assembly ECS code (which can't reference HeroData, a main-assembly
+                // type) resolve the active hero's race without calling back into managed code -
+                // same pattern as EnemyRace below.
+                PlayerHeroRace = activeHeroID == -1 ? Race.Special : HeroData.GetRaceFromHero(activeHeroID),
                 EnemyRace = SaveDataHandler.GetEnemyRace(),
                 OnlySakuraUnits = onlySakuraUnits
             });

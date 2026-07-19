@@ -296,6 +296,13 @@ partial struct BattlefieldBonusJob : IJobEntity
                         ma.WeaponStrength -= (int)bonus.Value;
                         MeleeAttackLookup[unitEntity] = ma;
                     }
+                    else if (bonus.UnitStat == UnitStat.Speed && AgentLocomotionLookup.HasComponent(unitEntity))
+                    {
+                        var loc = AgentLocomotionLookup[unitEntity];
+                        loc.Speed -= bonus.Value;
+                        loc.Acceleration -= bonus.Value;
+                        AgentLocomotionLookup[unitEntity] = loc;
+                    }
                 }
                 bonusBuffer.RemoveAt(i--);
                 continue;
@@ -477,6 +484,15 @@ partial struct BattlefieldBonusJob : IJobEntity
                                     var ma = MeleeAttackLookup[unitEntity];
                                     ma.WeaponStrength += (int)bonus.Value;
                                     MeleeAttackLookup[unitEntity] = ma;
+                                }
+                                break;
+                            case UnitStat.Speed:
+                                if (AgentLocomotionLookup.HasComponent(unitEntity))
+                                {
+                                    var loc = AgentLocomotionLookup[unitEntity];
+                                    loc.Speed += bonus.Value;
+                                    loc.Acceleration += bonus.Value;
+                                    AgentLocomotionLookup[unitEntity] = loc;
                                 }
                                 break;
                             case UnitStat.Accuracy:

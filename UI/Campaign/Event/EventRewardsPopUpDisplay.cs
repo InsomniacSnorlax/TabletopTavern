@@ -62,12 +62,7 @@ namespace TJ.Event
                         {
                             EventAquireRewardButton acquireGearButton = Instantiate(aquireRewardButtonPrefab, rewardParent);
                             string AcquireGearLocalized = LocalizationManager.Instance.GetText("Acquire Gear");
-                            List<GearID> gearList = GearData.GetRandomGear(
-                                1,
-                                CampaignManager.Instance.CampaignSaveManager.SaveData.Gear,
-                                CampaignManager.Instance.CampaignSaveManager.GetSeededRandom(),
-                                CampaignManager.Instance.CampaignSaveManager.SaveData.bookNumber
-                            );
+                            List<GearID> gearList = CampaignManager.Instance.CampaignSaveManager.DrawRandomGear(1);
                             void acquireGearAction()
                             {
                                 CampaignManager.Instance.MapSceneUIManager.TreasurePanel.LoadTreasurePanelFromShop(gearList[0]);

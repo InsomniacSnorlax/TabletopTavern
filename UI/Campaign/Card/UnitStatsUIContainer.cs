@@ -12,7 +12,7 @@ public class UnitStatsUIContainer : MonoBehaviour
     [SerializeField] private UnitStatUI unitStatUIPrefab;
     [SerializeField] private Transform unitAttributesParent;
 
-    public void Load(UnitName _unitName, bool _applyGearBonuses, int _prestige)
+    public void Load(UnitName _unitName, bool _applyGearBonuses, int _prestige, UnitAttribute _prestigeTrait = UnitAttribute.None)
     {
         List<UnitStatValue> unitStats = TabletopTavernData.Instance.GetUnitStatsForDisplay( _unitName);
         List<UnitStatUI> unitStatUI = unitAttributesParent.GetComponentsInChildren<UnitStatUI>().ToList();
@@ -45,7 +45,7 @@ public class UnitStatsUIContainer : MonoBehaviour
         }
 
         for(int i = 0; i< unitStatUI.Count; i++) {
-            unitStatUI[i].LoadUnitStatUI(unitStats[i], _prestige, _unitName, _applyGearBonuses);
+            unitStatUI[i].LoadUnitStatUI(unitStats[i], _prestige, _unitName, _applyGearBonuses, _prestigeTrait);
         }
     }
     public void Refresh()

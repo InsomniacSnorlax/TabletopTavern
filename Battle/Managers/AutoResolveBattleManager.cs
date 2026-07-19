@@ -193,7 +193,7 @@ namespace TJ.Engagement
                 if(campaignSaveManager.CheckForGear(GearID.Glaives) && squadStats.SquadAttributes.AntiLarge) 
                     WeaponStrength += GearData.GetGear(GearID.Glaives).GearModifierValue;
                 if(campaignSaveManager.CheckForGear(GearID.TexanBBQ) && unitType == UnitType.Melee) 
-                    meleeDefense += GearData.GetGear(GearID.TexanBBQ).GearModifierValue;
+                    WeaponStrength += GearData.GetGear(GearID.TexanBBQ).GearModifierValue;
                 if(campaignSaveManager.CheckForGear(GearID.BallisticCharts)) 
                     accuracy += (GearData.GetGear(GearID.BallisticCharts).GearModifierValue/100f);
                 if(campaignSaveManager.CheckForGear(GearID.ConscriptionOrders) && squadStats.RarityTier == UnitRarity.Common) {

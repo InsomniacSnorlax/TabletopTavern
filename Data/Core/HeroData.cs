@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace TJ
 {
@@ -17,314 +18,100 @@ namespace TJ
         public UnitName SignatureUnit;
         public UnitName[] StartingArmyUnits;
     }
+
+    // Loads from HeroDataSO assets (Assets/Resources/HeroData/*.asset, one per hero, same
+    // Resources.LoadAll pattern as SquadData/RaceData) instead of hardcoded instances, with mod
+    // overrides layered on top (see HeroOverrideLoader). HeroID and Race are not overridable:
+    // HeroID is the lookup key, and campaign generation assumes a stable hero-to-race pairing.
     public static class HeroData
     {
-        public static Hero EdricValeward = new()
+        public const int DefaultHeroID = 1;
+
+        // Preserves the original individually-named static fields for existing callers
+        // (SaveDataHandler.cs, CampaignSaveManager.cs, PlayPanel.cs, CollectionPanel.cs) - each was
+        // a hardcoded Hero instance before, now a live lookup by the same HeroID.
+        public static Hero EdricValeward => GetHeroByID(1);
+        public static Hero RhydanGreythorne => GetHeroByID(2);
+        public static Hero BoblinTheGoblinKing => GetHeroByID(3);
+        public static Hero KragmukGorethirster => GetHeroByID(4);
+        public static Hero BjornIronskull => GetHeroByID(5);
+        public static Hero FreyjaStormweaver => GetHeroByID(6);
+        public static Hero IltharionStarpire => GetHeroByID(7);
+        public static Hero SerendaelOfNytherial => GetHeroByID(8);
+        public static Hero SisterMorvayne => GetHeroByID(9);
+        public static Hero LordDravenBloodreaver => GetHeroByID(10);
+        public static Hero OdaNobukage => GetHeroByID(11);
+        public static Hero TokugawaHarunobu => GetHeroByID(12);
+        public static Hero HrothgarGoblinslayer => GetHeroByID(13);
+        public static Hero BerthaBarrelstorm => GetHeroByID(14);
+        public static Hero SkrixTheSwarmcaller => GetHeroByID(15);
+        public static Hero ValthrexPrimeclaw => GetHeroByID(16);
+
+        private static readonly Dictionary<int, Hero> _heroesByID = new();
+        private static readonly List<Hero> _heroesSorted = new();
+
+        private static void EnsureLoaded()
         {
-            HeroName = "heroName1",
-            HeroDescription = "heroDescription1",
-            HeroBonusDescription = new string[] { "heroBonusDescription1", "heroBonusDescription2" }, //The Olde Guard: [Rare] units gain +10 [Leadership] and +4 [Melee Attack], //Take Back our Lands: All units gain +2 [Charge Bonus]
-            HeroPrefabName = "EdricValeward",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.None,
-            StartingGold = 10,
-            HeroID = 1,
-            Race = Race.IronLegion,
-            SignatureUnit = UnitName.Ashguard,
-            StartingArmyUnits = new UnitName[] { UnitName.LevySwordsmen, UnitName.LevySwordsmen, UnitName.PeasantBowmen, UnitName.FieldPikemen}
-        };
-        public static Hero RhydanGreythorne = new()
+            if (_heroesByID.Count > 0) return;
+            LoadFromResourcesAndOverrides(ModLoadOrder.GetEnabledModFolderPathsInOrder());
+        }
+
+        public static void LoadFromResourcesAndOverrides(List<string> modFolders)
         {
-            HeroName = "heroName2",
-            HeroDescription = "heroDescription2",
-            HeroBonusDescription = new string[] { "heroBonusDescription3", "heroBonusDescription4" },//Dúnedain Captain: Deepwood Rangers gain +10 [Accuracy] and +4 [Missile Strength], The Everyman: [Common] units gain +10 [Leadership] and +4 [Melee Defense]
-            HeroPrefabName = "RhydanGreythorne",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.HeroCompletion,
-            StartingGold = 10,
-            HeroID = 2,
-            Race = Race.IronLegion,
-            SignatureUnit = UnitName.DeepwoodRangers,
-            StartingArmyUnits = new UnitName[] { UnitName.LevySwordsmen, UnitName.LevySwordsmen, UnitName.PeasantBowmen, UnitName.PeasantBowmen }
-        };
-        public static Hero BoblinTheGoblinKing = new()
+            _heroesByID.Clear();
+            _heroesSorted.Clear();
+
+            HeroDataSO[] allSOs = Resources.LoadAll<HeroDataSO>("HeroData");
+            foreach (var so in allSOs)
+            {
+                _heroesByID[so.heroData.HeroID] = so.heroData;
+            }
+
+            foreach (string modFolder in modFolders)
+            {
+                HeroOverrideLoader.ApplyOverridesFromModFolder(modFolder, _heroesByID);
+            }
+
+            // Sorted by HeroID so GetRandomHero's index-based selection below stays stable
+            // regardless of Resources.LoadAll's (unspecified) enumeration order.
+            _heroesSorted.AddRange(_heroesByID.Values);
+            _heroesSorted.Sort((a, b) => a.HeroID.CompareTo(b.HeroID));
+        }
+
+        // Preserves the original public API shape (was a hardcoded array declared in HeroID
+        // order) for existing callers (PlayPanel.cs indexes into it for the hero-select UI;
+        // PlayerSaveDataEditor.cs/HeroCompletionEditor.cs iterate it).
+        public static Hero[] Heroes
         {
-            HeroName = "heroName3",
-            HeroDescription = "heroDescription3",
-            HeroBonusDescription = new string[] { "heroBonusDescription5", "heroBonusDescription6" },//Drums in the Deep: [Common] card packs cost reduced to 1 gold, Go forth my hordes: Goblins gain +20 [Leadership] and +4 [Melee Attack]
-            HeroPrefabName = "BoblinTheGoblinKing",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 15,
-            HeroID = 3,
-            Race = Race.Gruntkin,
-            SignatureUnit = UnitName.Siegeclaws,
-            StartingArmyUnits = new UnitName[] { UnitName.GoblinRabble, UnitName.GoblinRabble, UnitName.GoblinRabble, UnitName.GoblinScrapShooters, UnitName.Direriders }
-        };
-        public static Hero KragmukGorethirster = new()
-        {
-            HeroName = "heroName4",
-            HeroDescription = "heroDescription4",
-            HeroBonusDescription = new string[] { "heroBonusDescription7", "heroBonusDescription8" },//A taste for man-flesh: Orc Ravagers cause [Terror] and gain +10 [Melee Attack] and +4 [Weapon Strength], Burn them all: 2x gold from sacking cities
-            HeroPrefabName = "KragmukGorethirster",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 15,
-            HeroID = 4,
-            Race = Race.Gruntkin,
-            SignatureUnit = UnitName.Meatgrinders,
-            StartingArmyUnits = new UnitName[] { UnitName.OrcRavagers, UnitName.OrcStalkers, UnitName.GoblinRabble }
-        };
-        public static Hero BjornIronskull = new()
-        {
-            HeroName = "heroName5",
-            HeroDescription = "heroDescription5",
-            HeroBonusDescription = new string[] { "heroBonusDescription9", "heroBonusDescription10" }, //Ironskin: Melee Infantry gain +4 [Melee Defense] and +10 [Armor], //The Skull Harvest: +2 Gold from battle rewards
-            HeroPrefabName = "BjornIronskull",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.DiscordExclusive,
-            StartingGold = 17,
-            HeroID = 5,
-            Race = Race.RavenHost,
-            SignatureUnit = UnitName.Jomsvikings,
-            StartingArmyUnits = new UnitName[] { UnitName.SeawindSpears, UnitName.Huskarls, UnitName.DriftwoodSkirmishers, UnitName.DriftwoodSkirmishers }
-        };
-        public static Hero FreyjaStormweaver = new()
-        {
-            HeroName = "heroName6",
-            HeroDescription = "heroDescription6",
-            HeroBonusDescription = new string[] { "heroBonusDescription11", "heroBonusDescription12" },//With me sisters!: Shieldmaiden units gain +10 [Leadership] and +4 [Melee Defense], The Rock of Trondheim: All units are immune to Terror
-            HeroPrefabName = "FreyjaStormweaver",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NewsletterExclusive,
-            StartingGold = 12,
-            HeroID = 6,
-            Race = Race.RavenHost,
-            SignatureUnit = UnitName.AngelsOfDeath,
-            StartingArmyUnits = new UnitName[] { UnitName.Shieldmaidens, UnitName.DriftwoodSkirmishers, UnitName.ThrallLevy }
-        };
-        public static Hero IltharionStarpire = new()
-        {
-            HeroName = "heroName7",
-            HeroDescription = "heroDescription7",
-            HeroBonusDescription = new string[] { "heroBonusDescription13", "heroBonusDescription14" },//Supernova of the West: All units gain +5 [Charge Bonus] and +4 [Melee Attack], //Purge the Blight: Optional Post Battle Choice - Exectue captives to prestige a random unit
-            HeroPrefabName = "IltharionStarpire",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 12,
-            HeroID = 7,
-            Race = Race.TaelindorForest,
-            SignatureUnit = UnitName.VeilkinDrakes,
-            StartingArmyUnits = new UnitName[] { UnitName.AshwoodMilitia, UnitName.AshwoodMilitia, UnitName.AerindelGuard }
-        };
-        public static Hero SerendaelOfNytherial = new()
-        {
-            HeroName = "heroName8",
-            HeroDescription = "heroDescription8",
-            HeroBonusDescription = new string[] { "heroBonusDescription15", "heroBonusDescription16" },//The Light of Nytherial: Units recieve 2x Healing from all sources, //The Forest Walks: Forest Spirits and Treants gain +5 [Melee Defense] and +4 [Weapon Strength]
-            HeroPrefabName = "SerendaelOfNytherial",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 13,
-            HeroID = 8,
-            Race = Race.TaelindorForest,
-            SignatureUnit = UnitName.EmeraldAncient,
-            StartingArmyUnits = new UnitName[] { UnitName.ForestSpirits, UnitName.ForestSpirits, UnitName.ForestSpirits, UnitName.Treants }
-        };
-        public static Hero SisterMorvayne = new()
-        {
-            HeroName = "heroName9",
-            HeroDescription = "heroDescription9",
-            HeroBonusDescription = new string[] { "heroBonusDescription17", "heroBonusDescription18" },//Forbidden Rituals - Optional Post Battle Choice: Gain a consumable of any rarity, //Unbound by Chivalry: All units gain the [Outrider] ability
-            HeroPrefabName = "SisterMorvayne",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 15,
-            HeroID = 9,
-            Race = Race.SanguineCourt,
-            SignatureUnit = UnitName.NecroticChimerae,
-            StartingArmyUnits = new UnitName[] { UnitName.UndeadLevies, UnitName.MistWraiths, UnitName.BoneshardArchers }
-        };
-        public static Hero LordDravenBloodreaver = new()
-        {
-            HeroName = "heroName10",
-            HeroDescription = "heroDescription10",
-            HeroBonusDescription = new string[] { "heroBonusDescription19", "heroBonusDescription20" },//Bloodsworn Prince: Bloodsworn and Bloodsworn Knights gain +15 [Leadership] and +4 [Melee Attack], //Thirst for Blood: Sacking a city heals all units to full health
-            HeroPrefabName = "LordDravenBloodreaver",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 14,
-            HeroID = 10,
-            Race = Race.SanguineCourt,
-            SignatureUnit = UnitName.Shadelords,
-            StartingArmyUnits = new UnitName[] { UnitName.BoneclatterSpears, UnitName.DeathhavenFiends, UnitName.BoneshardArchers }
-        };
-        //SakuraDynasty
-        public static Hero OdaNobukage = new()
-        {
-            HeroName = "heroName11",
-            HeroDescription = "heroDescription11",
-            HeroBonusDescription = new string[] { "heroBonusDescription21", "heroBonusDescription22" },//Nagoya Steel: All units gain +4 [Weapon Strength], //Hour of Destiny - Optional Post Battle Choice: Lose All Gold <sprite name=GoldSprite> to gain a random unit of any rarity
-            HeroPrefabName = "OdaNobukage",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 11,
-            HeroID = 11,
-            Race = Race.SakuraDynasty,
-            SignatureUnit = UnitName.GoldenSaru,
-            StartingArmyUnits = new UnitName[] { UnitName.DaikyuCommoners, UnitName.AshigaruSpearmen, UnitName.FootSamurai }
-        };
-        public static Hero TokugawaHarunobu = new()
-        {
-            HeroName = "heroName12",
-            HeroDescription = "heroDescription12",
-            HeroBonusDescription = new string[] { "heroBonusDescription23", "heroBonusDescription24" }, //Empire's Wealth: Earn 2x <sprite name=GoldSprite> from interest, //Innovator's Legacy: Emperors Fusiliers Gain +10 [Accuracy] and +4 [Missile Strength]
-            HeroPrefabName = "TokugawaHarunobu",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 12,
-            HeroID = 12,
-            Race = Race.SakuraDynasty,
-            SignatureUnit = UnitName.Oni,
-            StartingArmyUnits = new UnitName[] { UnitName.RoninWanderers, UnitName.AshigaruSpearmen, UnitName.BanryuBombardiers }
-        };
-        //DeepstoneHold
-        public static Hero HrothgarGoblinslayer = new()
-        {
-            HeroName = "heroName13",
-            HeroDescription = "heroDescription13",
-            HeroBonusDescription = new string[] { "heroBonusDescription25", "heroBonusDescription26" },//Ancestral Hatred: All units gain +10 [Melee Attack] and +4 [Weapon Strength] when fignting the Gruntkin, // Swarm Breaker: Cragflayers gain the [Rage] ability
-            HeroPrefabName = "HrothgarGoblinslayer",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 10,
-            HeroID = 13,
-            Race = Race.DeepstoneHold,
-            SignatureUnit = UnitName.AbyssalDelveknights,
-            StartingArmyUnits = new UnitName[] { UnitName.Cragflayers, UnitName.RiftpickLaborers, UnitName.RiftpickLaborers }
-        };
-        public static Hero BerthaBarrelstorm = new()
-        {
-            HeroName = "heroName14",
-            HeroDescription = "heroDescription14",
-            HeroBonusDescription = new string[] { "heroBonusDescription27", "heroBonusDescription28" }, //Blasting Barrels: Artillery units gain +10 [Accuracy] and +10 [Range]. //Supply Lines: All ranged units gain 50% increased ammunition capacity.
-            HeroPrefabName = "BerthaBarrelstorm",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 13,
-            HeroID = 14,
-            Race = Race.DeepstoneHold,
-            SignatureUnit = UnitName.ForgewrathHammers,
-            StartingArmyUnits = new UnitName[] { UnitName.RiftpickLaborers, UnitName.RiftpickLaborers, UnitName.RiftpickLaborers, UnitName.GrimfireGuns }
-        };
-        //DrakosaurBrood
-        public static Hero SkrixTheSwarmcaller = new()
-        {
-            HeroName = "heroName15",
-            HeroDescription = "heroDescription15",
-            HeroBonusDescription = new string[] { "heroBonusDescription29", "heroBonusDescription30" }, //Kobold Kammandos: Kobold units gain +10 [Leadership] and +4 [Melee Attack], //Swarm Tactics: If your army contains 5 or more Kobold units, a random Kobold will prestige on turn end
-            HeroPrefabName = "SkrixTheSwarmcaller",
-            UnlockCondition = UnlockCondition.None,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 15,
-            HeroID = 15,
-            Race = Race.DrakosaurBrood,
-            SignatureUnit = UnitName.ObsidianScales,
-            StartingArmyUnits = new UnitName[] { UnitName.Brutes, UnitName.KoboldBrawlers, UnitName.KoboldBrawlers, UnitName.ScalebowKobolds, UnitName.ScalebowKobolds }
-        };
-        public static Hero ValthrexPrimeclaw = new()
-        {
-            HeroName = "heroName16",
-            HeroDescription = "heroDescription16",
-            HeroBonusDescription = new string[] { "heroBonusDescription31", "heroBonusDescription32" }, // Beastmaster: Large units gain +10 [Leadership] and +4 [Melee Defense], // Sacred Guard: StegoplateGuard gain +15 [Armor] and +4 [Weapon Strength]
-            HeroPrefabName = "ValthrexPrimeclaw",
-            UnlockCondition = UnlockCondition.HeroCompletion,
-            DemoUnlockCondition = UnlockCondition.NotAvailableInDemo,
-            StartingGold = 16,
-            HeroID = 16,
-            Race = Race.DrakosaurBrood,
-            SignatureUnit = UnitName.Kaiju,
-            StartingArmyUnits = new UnitName[] { UnitName.Redhorns, UnitName.Redhorns, UnitName.ScalebowKobolds, UnitName.ScalebowKobolds }
-        };
-        public static Hero[] Heroes = new Hero[]
-        {
-            EdricValeward,
-            RhydanGreythorne,
-            BoblinTheGoblinKing,
-            KragmukGorethirster,
-            BjornIronskull,
-            FreyjaStormweaver,
-            IltharionStarpire,
-            SerendaelOfNytherial,
-            SisterMorvayne,
-            LordDravenBloodreaver,
-            OdaNobukage,
-            TokugawaHarunobu,
-            HrothgarGoblinslayer,
-            BerthaBarrelstorm,
-            SkrixTheSwarmcaller,
-            ValthrexPrimeclaw
-        };
+            get
+            {
+                EnsureLoaded();
+                return _heroesSorted.ToArray();
+            }
+        }
+
         public static Hero GetHeroByID(int id)
         {
-            foreach (Hero hero in Heroes)
-            {
-                if (hero.HeroID == id)
-                {
-                    return hero;
-                }
-            }
-            return EdricValeward; // Default to first hero if not found
+            EnsureLoaded();
+            if (_heroesByID.TryGetValue(id, out Hero hero)) return hero;
+            return _heroesByID.TryGetValue(DefaultHeroID, out Hero fallback) ? fallback : default;
         }
-        public static Race GetRaceFromHero(int _heroID)
-        {
-            switch (_heroID)
-            {
-                case 1:
-                    return Race.IronLegion;
-                case 2:
-                    return Race.IronLegion;
-                case 3:
-                    return Race.Gruntkin;
-                case 4:
-                    return Race.Gruntkin;
-                case 5:
-                    return Race.RavenHost;
-                case 6:
-                    return Race.RavenHost;
-                case 7:
-                    return Race.TaelindorForest;
-                case 8:
-                    return Race.TaelindorForest;
-                case 9:
-                    return Race.SanguineCourt;
-                case 10:
-                    return Race.SanguineCourt;
-                case 11:
-                    return Race.SakuraDynasty;
-                case 12:
-                    return Race.SakuraDynasty;
-                case 13:
-                    return Race.DeepstoneHold;
-                case 14:
-                    return Race.DeepstoneHold;
-                case 15:
-                    return Race.DrakosaurBrood;
-                case 16:
-                    return Race.DrakosaurBrood;
-                default:
-                    break;
-            }
-            return Race.IronLegion;
-        }
+
+        public static Race GetRaceFromHero(int _heroID) => GetHeroByID(_heroID).Race;
+
         public static Hero GetRandomHero()
         {
-            return Heroes[UnityEngine.Random.Range(1, Heroes.Length)];
-        }   
+            EnsureLoaded();
+            // Preserves a pre-existing quirk: starting the range at 1 means index 0 (Edric,
+            // HeroID 1, first in ID order) can never be returned.
+            return _heroesSorted[UnityEngine.Random.Range(1, _heroesSorted.Count)];
+        }
+
         public static List<Hero> GetHeroesByRace(Race race)
         {
+            EnsureLoaded();
             List<Hero> heroesOfRace = new List<Hero>();
-            foreach (Hero hero in Heroes)
+            foreach (Hero hero in _heroesSorted)
             {
                 if (hero.Race == race)
                 {
@@ -336,12 +123,9 @@ namespace TJ
         public static List<UnitName> GetSignatureUnitsByRace(Race race)
         {
             List<UnitName> signatureUnits = new List<UnitName>();
-            foreach (Hero hero in Heroes)
+            foreach (Hero hero in GetHeroesByRace(race))
             {
-                if (hero.Race == race)
-                {
-                    signatureUnits.Add(hero.SignatureUnit);
-                }
+                signatureUnits.Add(hero.SignatureUnit);
             }
             return signatureUnits;
         }
@@ -363,9 +147,9 @@ namespace TJ
 
 //Serendael of Nytherial: Serendael, a seeress from Nytherial Glade’s lunar shrines, wields moonlight to heal and summon treants for Iltharion Forest. Her visions of darkness drove her to lead, her crescent staff mending allies and awakening trees. Known as the Light of Nytherial, she doubles healing, bolstering forest spirits. Her grace fuels the fight to preserve the twilight realm from defilers.
 
-//Sister Morvayne, once a devout priestess in a forgotten cloister, fell to the Sanguine Court’s dark whispers, her prayers twisted into necromantic hymns. From the desecrated Bleakspire Crypt, she weaves chants that summon undead hordes and curse the living with despair. Clad in tattered vestments stained with blood, her rosary of skulls channels profane power, binding souls to her will. Morvayne’s cold piety fuels the Sanguine Court’s endless march, her voice a dirge that chills the hearts of foes and inspires her skeletal legions to rise anew.  
+//Sister Morvayne, once a devout priestess in a forgotten cloister, fell to the Sanguine Court’s dark whispers, her prayers twisted into necromantic hymns. From the desecrated Bleakspire Crypt, she weaves chants that summon undead hordes and curse the living with despair. Clad in tattered vestments stained with blood, her rosary of skulls channels profane power, binding souls to her will. Morvayne’s cold piety fuels the Sanguine Court’s endless march, her voice a dirge that chills the hearts of foes and inspires her skeletal legions to rise anew.
 
-// Lord Draven Bloodreave, master of the Crimson Hollow, is a vampire lord whose thirst for blood is matched only by his ruthless ambition. Once a mortal prince, he embraced undeath to rule eternally, his blade dripping with the essence of fallen foes. His presence on the battlefield sows terror, his crimson eyes compelling enemies to flee or kneel. Leading the Sanguine Court’s elite, Draven carves through armies, his aristocratic disdain fueling the BloodKnights’ ferocity. He seeks to drown the world in darkness, claiming every soul for his eternal court.  
+// Lord Draven Bloodreave, master of the Crimson Hollow, is a vampire lord whose thirst for blood is matched only by his ruthless ambition. Once a mortal prince, he embraced undeath to rule eternally, his blade dripping with the essence of fallen foes. His presence on the battlefield sows terror, his crimson eyes compelling enemies to flee or kneel. Leading the Sanguine Court’s elite, Draven carves through armies, his aristocratic disdain fueling the BloodKnights’ ferocity. He seeks to drown the world in darkness, claiming every soul for his eternal court.
 
 //Oda Nobukage, the ruthless daimyo of a fractured clan, rose through cunning and blade, unifying warring provinces under his iron will. From the shadowed halls of Nagoya Fortress, he leads with unyielding ambition, his katana forged in dragonfire, seeking to conquer all under the Shogun Dynasty's banner. His presence ignites his warriors' fervor, turning ashigaru into unstoppable forces.
 

@@ -142,6 +142,9 @@ partial struct RangedUnitAttackSystem : ISystem
             bullet.ValueRW.Team = entityManager.GetComponentData<EntityTeam>(archerEntity).Value;
             bullet.ValueRW.squadId = entityManager.GetComponentData<Unit>(archerEntity).squadId;
             bullet.ValueRW.shotIntoFlanks = entityManager.IsComponentEnabled<DealFlankingDamageTag>(archerEntity);
+            if (bullet.ValueRO.shotIntoFlanks && entityManager.HasComponent<BackStabbersTag>(archerEntity)) {
+                bullet.ValueRW.damageAmount = (int)(bullet.ValueRO.damageAmount * 2f);
+            }
             bullet.ValueRW.flaming = entityManager.HasComponent<FlamingRangedAttackTag>(archerEntity);
             bullet.ValueRW.sourceIsArtillery = entityManager.HasComponent<ArtilleryUnit>(archerEntity);
 

@@ -60,7 +60,7 @@ namespace TJ
 
             if (gearManager != null && _applyGearBonuses)
             {
-                List<UnitAttributeBonus> bonusAttributes = gearManager.GetGearAttributeBonus(_unitName);
+                List<UnitAttributeBonus> bonusAttributes = gearManager.GetGearAttributeBonus(_unitName, _prestigeTrait);
                 foreach (UnitAttributeBonus bonus in bonusAttributes)
                 {
                     if (!unitAttributes.Contains(bonus.UnitAttribute)) unitAttributes.Add(bonus.UnitAttribute);

@@ -64,4 +64,5 @@ public struct SquadOverridesComponent : IComponentData
     public bool MeleeMode;
     public RangedFireMode FireMode;
     public ShieldedStance ShieldedStance;
+    public bool CeaseFire;
 }

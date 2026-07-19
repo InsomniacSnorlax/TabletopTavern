@@ -103,7 +103,7 @@ namespace TJ.Treasure
             // await Task.Delay(500);
 
             gearCardHordeRewards = new GearCardTreasurePanel[count];
-            List<GearID> gearList = GearData.GetRandomGear(count, campaignSaveManager.SaveData.Gear, campaignSaveManager.GetSeededRandom(), campaignSaveManager.SaveData.bookNumber);
+            List<GearID> gearList = campaignSaveManager.DrawRandomGear(count);
             gearFullWarning.SetActive(!campaignSaveManager.CanAquireGear());
 
             for (int i = 0; i < gearCardHordeRewards.Length; i++)

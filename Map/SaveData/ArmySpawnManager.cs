@@ -1191,7 +1191,7 @@ namespace Memori.SaveData
                     entityManager.AddComponentData(entity, new GarrisonGateUnit());
                     entityManager.AddComponentData(entity, new MissileResistance { DamageMultiplier = 0.5f });
 
-                    Entity arrowPrefab = entitiesReferences.GetProjectileEntityForUnitName(UnitName.Gate);
+                    Entity arrowPrefab = entitiesReferences.GetProjectileEntityForUnitName(UnitName.Gate, false);
                     entityManager.AddComponentData(entity, new ShootAttack {
                         timer = 0f,
                         timerMax = squadStats.attackCooldown,

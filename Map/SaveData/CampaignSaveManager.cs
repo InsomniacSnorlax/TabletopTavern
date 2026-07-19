@@ -614,41 +614,36 @@ namespace TJ
             }
             OnArmyStructureChanged?.Invoke();
         }
-        public void UpdateUnitIndexes(List<string> _unitIndexes)
+        // Moves a unit to _index, shifting every slot between its current index and _index over by one
+        // (rather than trading places with whatever is at _index). Caller is responsible for only using
+        // this within a single contiguous block (e.g. the deployed 0-9 range) - it does not know about
+        // the deployed/reserve boundary and will happily shift across it if asked to.
+        public void ShiftUnitToIndex(string _uniqueID, int _targetIndex)
         {
-            EnsureArmyCapacity();
-            SquadToLoad[] squadsToMoveTo = saveData.playerArmy;
-            SquadToLoad[] updatedSquads = new SquadToLoad[squadsToMoveTo.Length];
+            SquadToLoad squadToMove = Array.Find(saveData.playerArmy, x => x.UniqueID == _uniqueID);
+            int ogIndex = squadToMove.UnitIndex;
+            if (ogIndex == _targetIndex) return;
 
-            if (_unitIndexes.Count != squadsToMoveTo.Length)
+            if (_targetIndex > ogIndex)
             {
-                Debug.LogError($"UpdateUnitIndexes: index list length {_unitIndexes.Count} does not match army length {squadsToMoveTo.Length}. Aborting reorder.");
-                return;
-            }
-
-            for(int i = 0; i < _unitIndexes.Count; i++)
-            {
-                if(_unitIndexes[i] == "-1"){
-                    updatedSquads[i] = new SquadToLoad {
-                        UnitIndex = -1
-                    };
-                } else {
-                    SquadToLoad squadToMoveTo = Array.Find(squadsToMoveTo, x => x.UniqueID == _unitIndexes[i]);
-                    if (string.IsNullOrEmpty(squadToMoveTo.UniqueID)) {
-                        // UI card references a squad no longer in army data (e.g. defeated unit not yet refreshed) — treat as empty
-                        updatedSquads[i] = new SquadToLoad { UnitIndex = -1 };
-                    } else {
-                        squadToMoveTo.UnitIndex = i;
-                        updatedSquads[i] = squadToMoveTo;
-                    }
+                for (int i = ogIndex; i < _targetIndex; i++)
+                {
+                    saveData.playerArmy[i] = saveData.playerArmy[i + 1];
+                    saveData.playerArmy[i].UnitIndex = i;
                 }
             }
-            saveData.playerArmy = updatedSquads;
-            string finalIndicies = "";
-            for(int i = 0; i < saveData.playerArmy.Length; i++) {
-                finalIndicies += saveData.playerArmy[i].UnitIndex + ", ";
+            else
+            {
+                for (int i = ogIndex; i > _targetIndex; i--)
+                {
+                    saveData.playerArmy[i] = saveData.playerArmy[i - 1];
+                    saveData.playerArmy[i].UnitIndex = i;
+                }
             }
-            // Debug.Log($"Final unit indicies: {finalIndicies}");
+
+            saveData.playerArmy[_targetIndex] = squadToMove;
+            saveData.playerArmy[_targetIndex].UnitIndex = _targetIndex;
+
             OnArmyStructureChanged?.Invoke();
         }
         private int GetNextEmptyUnitIndex(SquadToLoad[] _playerArmy)
@@ -1231,14 +1226,41 @@ namespace TJ
         {
             Debug.Log($"Sold gear {_gearName}");
             saveData.Gear.Remove(_gearName);
+            if (!saveData.SoldGear.Contains(_gearName)) {
+                saveData.SoldGear.Add(_gearName);
+            }
             CampaignManager.Instance.GearManager.UnAquireGear(_gearName);
             string localizedString = LocalizationManager.Instance.GetText($"{_gearName}Name");
             CampaignManager.Instance.GoldManager.ModifyGold(_sellValue, localizedString);
             CampaignSaveData tempSaveData = SaveDataHandler.Load();
             tempSaveData.Gear = saveData.Gear;
+            tempSaveData.SoldGear = saveData.SoldGear;
             // tempSaveData.goldAmount = saveData.goldAmount;
             SaveDataHandler.SaveCampaign(tempSaveData);
             OnGearChanged?.Invoke();
+        }
+        // Draws random gear excluding both currently-owned and previously-sold-this-run gear,
+        // so a sold item can't immediately reappear from the next pack/loot roll. If the sold-gear
+        // exclusion would leave too few eligible items to satisfy _amount, it resets (clears
+        // SoldGear) rather than block or infinite-loop the draw.
+        public List<GearID> DrawRandomGear(int _amount, bool _isShop = false)
+        {
+            List<GearID> exclusionList = GetGearExclusionList();
+            if (!GearData.HasEnoughEligibleGear(exclusionList, _amount, _isShop)) {
+                saveData.SoldGear.Clear();
+                exclusionList = GetGearExclusionList();
+            }
+            return GearData.GetRandomGear(_amount, exclusionList, GetSeededRandom(), saveData.bookNumber, _isShop);
+        }
+        private List<GearID> GetGearExclusionList()
+        {
+            List<GearID> exclusionList = new List<GearID>(saveData.Gear);
+            foreach (GearID gearID in saveData.SoldGear) {
+                if (!exclusionList.Contains(gearID)) {
+                    exclusionList.Add(gearID);
+                }
+            }
+            return exclusionList;
         }
         #endregion
         
@@ -1327,7 +1349,7 @@ namespace TJ
         {
             int seed = GetSeededRandom();
             int bookNumber = saveData.bookNumber;
-            List<GearID> gearLooted = GearData.GetRandomGear(1, saveData.Gear, seed, bookNumber);
+            List<GearID> gearLooted = DrawRandomGear(1);
 
             TownSize townSize = TownSaveData.GenerateTownSize(level);
             Race townRace = GenerateTownRace(_selectedNodeIndex, bookNumber);

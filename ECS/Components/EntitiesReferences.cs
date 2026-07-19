@@ -19,8 +19,10 @@ public struct EntitiesReferences : IComponentData {
     public Entity basePlayerUnitPrefabEntity;
     public Entity artilleryGPUAnim;
     public Entity gateUnitPrefabEntity;
-    public readonly Entity GetProjectileEntityForUnitName(UnitName _unitName)
+    public readonly Entity GetProjectileEntityForUnitName(UnitName _unitName, bool requestingFireProjectile)
     {
+        if(requestingFireProjectile) return flamingArrowPrefabEntity;
+        
         return _unitName switch
         {
             UnitName.EisenmannRegiment => bulletPrefabEntity,

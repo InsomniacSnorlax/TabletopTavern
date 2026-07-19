@@ -170,8 +170,90 @@ public struct UnitAttributeBonus
         Value = _value;
     }
 }
-public struct UnitStatValue 
-{ 
+// Data-driven replacement for HeroBonusManager's hardcoded switch statements. FilterKind picks
+// which fields of BonusCondition are meaningful - covers every condition shape actually used
+// across the 16 heroes and the Sakura faction bonus: unconditional, rarity tier, an exact unit
+// list, a small tag registry (see BonusTagRegistry), unit type/size lists, and enemy race.
+public enum BonusFilterKind { Unconditional, RarityTier, UnitName, UnitTag, UnitType, UnitSize, EnemyRace }
+public enum BonusMagnitudeKind { Flat, PercentOfCurrentValue }
+
+[System.Serializable]
+public struct BonusCondition
+{
+    public BonusFilterKind FilterKind;
+    public UnitRarity RequiredRarityTier;
+    public UnitName[] UnitNames;
+    public string Tag;
+    public UnitType[] UnitTypes;
+    public UnitSize[] UnitSizes;
+    public Race RequiredEnemyRace;
+
+    public bool Matches(UnitName requestingUnit, SquadStats stats, Race enemyRace) => FilterKind switch
+    {
+        BonusFilterKind.Unconditional => true,
+        BonusFilterKind.RarityTier => stats.RarityTier == RequiredRarityTier,
+        BonusFilterKind.UnitName => UnitNames != null && System.Array.IndexOf(UnitNames, requestingUnit) >= 0,
+        BonusFilterKind.UnitTag => BonusTagRegistry.Evaluate(Tag, requestingUnit, stats),
+        BonusFilterKind.UnitType => UnitTypes != null && System.Array.IndexOf(UnitTypes, stats.unitType) >= 0,
+        BonusFilterKind.UnitSize => UnitSizes != null && System.Array.IndexOf(UnitSizes, stats.unitSize) >= 0,
+        BonusFilterKind.EnemyRace => enemyRace == RequiredEnemyRace,
+        _ => false,
+    };
+}
+
+// Small registry for filter kinds that need named logic rather than a plain value comparison
+// (e.g. "is a goblin unit" spans several UnitNames, "is melee infantry" is a type+size compound).
+// Takes SquadStats alongside UnitName so predicates never need to look up data themselves -
+// keeps this usable from Components, which can't reference the main-assembly data registry.
+public static class BonusTagRegistry
+{
+    private static readonly Dictionary<string, System.Func<UnitName, SquadStats, bool>> _tags = new()
+    {
+        { "Goblin", (unitName, stats) => TabletopTavernConstants.IsAGoblinUnit(unitName) },
+        { "MeleeInfantry", (unitName, stats) => stats.unitType == UnitType.Melee && stats.unitSize == UnitSize.Infantry },
+    };
+
+    public static bool Evaluate(string tag, UnitName unitName, SquadStats stats)
+    {
+        if (!string.IsNullOrEmpty(tag) && _tags.TryGetValue(tag, out var predicate)) return predicate(unitName, stats);
+        Debug.LogWarning($"[BonusTagRegistry] Unknown tag '{tag}', treating as non-match.");
+        return false;
+    }
+}
+
+[System.Serializable]
+public struct HeroStatBonusRule
+{
+    public int HeroID;
+    public string LocalizationKey;
+    public BonusCondition Condition;
+    public UnitStat Stat;
+    public BonusMagnitudeKind MagnitudeKind;
+    public float Value;
+}
+
+[System.Serializable]
+public struct HeroAttributeBonusRule
+{
+    public int HeroID;
+    public string LocalizationKey;
+    public BonusCondition Condition;
+    public UnitAttribute GrantedAttribute;
+}
+
+// No per-unit BonusCondition: GetFactionBonus(UnitStat) itself takes no unit/army parameter today.
+[System.Serializable]
+public struct FactionBonusRule
+{
+    public Race Race;
+    public string LocalizationKey;
+    public UnitStat Stat;
+    public BonusMagnitudeKind MagnitudeKind;
+    public float Value;
+}
+
+public struct UnitStatValue
+{
     public UnitStat unitStat; 
     public float Value;
     public UnitStatValue(UnitStat _unitStat, float _value)

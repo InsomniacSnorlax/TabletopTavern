@@ -59,7 +59,11 @@ namespace TJ.Campfire
             if (scavengeButton != null) scavengeButton.onClick.AddListener(OnScavenge);
             if (scoutAheadButton != null) scoutAheadButton.onClick.AddListener(OnScoutAhead);
             // if (viewMapButton != null) viewMapButton.onClick.AddListener(OnViewMap);
-            if (continueButton != null) continueButton.onClick.AddListener(() => mapSceneUIManager.TryDrainPendingPrestigeChoices(() => mapSceneUIManager.CompleteLayerAction()));
+            if (continueButton != null) continueButton.onClick.AddListener(() =>
+            {
+                continueButton.interactable = false;
+                mapSceneUIManager.TryDrainPendingPrestigeChoices(() => mapSceneUIManager.CompleteLayerAction());
+            });
         }
 
         public void LoadCampfirePanel()
@@ -72,6 +76,10 @@ namespace TJ.Campfire
                 if (squad.UnitIndex != -1 && squad.UnitPrestige < 2) { anyTrainable = true; break; }
 
             if (trainButton != null) trainButton.interactable = anyTrainable;
+            if (restButton != null) restButton.interactable = true;
+            if (scavengeButton != null) scavengeButton.interactable = true;
+            if (scoutAheadButton != null) scoutAheadButton.interactable = true;
+            if (continueButton != null) continueButton.interactable = true;
 
             SetOptionsVisible(true);
             panelCanvasGroup.FadeInAsync();
@@ -83,8 +91,17 @@ namespace TJ.Campfire
             campfireScavengeDescriptionText.text = string.Format(LocalizationManager.Instance.GetText("campfireGear"), GearScavengeCount);
         }
 
+        private void DisableActionButtons()
+        {
+            if (restButton != null) restButton.interactable = false;
+            if (trainButton != null) trainButton.interactable = false;
+            if (scavengeButton != null) scavengeButton.interactable = false;
+            if (scoutAheadButton != null) scoutAheadButton.interactable = false;
+        }
+
         private void OnRest()
         {
+            DisableActionButtons();
             if (mapOverviewPanel != null) mapOverviewPanel.Close();
             campaignSaveManager.ModifyTroopHealth(RestHealAmount);
             CampaignManager.Instance.MapSceneUIManager.HUDPanel.ArmyStructureChanged();
@@ -95,6 +112,7 @@ namespace TJ.Campfire
 
         private void OnTrain()
         {
+            DisableActionButtons();
             if (mapOverviewPanel != null) mapOverviewPanel.Close();
             List<SquadToLoad> eligible = new();
             foreach (var squad in campaignSaveManager.SaveData.playerArmy)
@@ -121,11 +139,7 @@ namespace TJ.Campfire
 
         private void OnScavenge()
         {
-            if (!campaignSaveManager.CanAquireGear())
-            {
-                NotificationManager.Instance.ErrorNotification(LocalizationManager.Instance.GetText("No space for gear"));
-                return;
-            }
+            DisableActionButtons();
             if (mapOverviewPanel != null) mapOverviewPanel.Close();
             SetOptionsVisible(false);
             panelCanvasGroup.FadeOutAsync();
@@ -144,6 +158,7 @@ namespace TJ.Campfire
 
         private void OnScoutAhead()
         {
+            DisableActionButtons();
             if (mapOverviewPanel != null) mapOverviewPanel.Close();
             int activeLayer = mapSceneUIManager.MapSceneManager.GetActiveChapterIndex();
             mapSceneUIManager.MapSceneManager.RevealNodesInNextLayers(activeLayer, 100);

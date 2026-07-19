@@ -207,7 +207,7 @@ namespace TJ
             if (battlefieldBonusCount != currentBonusBufferSize)
             {
                 battlefieldBonusCount = currentBonusBufferSize;
-                unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
             }
             else if (entityManager.HasComponent<CrashingHordeComponent>(squadEntity.SelfEntity))
             {
@@ -215,7 +215,7 @@ namespace TJ
                 if (lastCrashingHordeStacks != currentWarbandStacks)
                 {
                     lastCrashingHordeStacks = currentWarbandStacks;
-                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                 }
             }
             else if (entityManager.HasComponent<DeathcryComponent>(squadEntity.SelfEntity))
@@ -224,7 +224,7 @@ namespace TJ
                 if (lastDeathcryBonus != currentDeathcryBonus)
                 {
                     lastDeathcryBonus = currentDeathcryBonus;
-                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                 }
             }
             else if (entityManager.HasComponent<HuntersPatienceComponent>(squadEntity.SelfEntity))
@@ -233,7 +233,7 @@ namespace TJ
                 if (lastHuntersPatienceBonus != currentPatienceBonus)
                 {
                     lastHuntersPatienceBonus = currentPatienceBonus;
-                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                 }
             }
             else if (entityManager.HasComponent<KenseiEyeComponent>(squadEntity.SelfEntity))
@@ -242,7 +242,7 @@ namespace TJ
                 if (lastKenseiEyeStage != currentStage)
                 {
                     lastKenseiEyeStage = currentStage;
-                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                 }
             }
             else if (entityManager.HasComponent<OathcarvedComponent>(squadEntity.SelfEntity))
@@ -251,7 +251,7 @@ namespace TJ
                 if (lastOathcarvedDeaths != currentDeaths)
                 {
                     lastOathcarvedDeaths = currentDeaths;
-                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                 }
             }
             else if (entityManager.HasComponent<ApexHuntersComponent>(squadEntity.SelfEntity))
@@ -260,7 +260,7 @@ namespace TJ
                 if (lastApexHuntersStacks != currentStacks)
                 {
                     lastApexHuntersStacks = currentStacks;
-                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                    unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                 }
             }
 
@@ -275,7 +275,7 @@ namespace TJ
                     if (lastAmmunition != currentAmmunition)
                     {
                         lastAmmunition = currentAmmunition;
-                        unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+                        unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
                     }
                 }
             }
@@ -295,7 +295,7 @@ namespace TJ
             unitAttributesUIContainer.Load(squadStats.unitName, applyGearBonuses, prestigeTrait);
 
             unitStatsUIContainer = GetComponent<UnitStatsUIContainer>();
-            unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige);
+            unitStatsUIContainer.Load(squadStats.unitName, applyGearBonuses, prestige, prestigeTrait);
 
             string displayName = LocalizationManager.Instance.GetText(squadStats.unitName.ToString());
             if (team == Team.Player && !isCustomBattle)

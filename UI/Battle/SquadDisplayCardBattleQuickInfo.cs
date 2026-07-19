@@ -10,7 +10,7 @@ namespace TJ
     public class SquadDisplayCardBattleQuickInfo : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField] private Animator _animator;
-        [SerializeField] private GameObject _movementIcon, _chargeIcon, _braceIcon, _defensiveStanceIcon, _volleyFireIcon, _rapidFireIcon, _meleeIcon;
+        [SerializeField] private GameObject _movementIcon, _chargeIcon, _braceIcon, _defensiveStanceIcon, _volleyFireIcon, _rapidFireIcon, _meleeIcon, _ceaseFireIcon;
         private bool _showingInfo;
 
         private void Start()
@@ -22,6 +22,7 @@ namespace TJ
             SetIconTooltip(_volleyFireIcon,      "VolleyFireTitle");
             SetIconTooltip(_rapidFireIcon,       "FireAtWillTitle");
             SetIconTooltip(_meleeIcon,           "InCombatDesc");
+            SetIconTooltip(_ceaseFireIcon,       "CeaseFireTitle");
         }
 
         public void OnPointerClick(PointerEventData eventData) { }
@@ -37,14 +38,14 @@ namespace TJ
             trigger.SetUpToolTip(_description: LocalizationManager.Instance.GetText(descKey));
         }
 
-        public void UpdateSquadDisplay(bool isMoving, bool isCharging, bool isBracing, bool defensiveStance, bool volleyFiring, bool rapidFiring, bool inMeleeCombat)
+        public void UpdateSquadDisplay(bool isMoving, bool isCharging, bool isBracing, bool defensiveStance, bool volleyFiring, bool rapidFiring, bool inMeleeCombat, bool ceaseFiring)
         {
-            if((!isMoving && !isCharging && !isBracing && !defensiveStance && !volleyFiring && !rapidFiring && !inMeleeCombat) && _showingInfo)
+            if((!isMoving && !isCharging && !isBracing && !defensiveStance && !volleyFiring && !rapidFiring && !inMeleeCombat && !ceaseFiring) && _showingInfo)
             {
                 _animator.Play("SQIHide");
                 _showingInfo = false;
             }
-            else if((isMoving || isCharging || isBracing || defensiveStance || volleyFiring || rapidFiring || inMeleeCombat) && !_showingInfo)
+            else if((isMoving || isCharging || isBracing || defensiveStance || volleyFiring || rapidFiring || inMeleeCombat || ceaseFiring) && !_showingInfo)
             {
                 _animator.Play("SQIShow");
                 _showingInfo = true;
@@ -111,6 +112,15 @@ namespace TJ
             else if(!inMeleeCombat && _meleeIcon.activeSelf)
             {
                 _meleeIcon.SetActive(false);
+            }
+
+            if(ceaseFiring && !_ceaseFireIcon.activeSelf)
+            {
+                _ceaseFireIcon.SetActive(true);
+            }
+            else if(!ceaseFiring && _ceaseFireIcon.activeSelf)
+            {
+                _ceaseFireIcon.SetActive(false);
             }
 
         }

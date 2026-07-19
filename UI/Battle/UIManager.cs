@@ -102,8 +102,9 @@ namespace TJ
 
         private bool _isLoaded;
 
-        bool allSelectedUnitsInGuardMode, selectedSquadsContainRangedUnits, selectedSquadsContainArtilleryUnits, selectedSquadsContainShieldedUnits, 
-        allSelectedSquadsAutoRetarget, allSelectedSquadsMeleeMode, allSelectedSquadsVolleyFire, allSelectedSquadsFireAtWill, allSelectedSquadBalancedStance, allSelectedSquadsDefensiveStance;
+        bool allSelectedUnitsInGuardMode, selectedSquadsContainRangedUnits, selectedSquadsContainArtilleryUnits, selectedSquadsContainShieldedUnits,
+        allSelectedSquadsAutoRetarget, allSelectedSquadsMeleeMode, allSelectedSquadsVolleyFire, allSelectedSquadsFireAtWill, allSelectedSquadBalancedStance, allSelectedSquadsDefensiveStance,
+        allSelectedSquadsCeaseFire;
         string recentPositionErrorMessage = "";
 
         public void Load()
@@ -330,6 +331,7 @@ namespace TJ
             if(isCustomBattle || BattleManager.Instance.BattleSaveManager.PlayerSquadsToSpawn == squadDisplays.Count)
             {
                 var orderedIds = squadDisplays.ConvertAll(c => c.SquadId);
+                orderedIds.Sort();
                 BattleManager.Instance.SquadOrderManager.Initialize(orderedIds);
             }
         }
@@ -517,6 +519,10 @@ namespace TJ
                     break;
             }
         }
+        public void RefreshSelectedSquadButtonStates()
+        {
+            OnSelectedSquadsChanged(BattleManager.Instance.UnitSelectionManager.SelectedSquadIds);
+        }
         private void OnSelectedSquadsChanged(List<int> _selectedSquadIds)
         {
             selectedSquadsContainRangedUnits = false;
@@ -530,6 +536,7 @@ namespace TJ
             allSelectedSquadsFireAtWill = true;
             allSelectedSquadBalancedStance = true;
             allSelectedSquadsDefensiveStance = true;
+            allSelectedSquadsCeaseFire = true;
 
             NativeArray<SquadOverridesComponent> playerSquads = BattleManager.Instance.SquadManager.RetrievePlayerSquadOverrideComponents();
             bool anyPlayerSquadSelected = false;
@@ -573,6 +580,14 @@ namespace TJ
                 if(squad.UnitType == UnitType.Artillery)
                 {
                     selectedSquadsContainArtilleryUnits = true;
+                }
+
+                if(squad.UnitType == UnitType.Ranged || squad.UnitType == UnitType.Artillery)
+                {
+                    if (!squad.CeaseFire)
+                    {
+                        allSelectedSquadsCeaseFire = false;
+                    }
                 }
 
                 if(squad.ShieldedStance != ShieldedStance.None)
@@ -836,6 +851,10 @@ namespace TJ
             }
 
             ceaseFireButton.gameObject.SetActive(selectedSquadsContainArtilleryUnits || selectedSquadsContainRangedUnits);
+            if (selectedSquadsContainArtilleryUnits || selectedSquadsContainRangedUnits)
+            {
+                ceaseFireButton.SetOnOrOff(allSelectedSquadsCeaseFire);
+            }
 
             balancedStanceButton.gameObject.SetActive(selectedSquadsContainShieldedUnits);
             defensiveStanceButton.gameObject.SetActive(selectedSquadsContainShieldedUnits);
@@ -855,6 +874,7 @@ namespace TJ
                 volleyFireButton.SetOnOrOff(false);
                 balancedStanceButton.SetOnOrOff(false);
                 defensiveStanceButton.SetOnOrOff(false);
+                ceaseFireButton.SetOnOrOff(false);
             }
 
         }
@@ -867,6 +887,7 @@ namespace TJ
         {
             BattleManager.Instance.UnitPositioningManager.QueueSquadCommand(SquadCommand.HaltAndFreeze, false);
             BattleManager.Instance.SquadManager.CeaseFire();
+            ceaseFireButton.SetOnOrOff(true);
         }
         private void OnSquadUpdated(int _squadId, float2 _unitCount)
         {

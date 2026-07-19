@@ -7,7 +7,6 @@ using Memori.Tooltip;
 using TJ.Map;
 using Memori.Audio;
 using MoreMountains.Feedbacks;
-using System.Threading.Tasks;
 using Memori.Localization;
 
 namespace TJ
@@ -51,9 +50,9 @@ namespace TJ
 
         [Header("Reordering Squad")]
         [SerializeField] private GameObject dummySquadCard;
+        [SerializeField] private GameObject originSlotMarkerPrefab;
         [SerializeField] private Canvas healthBarTextCanvas;
 
-        GameObject cachedDummySquadCard;
         bool wasJustSelected;
         HUDPanel hudPanel;
         bool cachedShowOptions, cachedShowRenamePrestige, cachedShowMerge, cachedShowPrestige;
@@ -63,13 +62,20 @@ namespace TJ
         public Team CardTeam => isEnemy ? Team.Enemy : Team.Player;
         bool inReserve;
         public bool InReserve => inReserve;
-        bool cachedOverDeployedArea, cachedOverReserveArea;
-        int indexHovered;
-        Vector3 initialPosition;
         LayoutElement layoutElement;
         GraphicRaycaster graphicRaycaster;
         bool isSpawning;
-        int lastDummyIndex = -1;
+
+        Transform ogParent;
+        int ogSiblingIndex;
+        SquadDisplayCardMenu hoveredCard;
+        bool previewIsShift;
+        Transform hoveredCardOgParent;
+        int hoveredCardOgSiblingIndex;
+        GameObject vacatedSlotPlaceholder;
+        GameObject shiftPreviewPlaceholder;
+        bool lastValidRegionIsDeployed;
+        GameObject originSlotMarker;
 
         public void SetUp(SquadToLoad _squad, bool _inReserve, HUDPanel _hudPanel = null, bool _isEnemy = false)
         {
@@ -314,25 +320,34 @@ namespace TJ
         public void OnBeginDrag(PointerEventData eventData)
         {
             if (isEnemy) return;
-            
-            // Store the initial position
 
-            initialPosition = transform.position;
+            Vector3 ogWorldPosition = transform.position;
+            ogParent = transform.parent;
+            ogSiblingIndex = transform.GetSiblingIndex();
 
-            bool isDeployedGroup = squad.UnitIndex < 10;
-            cachedOverDeployedArea = isDeployedGroup;
-            cachedOverReserveArea = !isDeployedGroup;
+            hoveredCard = null;
+            previewIsShift = false;
+            vacatedSlotPlaceholder = null;
+            shiftPreviewPlaceholder = null;
+            lastValidRegionIsDeployed = !inReserve;
 
-            lastDummyIndex = -1;
-            cachedDummySquadCard = Instantiate(dummySquadCard, transform.position, Quaternion.identity);
-            cachedDummySquadCard.transform.SetParent(transform.parent);
-            cachedDummySquadCard.transform.SetSiblingIndex(transform.GetSiblingIndex());
+            if (originSlotMarkerPrefab != null)
+            {
+                originSlotMarker = Instantiate(originSlotMarkerPrefab, ogParent);
+                originSlotMarker.transform.position = ogWorldPosition;
+                LayoutElement markerLayoutElement = originSlotMarker.GetComponent<LayoutElement>();
+                if (markerLayoutElement == null) markerLayoutElement = originSlotMarker.AddComponent<LayoutElement>();
+                markerLayoutElement.ignoreLayout = true; // marks the origin slot without consuming a layout slot itself
+            }
 
             transform.SetSiblingIndex(transform.parent.transform.childCount - 1);
 
             layoutElement.ignoreLayout = true;
             canvas.sortingOrder = 102;
             healthBarTextCanvas.sortingOrder = 103;
+
+            hudPanel.HighlightDeployedTroopsArea(lastValidRegionIsDeployed);
+            hudPanel.HighlightReserveTroopsArea(!lastValidRegionIsDeployed);
 
             IAudioRequester.Instance.PlaySFX(SFXData.SquadHovered);
 
@@ -343,184 +358,142 @@ namespace TJ
         public void OnDrag(PointerEventData eventData)
         {
             if (isEnemy) return;
-            
-            // Move the image with the mouse
+
             transform.position = eventData.position;
-            initialPosition = cachedDummySquadCard.transform.position;
 
-
-            bool isOverDropArea1 = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.DeployedTroopsArea, eventData.position);
-            bool isOverDropArea2 = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.ReserveTroopsArea, eventData.position);
-
-            if (isOverDropArea1 && !cachedOverDeployedArea) //switching from reserves to deployed
+            // Flicker guard: once a preview is active (swap or shift), the hovered card has physically
+            // moved away from the slot the mouse is sitting over. Re-scanning every frame would find
+            // nothing there, revert the preview, put the card back under the mouse, and re-trigger it
+            // again next frame. As long as the pointer stays over the placeholder left behind, keep the
+            // current preview instead of re-evaluating.
+            if (hoveredCard != null)
             {
-                hudPanel.HighlightDeployedTroopsArea(true);
-                hudPanel.HighlightReserveTroopsArea(false);
-                cachedOverDeployedArea = true;
-                cachedOverReserveArea = false;
-
-                if (transform.parent != hudPanel.DeployedUnitsParent)
+                GameObject stablePlaceholder = previewIsShift ? shiftPreviewPlaceholder : vacatedSlotPlaceholder;
+                if (stablePlaceholder != null)
                 {
-                    int realDeployedCount = 0;
-                    for (int i = 0; i < hudPanel.DeployedUnitsParent.childCount; i++)
-                        if (hudPanel.DeployedUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>() != null) realDeployedCount++;
-                    if (realDeployedCount >= 10) {
-                        Transform squadToSwapOut = null;
-                        for (int i = hudPanel.DeployedUnitsParent.childCount - 1; i >= 0; i--) {
-                            Transform child = hudPanel.DeployedUnitsParent.GetChild(i);
-                            if (child.GetComponent<SquadDisplayCard>() != null) { squadToSwapOut = child; break; }
-                        }
-                        if (squadToSwapOut != null) {
-                            squadToSwapOut.SetParent(hudPanel.ReserveUnitsParent);
-                            squadToSwapOut.SetSiblingIndex(squadToSwapOut.parent.childCount - 2);
-                        }
-                    }
-
-                    //go through all the children of the parent and look for the first child that is not a squad display card and then move it to reserves
-                    for(int i = 0; i < hudPanel.DeployedUnitsParent.childCount; i++) {
-                        if(hudPanel.DeployedUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>() == null) {
-                            // Debug.Log($"Moving to Deployed: {hudPanel.DeployedUnitsParent.GetChild(i).name}");
-                            hudPanel.DeployedUnitsParent.GetChild(i).transform.SetParent(hudPanel.ReserveUnitsParent);
-                            break;
-                        }
-                    }
-
-                    cachedDummySquadCard.transform.SetParent(hudPanel.DeployedUnitsParent);
-                    transform.SetParent(hudPanel.DeployedUnitsParent);
+                    RectTransform placeholderRect = stablePlaceholder.transform as RectTransform;
+                    if (placeholderRect != null && RectTransformUtility.RectangleContainsScreenPoint(placeholderRect, eventData.position))
+                        return;
                 }
             }
-            else if (isOverDropArea2 && !cachedOverReserveArea) //switching from deployed to reserves
-            {
-                hudPanel.HighlightReserveTroopsArea(true);
-                hudPanel.HighlightDeployedTroopsArea(false);
-                cachedOverReserveArea = true;
-                cachedOverDeployedArea = false;
 
-                if (transform.parent != hudPanel.ReserveUnitsParent)
+            SquadDisplayCardMenu newHoveredCard = hudPanel.FindRealCardUnderScreenPoint(eventData.position, this);
+
+            if (newHoveredCard != null)
+            {
+                if (newHoveredCard != hoveredCard)
                 {
-                    int realReserveCount = 0;
-                    for (int i = 0; i < hudPanel.ReserveUnitsParent.childCount; i++)
-                        if (hudPanel.ReserveUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>() != null) realReserveCount++;
-                    if (realReserveCount >= hudPanel.MaxReserveSlots) {
-                        Transform squadToSwapOut = null;
-                        for (int i = 0; i < hudPanel.ReserveUnitsParent.childCount; i++) {
-                            Transform child = hudPanel.ReserveUnitsParent.GetChild(i);
-                            if (child.GetComponent<SquadDisplayCard>() != null) { squadToSwapOut = child; break; }
-                        }
-                        if (squadToSwapOut != null) {
-                            int lastSquadDeployedSiblingIndex = 0;
-                            for(int i = 0; i < hudPanel.DeployedUnitsParent.childCount; i++) {
-                                SquadDisplayCard squadDisplayCard = hudPanel.DeployedUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>();
-                                if(squadDisplayCard == null) continue;
-                                if(squadDisplayCard == this) continue;
-                                lastSquadDeployedSiblingIndex = i;
-                            }
-                            squadToSwapOut.SetParent(hudPanel.DeployedUnitsParent);
-                            squadToSwapOut.SetSiblingIndex(lastSquadDeployedSiblingIndex + 1);
-                        }
-                    }
+                    RevertHoverPreview();
+                    // A card that started in deployed and is still hovering deployed inserts (shifting
+                    // the cards in between); everything else (reserve involved on either end) swaps.
+                    if (!inReserve && !newHoveredCard.InReserve)
+                        BeginShiftPreview(newHoveredCard);
+                    else
+                        BeginSwapPreview(newHoveredCard);
+                }
+                return;
+            }
 
-                    //go through all the children of the parent and look for the first child that is not a squad display card and then move it to reserves
-                    for(int i = 0; i < hudPanel.ReserveUnitsParent.childCount; i++) {
-                        if(hudPanel.ReserveUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>() == null) {
-                            // Debug.Log($"Moving to Reserve: {hudPanel.ReserveUnitsParent.GetChild(i).name}");
-                            hudPanel.ReserveUnitsParent.GetChild(i).transform.SetParent(hudPanel.DeployedUnitsParent);
-                            break;
-                        }
-                    }
-                    cachedDummySquadCard.transform.SetParent(hudPanel.ReserveUnitsParent);
-                    cachedDummySquadCard.transform.SetSiblingIndex(0);
-                    transform.SetParent(hudPanel.ReserveUnitsParent);
+            bool overDeployedRegion = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.DeployedTroopsArea, eventData.position);
+            bool overReserveRegion = RectTransformUtility.RectangleContainsScreenPoint(hudPanel.ReserveTroopsArea, eventData.position);
+
+            if (overDeployedRegion || overReserveRegion)
+            {
+                bool targetIsDeployed = overDeployedRegion;
+                if (hudPanel.RegionHasRoom(targetIsDeployed, this))
+                {
+                    RevertHoverPreview();
+                    SetPreviewRegion(targetIsDeployed);
                 }
             }
-            else if (!isOverDropArea1 && cachedOverDeployedArea)
-            {
-                hudPanel.HighlightDeployedTroopsArea(false);
-                cachedOverDeployedArea = false;
-            }
-            else if (!isOverDropArea2 && cachedOverReserveArea)
-            {
-                hudPanel.HighlightReserveTroopsArea(false);
-                cachedOverReserveArea = false;
-            }
-
-            for(int i = 0; i < hudPanel.TroopsIndexAreas.Length; i++) {
-                if(RectTransformUtility.RectangleContainsScreenPoint(hudPanel.TroopsIndexAreas[i], eventData.position)) {
-                //    Debug.Log($"TroopsIndexAreas: {i}");
-                    indexHovered = i;
-                }
-            }
-
-            float distanceInX = initialPosition.x - transform.position.x;
-            // Debug.Log($"Distance in X: {distanceInX}");
-
-            if(distanceInX < -60)
-            {
-                int index = cachedDummySquadCard.transform.GetSiblingIndex();
-
-                if (index < transform.parent.childCount) {
-                    cachedDummySquadCard.transform.SetSiblingIndex(index+1);
-                    initialPosition = transform.position;
-
-                    if (lastDummyIndex != index + 1) {
-                        lastDummyIndex = index + 1;
-                        IAudioRequester.Instance.PlaySFX(SFXData.LightMouseOver);
-                    }
-                }
-            }
-
-            if (distanceInX > 60)
-            {
-                int index = cachedDummySquadCard.transform.GetSiblingIndex();
-
-                if(index < 1) return;
-
-                if (index >= 1) {
-                    cachedDummySquadCard.transform.SetSiblingIndex(index-1);
-                    initialPosition = transform.position;
-
-                    if (lastDummyIndex != index - 1) {
-                        lastDummyIndex = index - 1;
-                        IAudioRequester.Instance.PlaySFX(SFXData.LightMouseOver);
-                    }
-                }
-            }
+            // else: pointer is over neither a card nor a valid region - hold the last valid preview.
         }
-        public async void OnEndDrag(PointerEventData eventData)
+        // Insert-and-shift preview: only used for deployed-to-deployed hovers. A single real (non-ignored)
+        // placeholder is inserted at the hovered card's current slot - the layout group automatically
+        // shifts that card (and everyone between it and A's now-vacant original slot) over by one, with
+        // no manual per-card reparenting needed.
+        void BeginShiftPreview(SquadDisplayCardMenu _card)
+        {
+            hoveredCard = _card;
+            previewIsShift = true;
+
+            shiftPreviewPlaceholder = Instantiate(dummySquadCard, hudPanel.DeployedUnitsParent);
+            shiftPreviewPlaceholder.transform.SetSiblingIndex(_card.transform.GetSiblingIndex());
+
+            SetPreviewRegion(true);
+            IAudioRequester.Instance.PlaySFX(SFXData.LightMouseOver);
+        }
+        void BeginSwapPreview(SquadDisplayCardMenu _card)
+        {
+            hoveredCard = _card;
+            previewIsShift = false;
+            hoveredCardOgParent = _card.transform.parent;
+            hoveredCardOgSiblingIndex = _card.transform.GetSiblingIndex();
+
+            vacatedSlotPlaceholder = Instantiate(dummySquadCard, hoveredCardOgParent);
+            vacatedSlotPlaceholder.transform.SetSiblingIndex(hoveredCardOgSiblingIndex);
+
+            _card.transform.SetParent(ogParent);
+            _card.transform.SetSiblingIndex(ogSiblingIndex);
+
+            SetPreviewRegion(!_card.InReserve);
+            IAudioRequester.Instance.PlaySFX(SFXData.LightMouseOver);
+        }
+        void RevertHoverPreview()
+        {
+            if (hoveredCard == null) return;
+
+            if (previewIsShift)
+            {
+                if (shiftPreviewPlaceholder != null) Destroy(shiftPreviewPlaceholder);
+                shiftPreviewPlaceholder = null;
+            }
+            else
+            {
+                hoveredCard.transform.SetParent(hoveredCardOgParent);
+                hoveredCard.transform.SetSiblingIndex(hoveredCardOgSiblingIndex);
+
+                if (vacatedSlotPlaceholder != null) Destroy(vacatedSlotPlaceholder);
+                vacatedSlotPlaceholder = null;
+            }
+
+            hoveredCard = null;
+            previewIsShift = false;
+        }
+        void SetPreviewRegion(bool _deployedRegion)
+        {
+            if (_deployedRegion != lastValidRegionIsDeployed)
+            {
+                hudPanel.HighlightDeployedTroopsArea(_deployedRegion);
+                hudPanel.HighlightReserveTroopsArea(!_deployedRegion);
+            }
+            lastValidRegionIsDeployed = _deployedRegion;
+        }
+        public void OnEndDrag(PointerEventData eventData)
         {
             if (isEnemy) return;
 
-            await Task.Delay(1);//wait for the end of the frame to reorder the units
-
-            transform.position = cachedDummySquadCard.transform.position;
-            transform.SetSiblingIndex(cachedDummySquadCard.transform.GetSiblingIndex());
-            if(layoutElement != null)
+            if (layoutElement != null)
                 layoutElement.ignoreLayout = false;
 
-            for(int i = 0; i < hudPanel.DeployedUnitsParent.childCount; i++) { // move all the empty slots to the end
-                if(hudPanel.DeployedUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>() == null &&
-                    hudPanel.DeployedUnitsParent.GetChild(i).gameObject != cachedDummySquadCard) {
-                    hudPanel.DeployedUnitsParent.GetChild(i).transform.SetAsLastSibling();
-                }
-            }            
-        
-            for(int i = 0; i < hudPanel.ReserveUnitsParent.childCount; i++) { // move all the empty slots to the end
-                if(hudPanel.ReserveUnitsParent.GetChild(i).GetComponent<SquadDisplayCard>() == null &&
-                    hudPanel.ReserveUnitsParent.GetChild(i).gameObject != cachedDummySquadCard) {
-                    hudPanel.ReserveUnitsParent.GetChild(i).transform.SetAsLastSibling();
+            if (hoveredCard != null)
+            {
+                if (previewIsShift)
+                    hudPanel.ShiftUnit(UniqueID, hoveredCard.SquadId);
+                else
+                    hudPanel.MoveUnit(UniqueID, hoveredCard.SquadId);
+            }
+            else
+            {
+                int targetIndex = hudPanel.GetFirstEmptySlotIndex(lastValidRegionIsDeployed, this);
+                if (targetIndex >= 0)
+                {
+                    hudPanel.MoveUnit(UniqueID, targetIndex);
+                    CampaignManager.Instance.CampaignSaveManager.ReorderUnits();
                 }
             }
 
-            transform.position = initialPosition;
-            cachedDummySquadCard.transform.SetParent(null); // remove from hierarchy immediately so ReorderUnits gets correct childCounts
-            Destroy(cachedDummySquadCard);
-            await Task.Delay(1);//wait for the end of the frame to reorder the units
-            hudPanel.ReplaceEmptySquadCards();
-            hudPanel.ReorderUnits();
-
             OnPointerExit(null);
-            cachedOverDeployedArea = false;
-            cachedOverReserveArea = false;
             hudPanel.LockCards(false);
             canvas.sortingOrder = 2;
             healthBarTextCanvas.sortingOrder = 101;

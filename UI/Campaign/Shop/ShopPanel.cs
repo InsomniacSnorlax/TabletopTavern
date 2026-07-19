@@ -357,7 +357,7 @@ namespace TJ.Shop
 
             if (_cardPackData.packID == 0)
             {
-                List<GearID> gearList = GearData.GetRandomGear(1, campaignSaveManager.SaveData.Gear, campaignSaveManager.GetSeededRandom(), campaignSaveManager.SaveData.bookNumber, true);
+                List<GearID> gearList = campaignSaveManager.DrawRandomGear(1, true);
                 campaignSaveManager.SaveRecruitableGear(gearList.ToArray());
                 campaignSaveManager.IncrementRerollCount(1);
                 if (gearList.Count == 0) return;

@@ -40,6 +40,7 @@ public class SquadDisplayCardBattle : SquadDisplayCard, IDragHandler, IEndDragHa
     bool isFiring;
     bool volleyFiring, rapidFiring;
     bool inMeleeCombat;
+    bool ceaseFiring;
     bool _wasRanged;
     bool _rangedCheckDone;
     bool outOfAmmo;
@@ -74,6 +75,7 @@ public class SquadDisplayCardBattle : SquadDisplayCard, IDragHandler, IEndDragHa
         isBracing = entityManager.IsComponentEnabled<BracedTag>(squadEntity.SelfEntity);
         defensiveStance = entityManager.IsComponentEnabled<DefensiveStanceTag>(squadEntity.SelfEntity);
         inMeleeCombat = entityManager.HasComponent<InCombat>(squadEntity.SelfEntity);
+        ceaseFiring = entityManager.IsComponentEnabled<CeaseFireTag>(squadEntity.SelfEntity);
         outOfAmmo = _wasRanged && !entityManager.HasComponent<RangedSquad>(squadEntity.SelfEntity);
 
         isFiring = !outOfAmmo && entityManager.HasComponent<FormationEngagedInRangedCombat>(squadEntity.SelfEntity);
@@ -101,7 +103,7 @@ public class SquadDisplayCardBattle : SquadDisplayCard, IDragHandler, IEndDragHa
         MoraleComponent moraleComponent = entityManager.GetComponentData<MoraleComponent>(squadEntity.SelfEntity);
         moraleSlider.value = moraleComponent.CurrentMorale / moraleComponent.MaxMorale;
 
-        _quickInfo.UpdateSquadDisplay(isMoving, isCharging, isBracing, defensiveStance, volleyFiring, rapidFiring, inMeleeCombat);
+        _quickInfo.UpdateSquadDisplay(isMoving, isCharging, isBracing, defensiveStance, volleyFiring, rapidFiring, inMeleeCombat, ceaseFiring);
 
         if (_outOfAmmoIcon != null)
             _outOfAmmoIcon.SetActive(outOfAmmo);

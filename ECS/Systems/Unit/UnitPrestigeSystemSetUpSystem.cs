@@ -36,19 +36,11 @@ partial struct UnitPrestigeSystemSetUpSystem : ISystem
                 MeleeDefense.ValueRW.Value += TabletopTavernConstants.PRESTIGE_BONUS * UnitPrestigeSetUpTag.ValueRO.PrestigeLevel;
             }
 
-            // Granted trait tags that live on the per-unit ECS blob (UnitSetUpSystem) rather than
-            // the squad-level SquadStats copy, so they can't be granted via RegisterSquad alone.
-            switch (UnitPrestigeSetUpTag.ValueRO.GrantedTrait) {
-                case UnitAttribute.ArmorPiercing:
-                    entityCommandBuffer.AddComponent<ArmorPiercingTag>(entity);
-                    break;
-                case UnitAttribute.AntiInfantry:
-                    entityCommandBuffer.AddComponent<AntiInfantryTag>(entity);
-                    break;
-                case UnitAttribute.AntiLarge:
-                    entityCommandBuffer.AddComponent<AntiLargeTag>(entity);
-                    break;
-            }
+            // Granted trait tags (ArmorPiercingTag/AntiInfantryTag/AntiLargeTag) and gear bonuses that
+            // key off them (e.g. Glaives) are now applied in UnitSetUpSystem, which merges GrantedTrait
+            // into SquadAttributes before computing gear/attribute bonuses. Doing it here instead was too
+            // late: this system only runs once MeleeAttack exists (i.e. after UnitSetUpSystem already
+            // baked WeaponStrength), so gear bonuses gated on the granted trait were silently dropped.
 
             entityCommandBuffer.RemoveComponent<UnitPrestigeSetUpTag>(entity);
         }

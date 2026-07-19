@@ -216,17 +216,24 @@ namespace TJ
                 //Create Range Drawer for the squad
                 if (unitType == UnitType.Ranged)
                 {
-                    int ammunition = squadStats.Ammunition + TabletopTavernConstants.PRESTIGE_AMMO_BONUS_RANGED * BattleManager.Instance.SquadManager.GetSquadPrestige(squadEntity.SquadId);
-
-                    // if hero is Bertha (14) Supply Lines
-                    if(HeroBonusManager.Instance.ActiveHeroID == 14)
+                    int ammunition = squadStats.Ammunition;
+                    //only increase ammo here if not one of the special cases
+                    if(!TabletopTavernConstants.UsesMeleePrestige(squadEntity.UnitName))
                     {
-                        ammunition = (int)(ammunition * 1.5f);
+                        ammunition += TabletopTavernConstants.PRESTIGE_AMMO_BONUS_RANGED * BattleManager.Instance.SquadManager.GetSquadPrestige(squadEntity.SquadId);
                     }
-                    ecb.AddComponent(entity, new RangedSquad() 
-                    { 
+
+                    // Hero-granted ammunition bonuses (e.g. Bertha/14 Supply Lines) now come from
+                    // HeroBonusManager's rule data instead of a hardcoded hero check.
+                    if (HeroBonusManager.Instance.ActiveHeroID != -1)
+                    {
+                        foreach (var bonus in HeroBonusManager.GetHeroStatBonus(UnitStat.Ammunition, squadEntity.UnitName, HeroBonusManager.Instance.ActiveHeroID, ammunition))
+                            ammunition += (int)bonus.Value;
+                    }
+                    ecb.AddComponent(entity, new RangedSquad()
+                    {
                         // AttackRange = squadStats.BaseRange,
-                        Ammunition = ammunition 
+                        Ammunition = ammunition
                     });
 
                     ecb.AddComponent(entity, new RangedFireModeSquadComponent() { FireMode = RangedFireMode.Volley, SwitchRequested = false });
@@ -241,10 +248,12 @@ namespace TJ
                 else if (unitType == UnitType.Artillery)
                 {
                     int ammunition = squadStats.Ammunition + TabletopTavernConstants.PRESTIGE_AMMO_BONUS_ARTILLERY * BattleManager.Instance.SquadManager.GetSquadPrestige(squadEntity.SquadId);
-                    // if hero is Bertha (14) Supply Lines
-                    if(HeroBonusManager.Instance.ActiveHeroID == 14)
+                    // Hero-granted ammunition bonuses (e.g. Bertha/14 Supply Lines) now come from
+                    // HeroBonusManager's rule data instead of a hardcoded hero check.
+                    if (HeroBonusManager.Instance.ActiveHeroID != -1)
                     {
-                        ammunition = (int)(ammunition * 1.5f);
+                        foreach (var bonus in HeroBonusManager.GetHeroStatBonus(UnitStat.Ammunition, squadEntity.UnitName, HeroBonusManager.Instance.ActiveHeroID, ammunition))
+                            ammunition += (int)bonus.Value;
                     }
                     ecb.AddComponent(entity, new RangedSquad() { Ammunition = ammunition });
                     BattleManager.Instance.SquadManager.CreateArcherRangeDrawer(squadEntity);

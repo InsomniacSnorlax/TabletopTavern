@@ -13,17 +13,18 @@ using UnityEngine.EventSystems;
 using Memori.Steamworks;
 using Memori.Audio;
 using UnityEngine.AddressableAssets;
+using Memori.Notifications;
 
 namespace TJ.MainMenu
 {
     public class MainMenu : MonoBehaviour
     {
-        [SerializeField] private MainMenuPanel mainMenuPanel, playPanel, upgradesPanel, questsPanel, libraryPanel, exitPanel;
+        [SerializeField] private MainMenuPanel mainMenuPanel, playPanel, upgradesPanel, questsPanel, libraryPanel, exitPanel, modsPanel;
 
         [Header("Buttons")]
         [SerializeField] private Button playPanelButton;
-        [SerializeField] private Button upgradesPanelButton, questsPanelButton, collectionPanelButton, settingsPanelButton, exitPanelButton, abandonRunButton, customBattleButton;
-        enum PanelType { Main, Play, Upgrades, Quests, Collection, Options, Exit }
+        [SerializeField] private Button upgradesPanelButton, questsPanelButton, collectionPanelButton, settingsPanelButton, exitPanelButton, abandonRunButton, customBattleButton, modsPanelButton;
+        enum PanelType { Main, Play, Upgrades, Quests, Collection, Options, Exit, Mods }
         MainMenuPanel currentPanel;
         bool _isPanelTransitioning;
         [SerializeField] private Canvas mainMenuCanvas;
@@ -60,6 +61,8 @@ namespace TJ.MainMenu
         private GameObject localizationPanelInstance;
         bool campaignSaveDataExists;
         private const string DEMO_SAVE_PROMPT_KEY = "demo_save_prompt_shown";
+        private const string LAST_LOADED_MOD_COUNT_KEY = "last_loaded_mod_count";
+        private bool _hasCheckedModCountThisSession;
         private void Awake()
         {
             depthField = mainMenuVolume.profile.TryGet<DepthOfField>(out depthField) ? depthField : null;
@@ -70,6 +73,7 @@ namespace TJ.MainMenu
             upgradesPanelButton.onClick.AddListener(() => OpenPanel(PanelType.Upgrades));
             // questsPanelButton.onClick.AddListener(() => OpenPanel(PanelType.Quests));
             collectionPanelButton.onClick.AddListener(() => OpenPanel(PanelType.Collection));
+            modsPanelButton.onClick.AddListener(() => OpenPanel(PanelType.Mods));
             settingsPanelButton.onClick.AddListener(() => OpenSettingsPanel());
             exitPanelButton.onClick.AddListener(() => OpenPanel(PanelType.Exit));
             closeRoadmapCanvasButton.onClick.AddListener(CloseRoadmapFirstTime);
@@ -87,6 +91,7 @@ namespace TJ.MainMenu
             questsPanel.SetUp(this);
             libraryPanel.SetUp(this);
             exitPanel.SetUp(this);
+            modsPanel.SetUp(this);
             SceneHandler.Instance.OnGameStateChanged += OnGameStateChanged;
             SettingsManager.Instance.OnSettingsPanelToggled += OnSettingsPanelToggled;
 
@@ -109,6 +114,13 @@ namespace TJ.MainMenu
             mainMenuCanvas.enabled = true;
             mainMenuPanel.OpenPanel();
             currentPanel = mainMenuPanel;
+
+            if (!_hasCheckedModCountThisSession)
+            {
+                _hasCheckedModCountThisSession = true;
+                CheckModCountChanged();
+            }
+
             SceneHandler.Instance.AlertOfSceneSetUpComlete();
 
             if (isNewPlayer)
@@ -134,6 +146,20 @@ namespace TJ.MainMenu
             // }
 
         }
+        private async void CheckModCountChanged()
+        {
+            int currentModCount = ModLoadOrder.GetEnabledModFolderPathsInOrder().Count;
+            int lastModCount = PlayerPrefs.GetInt(LAST_LOADED_MOD_COUNT_KEY, -1);
+
+            PlayerPrefs.SetInt(LAST_LOADED_MOD_COUNT_KEY, currentModCount);
+            PlayerPrefs.Save();
+
+            if (lastModCount != -1 && lastModCount != currentModCount)
+            {
+                await Task.Delay(2000);
+                NotificationManager.Instance.DisplayNotification(string.Format(LocalizationManager.Instance.GetText("modsCountChanged"), currentModCount));
+            }
+        }
         private async void FadeInTitle()
         {
             IAudioRequester.Instance.PlayMenuMusic();
@@ -154,6 +180,13 @@ namespace TJ.MainMenu
                     break;
                 case PanelType.Upgrades:
                     SwitchToUpgradesPanel();
+                    break;
+                case PanelType.Mods:
+                    currentPanel.ClosePanel();
+                    playPanel.gameObject.SetActive(false);
+                    modsPanel.OpenPanel();
+                    depthField.focusDistance.value = 3f;
+                    UpdateCurrentPanel(PanelType.Mods);
                     break;
                 case PanelType.Collection:
                     currentPanel.ClosePanel();
@@ -177,6 +210,7 @@ namespace TJ.MainMenu
                 PanelType.Quests => questsPanel,
                 PanelType.Collection => libraryPanel,
                 PanelType.Exit => exitPanel,
+                PanelType.Mods => modsPanel,
                 _ => currentPanel
             };
         }
@@ -190,7 +224,7 @@ namespace TJ.MainMenu
                 if (panelToClose != mainMenuPanel)
                     panelToClose.ClosePanel();
 
-                if (panelToClose != libraryPanel && panelToClose != mainMenuPanel)
+                if (panelToClose != libraryPanel && panelToClose != modsPanel && panelToClose != mainMenuPanel)
                     await Task.Delay(500);
 
                 mainMenuPanel.gameObject.SetActive(true);
@@ -351,6 +385,7 @@ namespace TJ.MainMenu
             upgradesPanelButton.GetComponentInChildren<TMP_Text>().text = LocalizationManager.Instance.GetText("upgradesButton");
             questsPanelButton.GetComponentInChildren<TMP_Text>().text = LocalizationManager.Instance.GetText("questsButton");
             collectionPanelButton.GetComponentInChildren<TMP_Text>().text = LocalizationManager.Instance.GetText("collectionButton");
+            modsPanelButton.GetComponentInChildren<TMP_Text>().text = LocalizationManager.Instance.GetText("modsButton");
             settingsPanelButton.GetComponentInChildren<TMP_Text>().text = LocalizationManager.Instance.GetText("settingsButton");
             exitPanelButton.GetComponentInChildren<TMP_Text>().text = LocalizationManager.Instance.GetText("exitButton");
             playPanelButton.GetComponentInChildren<TMP_Text>().text = campaignSaveDataExists ?

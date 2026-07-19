@@ -131,43 +131,86 @@ public static class TabletopTavernConstants
     public static bool IsAGoblinUnit(UnitName unitName) =>
         unitName == UnitName.GoblinRabble || unitName == UnitName.GoblinScrapShooters || unitName == UnitName.StonegulletEnforcers;
 
+    // Covers all 24 real SquadAttributes bool fields (every UnitAttribute value except None).
+    // Armored/Large/Infantry/IsOnFire/TowerShields have no backing field (derived elsewhere or
+    // vestigial) and fall through to false here - see SetAttribute for the same set rejected loudly.
     public static bool GetAttribute(SquadAttributes attributes, UnitAttribute trait) => trait switch
     {
+        UnitAttribute.StandardShields => attributes.StandardShields,
         UnitAttribute.ArmorPiercing => attributes.ArmorPiercing,
         UnitAttribute.AntiInfantry => attributes.AntiInfantry,
         UnitAttribute.AntiLarge => attributes.AntiLarge,
         UnitAttribute.Terrifying => attributes.Terrifying,
         UnitAttribute.Stalwart => attributes.Stalwart,
+        UnitAttribute.Outrider => attributes.Outrider,
+        UnitAttribute.SwampCreature => attributes.SwampCreature,
+        UnitAttribute.ForestDweller => attributes.ForestDweller,
+        UnitAttribute.ChickenFlight => attributes.ChickenFlight,
+        UnitAttribute.Ethereal => attributes.Ethereal,
+        UnitAttribute.BloodFrenzy => attributes.BloodFrenzy,
         UnitAttribute.Rage => attributes.Rage,
         UnitAttribute.Emblazing => attributes.Emblazing,
-        UnitAttribute.FlamingAmmo => attributes.FlamingAmmo,
-        UnitAttribute.BackStabbers => attributes.BackStabbers,
+        UnitAttribute.Unstoppable => attributes.Unstoppable,
+        UnitAttribute.HeavyShields => attributes.HeavyShields,
+        UnitAttribute.ThrowingAxes => attributes.ThrowingAxes,
+        UnitAttribute.ArmorSundering => attributes.ArmorSundering,
         UnitAttribute.MonsterSlayer => attributes.MonsterSlayer,
-        UnitAttribute.BloodFrenzy => attributes.BloodFrenzy,
+        UnitAttribute.ForgefuryTempering => attributes.ForgefuryTempering,
+        UnitAttribute.FlamingAmmo => attributes.FlamingAmmo,
+        UnitAttribute.DragonsHoard => attributes.DragonsHoard,
+        UnitAttribute.BackStabbers => attributes.BackStabbers,
+        UnitAttribute.ThickScales => attributes.ThickScales,
         _ => false,
+    };
+
+    // UnitAttribute values with no SquadAttributes backing field - derived elsewhere (Armored,
+    // Large, Infantry, IsOnFire) or vestigial (TowerShields). Not valid targets for data-driven
+    // attribute grants.
+    public static bool HasBackingField(UnitAttribute trait) => trait switch
+    {
+        UnitAttribute.None or UnitAttribute.Armored or UnitAttribute.Large or
+        UnitAttribute.Infantry or UnitAttribute.IsOnFire or UnitAttribute.TowerShields => false,
+        _ => true,
     };
 
     public static List<UnitAttribute> GetEligiblePrestigeTraits(SquadStats squadStats) =>
         PRESTIGE_TRAIT_POOL
             .Where(trait => !GetAttribute(squadStats.SquadAttributes, trait))
             .Where(trait => trait != UnitAttribute.FlamingAmmo || squadStats.unitType == UnitType.Ranged)
+            .Where(trait => trait != UnitAttribute.Emblazing || squadStats.unitType == UnitType.Melee)
             .ToList();
 
     public static void SetAttribute(ref SquadAttributes attributes, UnitAttribute trait)
     {
         switch (trait)
         {
+            case UnitAttribute.StandardShields: attributes.StandardShields = true; break;
             case UnitAttribute.ArmorPiercing: attributes.ArmorPiercing = true; break;
             case UnitAttribute.AntiInfantry: attributes.AntiInfantry = true; break;
             case UnitAttribute.AntiLarge: attributes.AntiLarge = true; break;
             case UnitAttribute.Terrifying: attributes.Terrifying = true; break;
             case UnitAttribute.Stalwart: attributes.Stalwart = true; break;
+            case UnitAttribute.Outrider: attributes.Outrider = true; break;
+            case UnitAttribute.SwampCreature: attributes.SwampCreature = true; break;
+            case UnitAttribute.ForestDweller: attributes.ForestDweller = true; break;
+            case UnitAttribute.ChickenFlight: attributes.ChickenFlight = true; break;
+            case UnitAttribute.Ethereal: attributes.Ethereal = true; break;
+            case UnitAttribute.BloodFrenzy: attributes.BloodFrenzy = true; break;
             case UnitAttribute.Rage: attributes.Rage = true; break;
             case UnitAttribute.Emblazing: attributes.Emblazing = true; break;
-            case UnitAttribute.FlamingAmmo: attributes.FlamingAmmo = true; break;
-            case UnitAttribute.BackStabbers: attributes.BackStabbers = true; break;
+            case UnitAttribute.Unstoppable: attributes.Unstoppable = true; break;
+            case UnitAttribute.HeavyShields: attributes.HeavyShields = true; break;
+            case UnitAttribute.ThrowingAxes: attributes.ThrowingAxes = true; break;
+            case UnitAttribute.ArmorSundering: attributes.ArmorSundering = true; break;
             case UnitAttribute.MonsterSlayer: attributes.MonsterSlayer = true; break;
-            case UnitAttribute.BloodFrenzy: attributes.BloodFrenzy = true; break;
+            case UnitAttribute.ForgefuryTempering: attributes.ForgefuryTempering = true; break;
+            case UnitAttribute.FlamingAmmo: attributes.FlamingAmmo = true; break;
+            case UnitAttribute.DragonsHoard: attributes.DragonsHoard = true; break;
+            case UnitAttribute.BackStabbers: attributes.BackStabbers = true; break;
+            case UnitAttribute.ThickScales: attributes.ThickScales = true; break;
+            default:
+                Debug.LogWarning($"[TabletopTavernConstants] SetAttribute: '{trait}' has no SquadAttributes backing field, ignoring.");
+                break;
         }
     }
 }

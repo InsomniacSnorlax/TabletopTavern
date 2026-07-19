@@ -153,6 +153,18 @@ namespace TJ.Engagement
         List<UnitName> raiseDeadUnitList = new ();
         private Dictionary<Weather, string> _cachedWeatherNames;
 
+        // Watchdog against a stalled LoadEngagement/ShowEngagementResult chain. Both methods hide/lock
+        // the panel, then rely on a run of "await Task.Delay(...)" continuations to unlock it later. If a
+        // continuation never resumes (observed after alt-tabbing during the post-battle map reload, likely
+        // an OS focus/fullscreen-transition hiccup dropping the SynchronizationContext callback), the panel
+        // is left permanently visible-but-non-interactable with no options shown. _engagementRunId lets a
+        // stale continuation detect it's been superseded and bail out instead of double-applying rewards.
+        private int _engagementRunId;
+        private bool _engagementRunComplete;
+        private int _engagementRetryCount;
+        private const float ENGAGEMENT_WATCHDOG_TIMEOUT = 5f;
+        private const int ENGAGEMENT_MAX_RETRIES = 2;
+
         #region SetUp
         public void SetUp(CampaignSaveManager _campaignSaveManager, MapSceneUIManager _mapSceneUIManager)
         {
@@ -245,6 +257,7 @@ namespace TJ.Engagement
             if (isNewGarrisonBattle)
                 IAudioRequester.Instance.SetGarrisonBattleTheme((int)campaignSaveManager.SaveData.townData.townRace);
             IAudioRequester.Instance.PlaySFX(SFXData.SelectToBattle);
+            _engagementRetryCount = 0; // fresh, player-driven entry - not a watchdog retry
             LoadEngagement();
         }
         public void LoadEngagementPanel(NodeType _nodeType)
@@ -258,10 +271,15 @@ namespace TJ.Engagement
             };
             enemyArmyText.text = LocalizationManager.Instance.GetText(engagementType.ToString());
 
+            _engagementRetryCount = 0; // fresh, player-driven entry - not a watchdog retry
             LoadEngagement();
         }
         public async void LoadEngagement()
         {
+            int runId = ++_engagementRunId;
+            _engagementRunComplete = false;
+            StartCoroutine(EngagementLoadWatchdog(runId));
+
             TurnOffAllOptionalRewards();
             recruitButtonHiddenByConscript = false;
             raiseDeadHiddenByRecruit = false;
@@ -289,14 +307,17 @@ namespace TJ.Engagement
             engagementPanelCanvasGroup.canvasGroup.interactable = false;
             openMMFPlayer.PlayFeedbacks();
             await Task.Delay(500);
+            if (runId != _engagementRunId) return; // superseded by a watchdog retry while we waited
 
             // Debug.Log($"campaignSaveManager.SaveData.battleCompleted: {campaignSaveManager.SaveData.battleCompleted}");
 
-            if (campaignSaveManager.SaveData.battleCompleted)
+            bool isPostBattleResult = campaignSaveManager.SaveData.battleCompleted;
+            if (isPostBattleResult)
             {
                 // Debug.Log($"battle completed");
-                await LoadEnemyCompany(true);
-                ShowEngagementResult();
+                await LoadEnemyCompany(true, runId);
+                if (runId != _engagementRunId) return; // superseded while loading enemy cards
+                ShowEngagementResult(runId);
             }
             else
             {
@@ -366,7 +387,7 @@ namespace TJ.Engagement
                     }
 
                     campaignSaveManager.SaveEnemyArmy(enemyArmy);
-                    await LoadEnemyCompany(true);
+                    await LoadEnemyCompany(true, runId);
                     autoResolveBattleManager.Load(garrisonFight);
                 }
 
@@ -417,6 +438,7 @@ namespace TJ.Engagement
                 runLostCanvasGroup.CGDisable();
                 GenerateBattlefield();
                 await GenerateEnemyArmy();
+                if (runId != _engagementRunId) return; // superseded by a watchdog retry
                 bool isTaelindorHero = heroID == 7 || heroID == 8;
                 heavensongButton.gameObject.SetActive(isTaelindorHero);
                 if(isTaelindorHero)
@@ -445,8 +467,42 @@ namespace TJ.Engagement
             engagementPanelCanvasGroup.canvasGroup.interactable = true;
 
             TutorialManager.Instance.LoadStepsFromRandomSpot(new TutorialStep[1] { TutorialData.Autoresolve});
+
+            // Post-battle results finish asynchronously inside ShowEngagementResult, which signals
+            // completion itself; only the fresh pre-battle setup path is fully done right here.
+            if (!isPostBattleResult && runId == _engagementRunId)
+                _engagementRunComplete = true;
         }
-        public async Task LoadEnemyCompany(bool _playfeedbacks)
+        // Watches a single LoadEngagement attempt (identified by runId). If it hasn't finished within
+        // ENGAGEMENT_WATCHDOG_TIMEOUT real seconds, that attempt is treated as stalled (this is what was
+        // silently happening after an alt-tab during the post-battle map reload: the panel stayed visible
+        // but permanently locked, with no exception ever logged) and we retry from scratch. WaitForSecondsRealtime
+        // ignores timeScale so this still fires even if something upstream paused the game.
+        private System.Collections.IEnumerator EngagementLoadWatchdog(int runId)
+        {
+            yield return new WaitForSecondsRealtime(ENGAGEMENT_WATCHDOG_TIMEOUT);
+
+            if (runId != _engagementRunId || _engagementRunComplete) yield break; // completed, or superseded already
+
+            Debug.LogError($"[EngagementPanel] LoadEngagement (runId {runId}) did not complete within {ENGAGEMENT_WATCHDOG_TIMEOUT}s - treating as stalled.");
+
+            if (_engagementRetryCount < ENGAGEMENT_MAX_RETRIES)
+            {
+                _engagementRetryCount++;
+                Debug.LogError($"[EngagementPanel] Retrying LoadEngagement (attempt {_engagementRetryCount}/{ENGAGEMENT_MAX_RETRIES}).");
+                LoadEngagement(); // bumps _engagementRunId, so the stuck attempt above is a no-op if it ever wakes up
+            }
+            else
+            {
+                Debug.LogError("[EngagementPanel] LoadEngagement still stuck after max retries - force-unlocking panel so the player isn't stranded.");
+                _engagementRunId++; // invalidate the stuck attempt permanently
+                isLoadingEnemyCompany = false; // don't leave OnArmyStructureChanged permanently blocked
+                engagementPanelCanvasGroup.canvasGroup.interactable = true;
+                continueButton.gameObject.SetActive(true);
+                continueButton.enabled = true;
+            }
+        }
+        public async Task LoadEnemyCompany(bool _playfeedbacks, int runId)
         {
             isLoadingEnemyCompany = true;
             foreach (Transform child in enemyArmyParent) {
@@ -475,6 +531,11 @@ namespace TJ.Engagement
                 {
                     squadDisplayCardMenu.SpawnInJuice(false);
                     await Task.Delay(100);
+                    if (runId != _engagementRunId)
+                    {
+                        isLoadingEnemyCompany = false; // don't leave OnArmyStructureChanged permanently blocked
+                        return;
+                    }
                 }
             }
             foreach (SquadDisplayCardMenu squad in enemySquadsCards)
@@ -494,7 +555,7 @@ namespace TJ.Engagement
             CampaignManager.Instance.MapSceneUIManager.MapSceneManager.OverrideSelectedNodeBeforeBattle();
             autoResolveBattleManager.AutoResolve();
 
-            ShowEngagementResult();
+            ShowEngagementResult(++_engagementRunId);
         }
         public void StartBattleButtonClicked()
         {
@@ -784,15 +845,16 @@ namespace TJ.Engagement
             continueButton.gameObject.SetActive(true);
             postBattleChoicesClaimed = false;
         }
-        private async void ShowEngagementResult()
+        private async void ShowEngagementResult(int runId)
         {
             if(campaignSaveManager.SaveData.townData.townInteractionStatus == TownInteractionStatus.GarrisonBattleStarted) {
                 campaignSaveManager.MarkGarrisonBattleComplete();
 
                 garrisonFight = true;
             }
-            
-            await LoadEnemyCompany(false);
+
+            await LoadEnemyCompany(false, runId);
+            if (runId != _engagementRunId) return; // superseded by a watchdog retry
 
             int squadCount = 0;
             for(int i = 0; i < CampaignManager.Instance.CampaignSaveManager.SaveData.playerArmy.Length; i++) {
@@ -874,6 +936,9 @@ namespace TJ.Engagement
             endBattleCanvasGroup.FadeInAsync();
             TutorialManager.Instance.LoadStepsFromRandomSpot(new TutorialStep[1] { TutorialData.HealthRecovery });
             HideEndBattlePanel();
+
+            if (runId == _engagementRunId)
+                _engagementRunComplete = true;
         }
         public void ShowUnitsSlain()
         {
@@ -1196,7 +1261,7 @@ namespace TJ.Engagement
             else if(HeroBonusManager.Instance.ActiveHeroID == 13 
                 || HeroBonusManager.Instance.ActiveHeroID == 14) {
 
-                List<GearID> gearList = GearData.GetRandomGear(1, campaignSaveManager.SaveData.Gear, campaignSaveManager.GetSeededRandom(), campaignSaveManager.SaveData.bookNumber);
+                List<GearID> gearList = campaignSaveManager.DrawRandomGear(1);
                 gearID = gearList[0];
                 Gear gear = GearData.GetGear(gearID);
 

@@ -526,65 +526,51 @@ namespace TJ.Map
             campaignSaveManager.MoveUnitToIndex(_guID, _index);
             TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.ReorderUnits);
         }
-        public void ReorderUnits()
+        public void ShiftUnit(string _guID, int _index)
         {
-            // Debug.Log($"Reordering units");
-            List<string> _unitIndexes = new();
-            //go through deployed and then reserves, if child object squad battle card add index else add -1
-            for (int i = 0; i < deployedUnitsParent.childCount; i++)
+            campaignSaveManager.ShiftUnitToIndex(_guID, _index);
+            TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.ReorderUnits);
+        }
+        // Bounds-check (not raycast) lookup so the boosted-sorting-order dragged card can't occlude its own hover target.
+        public SquadDisplayCardMenu FindRealCardUnderScreenPoint(Vector2 _screenPoint, SquadDisplayCardMenu _exclude)
+        {
+            Transform[] parents = { deployedUnitsParent, reserveUnitsParent };
+            foreach (Transform parent in parents)
             {
-                Transform child = deployedUnitsParent.GetChild(i);
-                if (child.GetComponent<SquadDisplayCardMenu>())
+                for (int i = 0; i < parent.childCount; i++)
                 {
-                    _unitIndexes.Add(child.GetComponent<SquadDisplayCardMenu>().UniqueID);
-                }
-                else
-                {
-                    _unitIndexes.Add("-1");
+                    RectTransform childRect = parent.GetChild(i) as RectTransform;
+                    SquadDisplayCardMenu card = parent.GetChild(i).GetComponent<SquadDisplayCardMenu>();
+                    if (card == null || card == _exclude || childRect == null) continue;
+                    if (RectTransformUtility.RectangleContainsScreenPoint(childRect, _screenPoint))
+                        return card;
                 }
             }
-            // partition deployed: real units first, empty slots at the end
-            List<string> deployedReal = _unitIndexes.FindAll(x => x != "-1");
-            List<string> deployedEmpty = _unitIndexes.FindAll(x => x == "-1");
-            _unitIndexes = deployedReal;
-            _unitIndexes.AddRange(deployedEmpty);
+            return null;
+        }
+        // Returns the playerArmy index a card would land on if appended to the end of the packed region, or -1 if the region is full.
+        public int GetFirstEmptySlotIndex(bool _deployedRegion, SquadDisplayCardMenu _exclude)
+        {
+            Transform parent = _deployedRegion ? deployedUnitsParent : reserveUnitsParent;
+            int regionBase = _deployedRegion ? 0 : 10;
+            int capacity = _deployedRegion ? 10 : campaignSaveManager.MaxReserveSlots;
+            // Clamp to the actual playerArmy length in case MaxReserveSlots was just unlocked
+            // mid-run and the save array hasn't been expanded yet (see CampaignSaveManager.EnsureArmyCapacity).
+            capacity = Mathf.Min(capacity, campaignSaveManager.SaveData.playerArmy.Length - regionBase);
 
-            List<string> reserveIndexes = new();
-            for (int i = 0; i < reserveUnitsParent.childCount; i++)
+            int realCount = 0;
+            for (int i = 0; i < parent.childCount; i++)
             {
-                Transform child = reserveUnitsParent.GetChild(i);
-                if (child.GetComponent<SquadDisplayCardMenu>())
-                {
-                    reserveIndexes.Add(child.GetComponent<SquadDisplayCardMenu>().UniqueID);
-                }
-                else
-                {
-                    reserveIndexes.Add("-1");
-                }
+                SquadDisplayCardMenu card = parent.GetChild(i).GetComponent<SquadDisplayCardMenu>();
+                if (card != null && card != _exclude) realCount++;
             }
-            // partition reserves: real units first, empty slots at the end
-            List<string> reserveReal = reserveIndexes.FindAll(x => x != "-1");
-            List<string> reserveEmpty = reserveIndexes.FindAll(x => x == "-1");
-            _unitIndexes.AddRange(reserveReal);
-            _unitIndexes.AddRange(reserveEmpty);
 
-            // Pad to full army array length in case fewer reserve slots are visible (e.g. 3rd slot locked)
-
-            //error here if deleted savedata
-            if(campaignSaveManager.SaveData == null) {
-                return;
-            }
-            int armyLength = campaignSaveManager.SaveData.playerArmy.Length;
-            while (_unitIndexes.Count < armyLength) _unitIndexes.Add("-1");
-            // Trim excess entries (e.g. stale UI children after prestige reduces army size)
-            while (_unitIndexes.Count > armyLength) _unitIndexes.RemoveAt(_unitIndexes.Count - 1);
-
-            string totallist = "";
-            foreach (string item in _unitIndexes)
-            {
-                totallist += item[..1] + ", ";
-            }
-            campaignSaveManager.UpdateUnitIndexes(_unitIndexes);
+            if (realCount >= capacity) return -1;
+            return regionBase + realCount;
+        }
+        public bool RegionHasRoom(bool _deployedRegion, SquadDisplayCardMenu _exclude)
+        {
+            return GetFirstEmptySlotIndex(_deployedRegion, _exclude) >= 0;
         }
         public void HighlightDeployedTroopsArea(bool _highlight)
         {
@@ -810,22 +796,6 @@ namespace TJ.Map
                 Destroy(emptySquadCard);
             }
             emptySquadCards.Clear();
-        }
-        public void ReplaceEmptySquadCards()
-        {
-            DestroyEmptySquadCards();
-            for (int i = deployedUnitsParent.childCount; i < 10; i++)
-            {
-                GameObject newEmptyCard = Instantiate(emptySquadDisplayCardMenuPrefab, deployedUnitsParent);
-                newEmptyCard.name = $"Empty Squad Card {i}";
-                emptySquadCards.Add(newEmptyCard);
-            }
-            for (int i = reserveUnitsParent.childCount; i < campaignSaveManager.MaxReserveSlots; i++)
-            {
-                GameObject newEmptyCard = Instantiate(emptySquadDisplayCardMenuPrefab, reserveUnitsParent);
-                newEmptyCard.name = $"Empty Squad Card {i}";
-                emptySquadCards.Add(newEmptyCard);
-            }
         }
         public void MarkUnitAsJustUsedConsumable(int _unitIndex)
         {
