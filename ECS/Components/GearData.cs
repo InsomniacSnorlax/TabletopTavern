@@ -32,6 +32,13 @@ namespace TJ
         public static void ClearModifierOverrides() => ModifierOverrides.Clear();
         public static void SetModifierOverride(GearID gearID, int value) => ModifierOverrides[gearID] = value;
 
+        // Separate store from ModifierOverrides above - different value (gold cost vs gameplay
+        // modifier) keyed by GearRarity (3 values) instead of GearID (one per item).
+        private static readonly Dictionary<GearRarity, int> CostOverrides = new();
+
+        public static void ClearCostOverrides() => CostOverrides.Clear();
+        public static void SetCostOverride(GearRarity rarity, int cost) => CostOverrides[rarity] = cost;
+
         public const int GEAR_ARMINGSWORDS_MODIFIER         = 6;
         public const int GEAR_BUCKLERSHIELDS_MODIFIER       = 5;
         public const int GEAR_TOWERSHIELDS_MODIFIER        = 100;
@@ -636,13 +643,17 @@ namespace TJ
             GearRarity.Rare => 0.75f,
             _ => 0,
         };
-        public static int GearCost(GearRarity _gearRarity) => _gearRarity switch
+        public static int GearCost(GearRarity _gearRarity)
         {
-            GearRarity.Common => 2,
-            GearRarity.Uncommon => 4,
-            GearRarity.Rare => 6,
-            _ => 0,
-        };
+            if (CostOverrides.TryGetValue(_gearRarity, out int overrideCost)) return overrideCost;
+            return _gearRarity switch
+            {
+                GearRarity.Common => 2,
+                GearRarity.Uncommon => 4,
+                GearRarity.Rare => 6,
+                _ => 0,
+            };
+        }
         public static int GetSellValue(GearRarity _gearRarity)
         {
             return GearCost(_gearRarity);

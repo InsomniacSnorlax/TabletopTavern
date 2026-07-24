@@ -18,14 +18,17 @@ partial struct ArtillerySquadFindTargetSystem : ISystem
     {
         EntityManager entityManager = state.EntityManager;
         EntityCommandBuffer entityCommandBuffer = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
-        
+
+        double now = SystemAPI.Time.ElapsedTime;
+
         //Squad Finding Target
-        foreach (var (squad, squadMovementComponent, SquadOverridesComponent, queuedOrders, entityBuffer, rangedSquad) in SystemAPI.Query<RefRW<
+        foreach (var (squad, squadMovementComponent, SquadOverridesComponent, queuedOrders, entityBuffer, blacklist, rangedSquad) in SystemAPI.Query<RefRW<
             SquadEntity>,
             RefRO<SquadMovementComponent>,
             SquadOverridesComponent,
             DynamicBuffer<QueuedOrder>,
             DynamicBuffer<EntityReferenceBufferElement>,
+            DynamicBuffer<TargetBlacklistElement>,
             RefRO<RangedSquad>>()
         .WithNone<
             ChargeSquad, 
@@ -47,6 +50,20 @@ partial struct ArtillerySquadFindTargetSystem : ISystem
             if(!SquadOverridesComponent.AutoTarget && !entityManager.Exists(squad.ValueRO.TargetSquadEntity))
             {
                 continue;
+            }
+
+            // Prune expired kiter-blacklist entries, then a helper to skip still-blacklisted targets.
+            for (int b = blacklist.Length - 1; b >= 0; b--)
+            {
+                if (now >= blacklist[b].ExpireTime) blacklist.RemoveAtSwapBack(b);
+            }
+            bool IsBlacklisted(Entity candidate)
+            {
+                for (int b = 0; b < blacklist.Length; b++)
+                {
+                    if (blacklist[b].Target == candidate) return true;
+                }
+                return false;
             }
 
             #region if ranged squad target is set, make sure units have targets
@@ -95,6 +112,8 @@ partial struct ArtillerySquadFindTargetSystem : ISystem
             {
                 bool isEnemy = enemySquad.ValueRO.SquadId < 0;
                 if (isEnemy != searchForEnemySquads) continue;
+
+                if(IsBlacklisted(enemySquad.ValueRO.SelfEntity)) continue;
 
                 if(!entityManager.HasComponent<SquadMovementComponent>(enemySquad.ValueRO.SelfEntity)) continue;
 

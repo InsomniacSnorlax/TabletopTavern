@@ -60,11 +60,15 @@ namespace TJ
 #endif
 
         private int consumableCapacity, maxGear, goldRequiredToGenerateInterest = 5;
+        // Metaprogression-derived values are meta-level (fixed between runs), so they are snapshotted
+        // once in Load() rather than re-reading playerSaveData on every property get. Defaults match
+        // the "not unlocked" case for any access before Load() runs.
+        private int reservesHealMultiplier = 1, maxReserveSlots = 2;
         public int GoldRequiredToGenerateInterest => goldRequiredToGenerateInterest;
         public int ConsumableCapacity => consumableCapacity;
         public int MaxGear => maxGear;
-        public int ReservesHealMultiplier => SaveDataHandler.IsMetaprogressionNodeUnlocked(_reservesHealMetaprogressionModel) ? 2 : 1;
-        public int MaxReserveSlots => SaveDataHandler.IsMetaprogressionNodeUnlocked(_thirdReserveSlotMetaprogressionModel) ? 3 : 2;
+        public int ReservesHealMultiplier => reservesHealMultiplier;
+        public int MaxReserveSlots => maxReserveSlots;
 
         public void Init(GameStateEnum _previousGameState)
         {
@@ -111,16 +115,15 @@ namespace TJ
                 goldRequiredToGenerateInterest -= _interestBaseMetaprogressionModel.NodeValue;
                 Debug.Log($"Reduced gold required to generate interest to: {goldRequiredToGenerateInterest}");
             }
-            
+
+            reservesHealMultiplier = SaveDataHandler.IsMetaprogressionNodeUnlocked(_reservesHealMetaprogressionModel) ? 2 : 1;
+            maxReserveSlots = SaveDataHandler.IsMetaprogressionNodeUnlocked(_thirdReserveSlotMetaprogressionModel) ? 3 : 2;
         }
         public void SaveCampaign()
         {
             if (DisableSaving) return;
-            // Debug.Log($"Saving campaign data...");
-            // Debug.Log($"Saving campaign data with selected node index {saveData.GetSelectedNodeIndex()}");
+            // saveData is the authoritative in-memory copy (mutated in place); write through, no reload.
             SaveDataHandler.SaveCampaign(saveData);
-            saveData = SaveDataHandler.Load();
-            // Debug.Log($"Campaign data saved with selected node index {saveData.GetSelectedNodeIndex()}");
         }
         public void SaveCampaignSnapshot()
         {
@@ -128,7 +131,6 @@ namespace TJ
             OnGameSaved?.Invoke();
             // SaveDataHandler.DepositGold(); // legacy deposited-gold flush, disabled - see Renown system
             SaveDataHandler.SaveCampaignSnapshot(saveData);
-            saveData = SaveDataHandler.Load();
         }
 
         #region Set Up
@@ -200,7 +202,7 @@ namespace TJ
         {
             Debug.Log($"Destroying campaign save manager...");
             OnArmyStructureChanged -= SavePlayerArmy;
-            if (SceneHandler.Instance != null)
+            if (SceneHandler.HasInstance)
                 SceneHandler.Instance.OnRequestSceneCleanUp -= OnRequestSceneCleanUp;
         }
         #endregion
@@ -219,6 +221,10 @@ namespace TJ
         public List<SquadKillsStored> GetSquadIdKillCounter()
         {
             return saveData.SquadKillsStore;
+        }
+        public List<SquadLossesStored> GetSquadIdLossCounter()
+        {
+            return saveData.SquadLossesStore;
         }
         public bool CheckForRoomToRecruit()
         {
@@ -366,10 +372,8 @@ namespace TJ
         public void SavePlayerArmy()
         {
             if (DisableSaving) return;
-            CampaignSaveData saveDataCopy = SaveDataHandler.Load();
-            saveDataCopy.playerArmy = saveData.playerArmy;
-            saveDataCopy.unitNameOverrides = saveData.unitNameOverrides;
-            SaveDataHandler.SaveCampaign(saveDataCopy);
+            // saveData is authoritative; persist it directly instead of reloading and overlaying fields.
+            SaveDataHandler.SaveCampaign(saveData);
         }
         public void RemoveZeroHealthSquads()
         {
@@ -693,28 +697,9 @@ namespace TJ
             Debug.Log($"[Unit] Disbanding {saveData.playerArmy[unitIndex].UnitName} (prestige {saveData.playerArmy[unitIndex].UnitPrestige}) at slot {unitIndex}");
             saveData.playerArmy[unitIndex].UnitIndex = -1;
 
-            //refresh all unit ids after the disband, consolidating all units < 10 to the front 0-5 indexes and all units > 10 to the back 10-11 indexes
-            for(int i = 0; i < saveData.playerArmy.Length - 1; i++) {
-                if(saveData.playerArmy[i].UnitIndex == -1) {
-                    for(int j = i + 1; j < saveData.playerArmy.Length; j++) {
-                        if(saveData.playerArmy[j].UnitIndex != -1) {
-
-                            //need to move all units down one
-                            saveData.playerArmy[i] = saveData.playerArmy[j];
-                            saveData.playerArmy[j].UnitIndex = -1;
-                            break;
-
-                        }
-                    }
-                }
-            }
-
-            //refresh all unit ids to match the new indexes
-            for(int i = 0; i < saveData.playerArmy.Length; i++) {
-                if(saveData.playerArmy[i].UnitIndex != -1)
-                    saveData.playerArmy[i].UnitIndex = i;
-            }
-            OnArmyStructureChanged?.Invoke();
+            // ReorderUnits() consolidates the deployed (<10) and reserve (>=10) sections independently,
+            // so a freed deployed slot never gets backfilled by a reserve unit crossing the boundary.
+            ReorderUnits();
         }
         public void MergeSquads(List<string> _guidsByPriority)
         {
@@ -776,7 +761,6 @@ namespace TJ
         }
         public void SaveEnemyArmy(SquadToLoad[] _enemyArmy)
         {
-            saveData = SaveDataHandler.Load();
             saveData.enemyArmy = _enemyArmy;
             SaveCampaign();
         }
@@ -1156,7 +1140,6 @@ namespace TJ
         public void SaveBattlefieldPreset(BattleFieldPreset _battleFieldPreset)
         {
             // Debug.Log($"saving battlefield preset with biome: {_battleFieldPreset.biome}");
-            saveData = SaveDataHandler.Load();
             saveData.battleFieldPreset = _battleFieldPreset;
             SaveCampaign();
         }
@@ -1238,6 +1221,16 @@ namespace TJ
             // tempSaveData.goldAmount = saveData.goldAmount;
             SaveDataHandler.SaveCampaign(tempSaveData);
             OnGearChanged?.Invoke();
+        }
+        // Called when the player leaves the shop, so gear sold before or during that visit becomes
+        // drawable again from the next shop/loot roll onward.
+        public void ClearSoldGear()
+        {
+            if (saveData.SoldGear.Count == 0) return;
+            saveData.SoldGear.Clear();
+            CampaignSaveData tempSaveData = SaveDataHandler.Load();
+            tempSaveData.SoldGear = saveData.SoldGear;
+            SaveDataHandler.SaveCampaign(tempSaveData);
         }
         // Draws random gear excluding both currently-owned and previously-sold-this-run gear,
         // so a sold item can't immediately reappear from the next pack/loot roll. If the sold-gear
@@ -1440,7 +1433,7 @@ namespace TJ
             SaveCampaign();
         }
         public void SaveSquadsPostAutoresolve(
-            SquadToLoad[] _playerSquads, SquadToLoad[] _enemySquads, bool _playerWon, List<SquadKillsStored> _squadIdKillCounter)
+            SquadToLoad[] _playerSquads, SquadToLoad[] _enemySquads, bool _playerWon, List<SquadKillsStored> _squadIdKillCounter, List<SquadLossesStored> _squadIdLossCounter)
         {
             // Debug.Log($"playersquads length post battle: {_playerSquads.Length}");
             for (int i = 0; i < saveData.playerArmy.Length; i++)
@@ -1466,6 +1459,8 @@ namespace TJ
             int totalKills = 0;
             foreach (var squadKill in _squadIdKillCounter) totalKills += squadKill.Kills;
             saveData.RunStats.enemiesSlain += totalKills;
+
+            saveData.SquadLossesStore = _squadIdLossCounter;
 
             foreach (var playerSquad in _playerSquads)
             {
@@ -1591,6 +1586,7 @@ namespace TJ
             }
 
             SaveDataHandler.SavePlayerSaveData(playerSaveData);
+            SaveDataHandler.RefreshTavernThemeUnlocks();
         }
 
         // Checks playerSaveData for godking completions and unlocks the achievement if earned.

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace TJ
 {
@@ -11,6 +12,17 @@ namespace TJ
     }
     public static class ConsumableData
     {
+        private static readonly Dictionary<ConsumableRarity, int> CostOverrides = new();
+        private static readonly Dictionary<(int ActNumber, ConsumableEnum Consumable), float> DropChanceOverrides = new();
+
+        public static void ClearEconomyOverrides()
+        {
+            CostOverrides.Clear();
+            DropChanceOverrides.Clear();
+        }
+        public static void SetCostOverride(ConsumableRarity rarity, int cost) => CostOverrides[rarity] = cost;
+        public static void SetDropChanceOverride(int actNumber, ConsumableEnum consumable, float weight) => DropChanceOverrides[(actNumber, consumable)] = weight;
+
         public static Consumable GetConsumable(ConsumableEnum _consumableType)
         {
             return _consumableType switch
@@ -183,6 +195,7 @@ namespace TJ
         }
         public static float ConsumableDropChance(ConsumableEnum _consumable, int actNumber)
         {
+            if (DropChanceOverrides.TryGetValue((actNumber, _consumable), out float overrideWeight)) return overrideWeight;
             switch (actNumber)
             {
                 case 1: return _consumable switch
@@ -251,14 +264,18 @@ namespace TJ
                 };
             }
         }
-        public static int ConsumableCost(ConsumableRarity _consumableRarity) => _consumableRarity switch
+        public static int ConsumableCost(ConsumableRarity _consumableRarity)
         {
-            ConsumableRarity.Common => 4,
-            ConsumableRarity.Uncommon => 8,
-            ConsumableRarity.Rare => 25,
-            ConsumableRarity.Legendary => 60,
-            _ => 69,
-        };
+            if (CostOverrides.TryGetValue(_consumableRarity, out int overrideCost)) return overrideCost;
+            return _consumableRarity switch
+            {
+                ConsumableRarity.Common => 4,
+                ConsumableRarity.Uncommon => 8,
+                ConsumableRarity.Rare => 25,
+                ConsumableRarity.Legendary => 60,
+                _ => 69,
+            };
+        }
         public static int SellValue(ConsumableRarity _consumableRarity)
         {
             return ConsumableCost(_consumableRarity) / 2;

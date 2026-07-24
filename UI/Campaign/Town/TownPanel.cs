@@ -132,12 +132,7 @@ namespace TJ.Town
         {
             townSaveData = campaignSaveManager.SaveData.townData;
             // Debug.Log($"Setting up town info: {townSaveData.hasLootedGear} bountyAmount: {townSaveData.bountyAmount} gear IDs: {string.Join(", ", townSaveData.townLootGearIDs)}");
-            recruitmentCost = townSaveData.townSize switch
-            {
-                TownSize.Castle => TabletopTavernConstants.CASTLE_RECRUIT_COST,
-                TownSize.City => TabletopTavernConstants.CITY_RECRUIT_COST,
-                _ => TabletopTavernConstants.VILLAGE_RECRUIT_COST,
-            };
+            recruitmentCost = TownSaveData.GetTownRecruitCost(townSaveData.townSize);
             string townSizeLocalized = LocalizationManager.Instance.GetText(townSaveData.townSize.ToString());
             townNameText.text = LocalizationManager.Instance.GetText(townSaveData.townName);
             string raceLocalized = LocalizationManager.Instance.GetText(townSaveData.townRace.ToString());
@@ -527,16 +522,50 @@ namespace TJ.Town
                 return TownSize.Village;
         }
     }
+    private static readonly Dictionary<TownSize, (int Min, int Max)> BountyRangeOverrides = new();
+    // Lives here rather than on TabletopTavernConstants (where VILLAGE/CASTLE/CITY_RECRUIT_COST
+    // are declared) because TownSize is part of the root TabletopTavern.Core assembly, and
+    // TabletopTavernConstants compiles into the separate Components assembly, which cannot
+    // reference back to root. Root -> Components is fine, so this reads the consts directly below.
+    private static readonly Dictionary<TownSize, int> RecruitCostOverrides = new();
+
+    public static void ClearEconomyOverrides()
+    {
+        BountyRangeOverrides.Clear();
+        RecruitCostOverrides.Clear();
+    }
+    // Validated by the caller (EconomyOverrideLoader) before this is invoked - System.Random.Next
+    // throws if max < min, and that would surface as a live crash during town generation rather
+    // than at boot-time mod load, so a bad pair must never reach this dictionary.
+    public static void SetBountyRangeOverride(TownSize size, int min, int max) => BountyRangeOverrides[size] = (min, max);
+    public static void SetRecruitCostOverride(TownSize size, int cost) => RecruitCostOverrides[size] = cost;
+
+    public static int GetTownRecruitCost(TownSize townSize)
+    {
+        if (RecruitCostOverrides.TryGetValue(townSize, out int overrideCost)) return overrideCost;
+        return townSize switch
+        {
+            TownSize.Castle => TabletopTavernConstants.CASTLE_RECRUIT_COST,
+            TownSize.City => TabletopTavernConstants.CITY_RECRUIT_COST,
+            _ => TabletopTavernConstants.VILLAGE_RECRUIT_COST,
+        };
+    }
+
+    public static (int Min, int Max) GetDefaultBountyRange(TownSize townSize) => townSize switch
+    {
+        TownSize.Village => (4, 7),
+        TownSize.Castle => (9, 12),
+        TownSize.City => (14, 17),
+        _ => (0, 0),
+    };
+    public static (int Min, int Max) GetEffectiveBountyRange(TownSize townSize) =>
+        BountyRangeOverrides.TryGetValue(townSize, out var range) ? range : GetDefaultBountyRange(townSize);
+
     public static int GenerateBountyAmount(TownSize _townWealth, int _seed)
     {
         System.Random random = new(Seed: _seed);
-        return _townWealth switch
-        {
-            TownSize.Village => random.Next(4, 7),
-            TownSize.Castle => random.Next(9, 12),
-            TownSize.City => random.Next(14, 17),
-            _ => 0,
-        };
+        var range = GetEffectiveBountyRange(_townWealth);
+        return random.Next(range.Min, range.Max);
     }
 }
  

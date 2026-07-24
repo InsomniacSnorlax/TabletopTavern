@@ -17,15 +17,15 @@ partial struct BloodFrenzySystem : ISystem
     {
         EntityCommandBuffer entityCommandBuffer = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
         var statsData = SystemAPI.GetSingleton<SquadStatsData>();
-        ref var statsBlob = ref statsData.StatsBlob.Value; 
-        
+        ref var statsBlob = ref statsData.StatsBlob.Value;
+
         foreach (var (squad, squadstate, battlefieldBonusBufferElement, entity) in SystemAPI.Query<
             RefRO<SquadEntity>,
             RefRO<SquadStateComponent>,
             DynamicBuffer<BattlefieldBonusBufferElement>
             >().WithPresent<BloodFrenzyApplicatorTag>().WithEntityAccess())
         {
-            if (squadstate.ValueRO.CurrentHealthValue > squadstate.ValueRO.MaxHealthValue * 0.75f)
+            if (squadstate.ValueRO.CurrentHealthValue > squadstate.ValueRO.MaxHealthValue * 0.5f)
             {
                 // Debug.Log($"BloodFrenzySystem: Applying blood frenzy to squad {squad.ValueRO.SquadId}");
                 //apply blood frenzy
@@ -33,8 +33,8 @@ partial struct BloodFrenzySystem : ISystem
                 entityCommandBuffer.AddComponent<BloodFrenzyActiveTag>(entity);
 
                 SquadStats squadStats = statsBlob.GetStats(squad.ValueRO.UnitName);
-                int bonus = (int)(squadStats.WeaponStrength * 1.5f);
-                float speedBonus = squadStats.Speed * 0.2f / 10f;
+                int bonus = (int)(squadStats.WeaponStrength * 1f);
+                float speedBonus = 20f / 10f; // flat +20 Speed (SquadStats scale), converted to AgentLocomotion scale
 
                 battlefieldBonusBufferElement.Add(new BattlefieldBonusBufferElement
                 {
@@ -62,14 +62,14 @@ partial struct BloodFrenzySystem : ISystem
             }
         }
 
-        //remove blood frenzy when health goes to or below 75% of max health
+        //remove blood frenzy when health goes to or below 50% of max health
         foreach (var (squad, squadstate, battlefieldBonusBufferElement, entity) in SystemAPI.Query<
             RefRO<SquadEntity>,
             RefRO<SquadStateComponent>,
             DynamicBuffer<BattlefieldBonusBufferElement>
             >().WithPresent<BloodFrenzyActiveTag>().WithEntityAccess())
         {
-            if (squadstate.ValueRO.CurrentHealthValue <= squadstate.ValueRO.MaxHealthValue * 0.75f)
+            if (squadstate.ValueRO.CurrentHealthValue <= squadstate.ValueRO.MaxHealthValue * 0.5f)
             {
                 // Debug.Log($"BloodFrenzySystem: Removing blood frenzy from squad {squad.ValueRO.SquadId}");
                 //remove blood frenzy

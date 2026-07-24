@@ -258,6 +258,10 @@ namespace TJ.MainMenu
         }
         private void SetUpTavernThemeDropdown()
         {
+            // Re-evaluated on every open so a Godking run finished this session is reflected here
+            // without needing a game restart, and so already-affected saves repair themselves.
+            SaveDataHandler.RefreshTavernThemeUnlocks();
+
             _tavernThemeDropdown.options.Clear();
 
             foreach (TavernThemeData theme in _tavernThemes)

@@ -47,7 +47,7 @@ namespace TJ.Map
         {
             Debug.Log($"Map scene game state changed to {gameStateEnum}");
             // Debug.Log($"Previous game state was {SceneHandler.Instance.PreviousGameState}");
-            if(CampaignManager.Instance == null)
+            if(CampaignManager.InstanceIfExists == null)
             {
                 Debug.LogError("CampaignManager.Instance is null");
                 return;
@@ -393,7 +393,7 @@ namespace TJ.Map
             }
 
             // Debug.Log($"Layer completed. Moving to layer {activeChapterIndex}");
-            // if (activeChapterIndex == 1)
+            // if (activeChapterIndex == 0) // for quick completion check
             if (activeChapterIndex == mapLayers.Count - 1)
             {
                 if(bookNumber == 3)
@@ -469,12 +469,15 @@ namespace TJ.Map
             Debug.Log($"Overriding selected node {selectedNode.Value.index}");
             CampaignManager.Instance.CampaignSaveManager.RecordSelectedNode(selectedNode.Value.index);
         }
+        private bool hoppingArrived = false;
+        private const float ArrivalWatchdogBuffer = 2f;
         public void SelectNode(MapNode _selectedNode)
         {
             Debug.Log($"Selecting node {_selectedNode.Value.index}");
             selectedNode = _selectedNode;
+            hoppingArrived = false;
             SetMapInput(false);
-            
+
             TutorialManager.Instance.CompleteStepCheck(TutorialStepEnum.SelectNode);
 
             StartCoroutine(MoveTokenToNode(selectedNode));
@@ -497,17 +500,36 @@ namespace TJ.Map
                 speed = 3f;
             }
 #endif
+            float travelTime = distance / speed;
+
+            // Safety net: if the landing feedback chain never calls back (e.g. the player
+            // alt-tabs mid-hop and the hop/land MMF sequence desyncs), force the arrival
+            // logic so the player never gets permanently stuck with map input locked.
+            StartCoroutine(ArrivalWatchdog(_node, travelTime + ArrivalWatchdogBuffer));
+
             float time = 0f;
-            while (time < distance / speed) {
+            while (time < travelTime) {
                 time += Time.deltaTime;
-                playerToken.transform.position = Vector3.Lerp(startPos, endPos, time / (distance / speed));
+                playerToken.transform.position = Vector3.Lerp(startPos, endPos, time / travelTime);
                 yield return null;
             }
             playerToken.transform.position = endPos;
             playerToken.ReachedDestination(this);
         }
+        private IEnumerator ArrivalWatchdog(MapNode _node, float timeout)
+        {
+            yield return new WaitForSeconds(timeout);
+            if (!hoppingArrived && selectedNode == _node)
+            {
+                Debug.LogWarning($"[Map] Arrival watchdog forcing FinishHopping for node {_node.Value.index} - landing sequence never completed");
+                FinishHopping();
+            }
+        }
         public void FinishHopping()
         {
+            if (hoppingArrived) return;
+            hoppingArrived = true;
+
             Debug.Log($"[Map] Arrived at node {selectedNode.Value.index} ({selectedNode.Value.type}) layer {selectedNode.Value.layer}");
             selectedNode.NodeClicked();
             DeselectOtherNodesOnLayer();
@@ -528,7 +550,7 @@ namespace TJ.Map
         }
         public void OnDestroy()
         {
-            if(SceneHandler.Instance != null)
+            if(SceneHandler.HasInstance)
                 SceneHandler.Instance.OnGameStateChanged -= OnGameStateChanged;
             if(InputHandler.HasInstance)
                 InputHandler.Instance.PrimaryActionPerformed -= LeftClick;

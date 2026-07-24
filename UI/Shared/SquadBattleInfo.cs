@@ -428,12 +428,15 @@ namespace TJ
         }
         public void GetHistoricalSquadKillCount()
         {
-            if (SceneHandler.Instance.CurrentGameState != GameStateEnum.Map)
+            // The state flips to Map before the Map scene finishes loading, so the manager can still
+            // be absent here - resolve without creating one rather than fabricating an empty manager.
+            CampaignManager campaignManager = SceneHandler.Instance.CurrentGameState == GameStateEnum.Map ? CampaignManager.InstanceIfExists : null;
+            if (campaignManager == null)
             {
                 unitKillsText.text = "";
                 return;
             }
-            unitKillsText.text = CampaignManager.Instance.CampaignSaveManager.GetSquadHistoricalKillCount(squadToLoad.UniqueID).ToString();
+            unitKillsText.text = campaignManager.CampaignSaveManager.GetSquadHistoricalKillCount(squadToLoad.UniqueID).ToString();
         }
         public void GetUnitNameHistoricalKillCount()
         {

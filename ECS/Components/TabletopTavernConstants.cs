@@ -33,6 +33,11 @@ public static class TabletopTavernConstants
     public const int TIME_TO_REMOVE_CHARGE_BONUS = 6;
     public const float TERROR_RADIUS = 20f;
     public const int OVERIDE_TARGET_SQUADENTITY_DISTANCE = 20;
+    // Melee pursuit watchdog: abandon an uncatchable (kiting) target that isn't being closed on.
+    public const float MELEE_PURSUIT_GIVEUP_TIME = 4f;          // no-closing time before abandon
+    public const float MELEE_PURSUIT_CLOSE_EPSILON = 0.75f;     // min improvement counted as progress
+    public const float MELEE_TARGET_BLACKLIST_COOLDOWN = 8f;    // how long an abandoned kiter is ignored
+    public const float RANGED_REPRIORITIZE_CLOSER_FRACTION = 0.66f; // ranged: switch aim only if >=34% closer
     public const int ARCHER_FLEE_DISTANCE = 20;
     public const int WITHDRAW_DISTANCE = 155;
     public const int MINIMUM_ARCHER_RANGE = 15;
@@ -101,6 +106,32 @@ public static class TabletopTavernConstants
     // Wishlists
     public const string WISHLIST_COUNT = "120,780";
 
+    #region Economy Mod Overrides
+    // Consts above are compiler-inlined at every call site, so a runtime override can't intercept
+    // them directly - these dictionaries/nullable fields back the wrapper functions below instead.
+    // Note: the town-recruit-cost override (keyed by TownSize) is NOT here - TownSize lives in
+    // TownPanel.cs, part of the root TabletopTavern.Core assembly, which this Components assembly
+    // cannot reference (root already references Components; the reverse would be circular). See
+    // TownSaveData.GetTownRecruitCost in TownPanel.cs instead, which reads VILLAGE/CASTLE/
+    // CITY_RECRUIT_COST below as its fallback defaults (root -> Components is a valid direction).
+    private static readonly Dictionary<int, int> UnitCostOverrides = new();
+    private static int? RansomCaptivesRewardOverride, SkirmishRewardOverride, HordeRewardOverride;
+
+    public static void ClearEconomyOverrides()
+    {
+        UnitCostOverrides.Clear();
+        RansomCaptivesRewardOverride = SkirmishRewardOverride = HordeRewardOverride = null;
+    }
+    public static void SetUnitTierCostOverride(int tier, int cost) => UnitCostOverrides[tier] = cost;
+    public static void SetRansomCaptivesRewardOverride(int value) => RansomCaptivesRewardOverride = value;
+    public static void SetSkirmishRewardOverride(int value) => SkirmishRewardOverride = value;
+    public static void SetHordeRewardOverride(int value) => HordeRewardOverride = value;
+
+    public static int GetRansomCaptivesReward() => RansomCaptivesRewardOverride ?? RANSOM_CAPTIVES_REWARD;
+    public static int GetSkirmishReward() => SkirmishRewardOverride ?? SKIRMISH_REWARD;
+    public static int GetHordeReward() => HordeRewardOverride ?? HORDE_REWARD;
+    #endregion
+
     public static float GetSpread(UnitSize unitSize)
     {
         return unitSize switch
@@ -115,6 +146,7 @@ public static class TabletopTavernConstants
     }
     public static int GetUnitCost(int _unitTier)
     {
+        if (UnitCostOverrides.TryGetValue(_unitTier, out int overrideCost)) return overrideCost;
         return _unitTier switch
         {
             1 => 2,

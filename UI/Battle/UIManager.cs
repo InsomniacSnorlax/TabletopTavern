@@ -328,7 +328,14 @@ namespace TJ
             // so update the order on every add. In campaign battles, wait until all squads
             // are loaded before initializing to avoid redundant layout rebuilds during load.
             bool isCustomBattle = BattleManager.Instance.BattleSaveManager.IsCustomBattle;
-            if(isCustomBattle || BattleManager.Instance.BattleSaveManager.PlayerSquadsToSpawn == squadDisplays.Count)
+            // A squad arriving after the order already exists (e.g. summoned by a spell) is appended
+            // rather than triggering a wholesale re-Initialize, which would discard any manual card
+            // reordering the player has done.
+            if(BattleManager.Instance.SquadOrderManager.IsInitialized)
+            {
+                BattleManager.Instance.SquadOrderManager.AddSquad(_squad.SquadId);
+            }
+            else if(isCustomBattle || BattleManager.Instance.BattleSaveManager.PlayerSquadsToSpawn == squadDisplays.Count)
             {
                 var orderedIds = squadDisplays.ConvertAll(c => c.SquadId);
                 orderedIds.Sort();
@@ -659,25 +666,25 @@ namespace TJ
         #region Battle Buttons Hotkeys
         private void ToggleGuardMode()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             guardModeButton.HotkeyInteract();
         }
         private void ToggleAutoRetarget()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             autoRetargetButton.HotkeyInteract();
         }
         private void ToggleMeleeMode()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             meleeModeButton.HotkeyInteract();
         }
         private void SetFireAtWillMode()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetFireAtWill();
             volleyFireButton.SetOnOrOff(false);
@@ -685,7 +692,7 @@ namespace TJ
         }
         private void SetVolleyFireMode()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetVolleyFire();
             fireAtWillButton.SetOnOrOff(false);
@@ -693,7 +700,7 @@ namespace TJ
         }
         private void SetBalancedStance()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetBalancedStance();
             defensiveStanceButton.SetOnOrOff(false);
@@ -701,7 +708,7 @@ namespace TJ
         }
         private void SetDefensiveStance()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             BattleManager.Instance.SquadManager.SetDefensiveStance();
             balancedStanceButton.SetOnOrOff(false);
@@ -709,7 +716,7 @@ namespace TJ
         }
         private void SetCeaseFireMode()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
             IssueCeaseFireCommand();
         }
@@ -880,7 +887,7 @@ namespace TJ
         }
         private void IssueHaltCommand()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             BattleManager.Instance.UnitPositioningManager.QueueSquadCommand(SquadCommand.HaltAndFreeze, false);
         }
         private void IssueCeaseFireCommand()
@@ -898,7 +905,7 @@ namespace TJ
         private void OnDestroy()
         {
             _isLoaded = false;
-            if (BattleManager.Instance != null)
+            if (BattleManager.HasInstance)
             {
                 BattleManager.Instance.OnGamePhaseChanged -= OnGamePhaseChanged;
                 BattleManager.Instance.UnitSelectionManager.OnSelectedSquadsChanged -= OnSelectedSquadsChanged;
@@ -906,7 +913,7 @@ namespace TJ
                 BattleManager.Instance.SquadManager.OnDestroyedSquad -= OnSquadDestroyedEvent;
                 BattleManager.Instance.OnSquadBrokenEvent -= OnSquadBrokenEvent;
             }
-            if (SettingsManager.Instance != null)
+            if (SettingsManager.HasInstance)
             {
                 SettingsManager.Instance.OnSettingsPanelToggled -= OnSettingsPanelToggled;
             }
@@ -928,11 +935,11 @@ namespace TJ
                 InputHandler.Instance.OnDefensiveStanceToggle -= SetDefensiveStance;
                 InputHandler.Instance.OnCeaseFireToggled -= SetCeaseFireMode;
             }
-            if(BattleManager.Instance != null && BattleManager.Instance.SquadOrderManager != null)
+            if(BattleManager.HasInstance && BattleManager.Instance.SquadOrderManager != null)
             {
                 BattleManager.Instance.SquadOrderManager.OnSquadOrderChanged -= OnSquadOrderReceived;
             }
-            if(BattleManager.Instance != null && BattleManager.Instance.BattlefieldEnvManager != null)
+            if(BattleManager.HasInstance && BattleManager.Instance.BattlefieldEnvManager != null)
             {
                 BattleManager.Instance.BattlefieldEnvManager.OnWeatherChanged -= OnWeatherChanged;
             }
@@ -943,7 +950,7 @@ namespace TJ
         }
         private void OnWithdrawSquadButtonClicked()
         {
-            if (BattleManager.Instance == null) return;
+            if (BattleManager.InstanceIfExists == null) return;
             if (SettingsManager.Instance.SettingsPanelOpen) return;
 
             switch (BattleManager.Instance.GamePhase)

@@ -29,15 +29,18 @@ partial struct SquadFindTargetSquadSystem : ISystem
 
         _squadMovementLookup.Update(ref state);
 
+        double now = SystemAPI.Time.ElapsedTime;
+
         // Collect all non-broken squad data once per frame instead of querying inside the loop
         var allSquadData = _nonBrokenSquadQuery.ToComponentDataArray<SquadEntity>(Allocator.Temp);
 
         //Squad Finding Target
-        foreach (var (squad, squadMovementComponent, SquadOverridesComponent, queuedOrders) in SystemAPI.Query<RefRW<
+        foreach (var (squad, squadMovementComponent, SquadOverridesComponent, queuedOrders, blacklist) in SystemAPI.Query<RefRW<
             SquadEntity>,
             RefRO<SquadMovementComponent>,
             SquadOverridesComponent,
-            DynamicBuffer<QueuedOrder>
+            DynamicBuffer<QueuedOrder>,
+            DynamicBuffer<TargetBlacklistElement>
         >()
         .WithNone<
             ChargeSquad,
@@ -51,6 +54,20 @@ partial struct SquadFindTargetSquadSystem : ISystem
             StartChargeTag>()
         ){
             // Debug.Log($"Squad {squad.ValueRO.SquadId} is finding a target");
+
+            // Prune expired kiter-blacklist entries, then a helper to skip still-blacklisted targets.
+            for (int b = blacklist.Length - 1; b >= 0; b--)
+            {
+                if (now >= blacklist[b].ExpireTime) blacklist.RemoveAtSwapBack(b);
+            }
+            bool IsBlacklisted(Entity candidate)
+            {
+                for (int b = 0; b < blacklist.Length; b++)
+                {
+                    if (blacklist[b].Target == candidate) return true;
+                }
+                return false;
+            }
 
             //check if an enemy is already attacking
             int AttackASquadAttackingMe()
@@ -128,6 +145,8 @@ partial struct SquadFindTargetSquadSystem : ISystem
                             bool isEnemy = enemySquadData.SquadId < 0;
                             if (isEnemy != (squad.ValueRO.SquadId > 0)) continue;
 
+                            if(IsBlacklisted(enemySquadData.SelfEntity)) continue;
+
                             if(entityManager.HasComponent<AntiLargeTag>(enemySquadData.SelfEntity)) continue;
 
                             float3 centerOfSquad = squadMovementComponent.ValueRO.SquadCenter;
@@ -155,6 +174,8 @@ partial struct SquadFindTargetSquadSystem : ISystem
                             var enemySquadData = allSquadData[i];
                             bool isEnemy = enemySquadData.SquadId < 0;
                             if (isEnemy != (squad.ValueRO.SquadId > 0)) continue;
+
+                            if(IsBlacklisted(enemySquadData.SelfEntity)) continue;
 
                             float3 centerOfSquad = squadMovementComponent.ValueRO.SquadCenter;
                             float3 centerOfTarget = _squadMovementLookup[enemySquadData.SelfEntity].SquadCenter;

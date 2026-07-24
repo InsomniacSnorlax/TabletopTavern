@@ -14,6 +14,7 @@ using Memori.Metaprogression;
 using System;
 using TabletopAnalytics;
 using Memori.Scenes;
+using Memori.Utilities;
 using System.Threading.Tasks;
 
 namespace TJ.MainMenu
@@ -89,6 +90,7 @@ namespace TJ.MainMenu
 
         GearID startingGearID;
         GameObject heroObject;
+        string _loadedHeroPrefabKey;
         bool heroIsUnlocked;
         int _heroPrefabLoadVersion;
         int _maxDifficultyCompletedOverall = 0;
@@ -209,8 +211,13 @@ namespace TJ.MainMenu
         public async void LoadHeroPrefab()
         {
             int version = ++_heroPrefabLoadVersion;
-            GameObject prefab = await TabletopTavernData.Instance.LoadHeroPrefabAsync(hero.HeroID);
+            string key = TabletopTavernData.Instance.GetHeroPrefabKey(hero.HeroID);
+            // Persistent: heroParent lives in the permanent Tavern backdrop, so this
+            // instance must survive the ReleaseAll() calls on scene transitions.
+            // Released explicitly in UnloadHeroes when the instance is destroyed.
+            GameObject prefab = await TabletopTavernData.Instance.LoadHeroPrefabAsync(hero.HeroID, persistent: true);
             if (version != _heroPrefabLoadVersion) return;
+            _loadedHeroPrefabKey = key;
             heroObject = Instantiate(prefab, heroParent);
 
             //get the animator from the new gameobject and play the pop in animation
@@ -291,6 +298,16 @@ namespace TJ.MainMenu
         {
             if(heroObject != null) {
                 Destroy(heroObject);
+                heroObject = null;
+            }
+
+            // Release the previous hero prefab's handle. It was loaded persistent
+            // (pinned), so ReleaseAll() won't reclaim it — release it here, coupled
+            // to destroying the instance it backs, or switching heroes leaks it.
+            if (!string.IsNullOrEmpty(_loadedHeroPrefabKey))
+            {
+                AddressablesManager.Instance.Release(_loadedHeroPrefabKey);
+                _loadedHeroPrefabKey = null;
             }
             SquadDisplayCardMenu[] squadDisplayCards = startingUnitsParent.GetComponentsInChildren<SquadDisplayCardMenu>();
             foreach (var squad in squadDisplayCards) {

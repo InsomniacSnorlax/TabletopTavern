@@ -172,7 +172,7 @@ namespace TJ
 
             SaveDataHandler.SaveCustomBattleSaveData(data);
 
-            if (Application.isPlaying && BattleManager.Instance != null)
+            if (Application.isPlaying && BattleManager.InstanceIfExists != null)
             {
                 _ = ReloadArmiesAsync();
             }

@@ -149,22 +149,26 @@ namespace TJ
             // capsuleCollider.isTrigger = true;
         }
 
+        // Billboarding lives here rather than in FixedUpdate so it keeps working while the
+        // game is paused (timeScale 0 stops FixedUpdate entirely), and so it runs after the
+        // camera has moved this frame.
+        void LateUpdate()
+        {
+            if (Camera.main == null) return;
+
+            //rotate to face camera
+            Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
+            healthBarTransform.LookAt(Camera.main.transform);
+            //modify the rotation so it only rotates on the y axis
+            rotation.x = 0;
+            rotation.z = 0;
+            flagTransform.rotation = rotation;
+        }
+
         void FixedUpdate()
         {
             if (!EntityManager.Exists(squadEntity)) Destroy(gameObject);
 
-            void HandleFlagRotation()
-            {
-                if (Camera.main == null) return;
-
-                //rotate to face camera
-                Quaternion rotation = Quaternion.LookRotation(Camera.main.transform.forward, Camera.main.transform.up);
-                healthBarTransform.LookAt(Camera.main.transform);
-                //modify the rotation so it only rotates on the y axis
-                rotation.x = 0;
-                rotation.z = 0;
-                flagTransform.rotation = rotation;
-            }
             void HandleFlagPosition()
             {
                 Vector3 targetPosition = (Vector3)EntityManager.GetComponentData<SquadMovementComponent>(squadEntity).SquadCenter + offset;
@@ -409,7 +413,6 @@ namespace TJ
             }
 
             HandleFlagPosition();
-            HandleFlagRotation();
             HandleCameraHide();
 
             if (battleEnded) return;
@@ -576,7 +579,7 @@ namespace TJ
                 unitSelectionManager.OnSelectedSquadsChanged -= OnSelectedSquadsChanged;
                 unitSelectionManager.OnHoverSquadsChanged -= OnHoverSquadsChanged;
             }
-            if(IAudioRequester.Instance != null)
+            if(IAudioRequester.HasInstance)
                 IAudioRequester.Instance.sFXVolume.OnValueChanged -= squadSFXManager.SetBaseVolume;
         }
         private Coroutine _cameraHideFadeCoroutine;

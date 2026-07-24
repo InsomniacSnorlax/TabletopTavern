@@ -1134,7 +1134,7 @@ public class UnitSelectionManager : MonoBehaviour
     {
         squadManager.OnDestroyedSquad -= RemoveSquadFromSelection;
         OnSelectedSquadsChanged -= OnSelectedSquadsChangedHandler;
-        if(BattleManager.Instance != null)
+        if(BattleManager.HasInstance)
             BattleManager.Instance.OnSquadBrokenEvent -= RemoveSquadFromSelection;
     }
 }

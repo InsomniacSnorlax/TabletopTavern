@@ -30,10 +30,22 @@ namespace Memori.SaveData
         Unity.Mathematics.Random random;
         Dictionary<string, int> uniqueIDToSquadId = new();
         Dictionary<int, int> squadIdToUnitCount = new();
+        Dictionary<int, int> squadIdToInitialUnitCount = new();
         Dictionary<int, int> squadIdKillCounter = new();
         int squadIndex = 0;
 
         List<SquadToLoad> withdrawnSquads = new();
+
+        // Summoned squads are spawned mid-battle by a spell. They are deliberately given a UnitIndex
+        // far above any real army slot (player squadId == UnitIndex + 1, so real ids are 1-10) to
+        // guarantee no collision. They are never written back to the campaign save - see
+        // MapSquadsToKillsAndWithdrwanSquads, which only ever writes squads present in the loaded roster.
+        const int SUMMON_UNIT_INDEX_BASE = 9000;
+        int summonsThisBattle;
+        readonly HashSet<string> summonedUniqueIds = new();
+        readonly HashSet<int> summonedSquadIds = new();
+        public bool IsSummonedSquad(int _squadId) => summonedSquadIds.Contains(_squadId);
+
         readonly float GAP_BETWEEN_SQUADS_X = 30f; // Distance between units
         readonly float GAP_BETWEEN_SQUADS_Z = 20f;  // Distance between front and back rows
         const float PLAYER_STAGING_Z = -165f;
@@ -75,8 +87,11 @@ namespace Memori.SaveData
             (SquadToLoad[] playerArmy, Dictionary<string, SquadBattlePosition> playerSquadBattlePositions) = BattleManager.Instance.BattleSaveManager.GetArmyFromSaveData(true);
             (SquadToLoad[] enemyArmy, Dictionary<string, SquadBattlePosition> enemySquadBattlePositions) = BattleManager.Instance.BattleSaveManager.GetArmyFromSaveData(false);
 
+            // Summonable units are preloaded alongside both armies - SummonSquad happens mid-battle
+            // and cannot afford to stall on an async prefab load.
             IEnumerable<UnitName> unitNames = playerArmy.Select(s => s.UnitName)
                 .Concat(enemyArmy.Select(s => s.UnitName))
+                .Concat(BattleManager.Instance.SpellManager.GetSummonUnitNames())
                 .Distinct();
 
             bool loaded = false;
@@ -221,9 +236,13 @@ namespace Memori.SaveData
             withdrawnSquads            = new();
             squadIdKillCounter         = new();
             squadIdToUnitCount         = new();
+            squadIdToInitialUnitCount  = new();
             uniqueIDToSquadId          = new();
             enemyArmyContainsOutriders = false;
             squadIndex                 = 0;
+            summonsThisBattle          = 0;
+            summonedUniqueIds.Clear();
+            summonedSquadIds.Clear();
             PlayerArmyDeployed         = false;
             EnemyArmyDeployed          = false;
             _deferredEnemyArmy         = null;
@@ -265,8 +284,9 @@ namespace Memori.SaveData
             withdrawnSquads = new();
             squadIdKillCounter = new();
             squadIdToUnitCount = new();
+            squadIdToInitialUnitCount = new();
             uniqueIDToSquadId = new();
-            
+
             selectedTeam = Team.Player;
         bool isGarrisonBattle = BattleManager.Instance.BattleSaveManager.IsGarrisonBattle;
 
@@ -492,7 +512,25 @@ namespace Memori.SaveData
                     squadGUIDKillCounter.Add(new SquadKillsStored { SquadGUID = enemyArmyLoaded[i].UniqueID, Kills = killCount });
                 }
             }
-            SaveDataHandler.SaveSquadsPostBattle(playerArmyLoaded, enemyArmyLoaded, _playerWonBattle, squadGUIDKillCounter);
+
+            // Every squad's SquadCurrentHealth is now settled (normal combat, mercy-kill wipe, or withdrawal
+            // all funnel into the writes above). Losses are the exact starting roster size (captured once
+            // at spawn, never re-derived from health) minus the ending unit count - no hitPoints rounding
+            // involved, so a single dead unit can never be lost to a fractional-health starting value.
+            List<SquadLossesStored> squadGUIDLossCounter = new();
+            void AddLossEntry(SquadToLoad squad)
+            {
+                if (!uniqueIDToSquadId.TryGetValue(squad.UniqueID, out int squadId)) return;
+                if (!squadIdToInitialUnitCount.TryGetValue(squadId, out int initialUnits)) return;
+                int hitPoints = TabletopTavernData.Instance.GetHitPointsPerUnit(squad.UnitName);
+                if (hitPoints <= 0) return;
+                int endingUnits = squad.SquadCurrentHealth / hitPoints;
+                squadGUIDLossCounter.Add(new SquadLossesStored { SquadGUID = squad.UniqueID, Losses = Mathf.Max(0, initialUnits - endingUnits) });
+            }
+            foreach (SquadToLoad squad in playerArmyLoaded) AddLossEntry(squad);
+            foreach (SquadToLoad squad in enemyArmyLoaded) AddLossEntry(squad);
+
+            SaveDataHandler.SaveSquadsPostBattle(playerArmyLoaded, enemyArmyLoaded, _playerWonBattle, squadGUIDKillCounter, squadGUIDLossCounter);
             Debug.Log($"Saved post-battle squad data for {( _playerWonBattle ? "player" : "enemy")} with {squadGUIDKillCounter.Count} entries");
         }
         #endregion
@@ -986,7 +1024,41 @@ namespace Memori.SaveData
                 squadIndex++;
             }
         }
-        public void SpawnSquadFromSaveData(SquadToLoad squadToLoad, Quaternion rotation, Vector3 spawnPointTransform, int _spawnIndex, int2 widthAndDepth = default) 
+        #region Summoning
+        /// <summary>
+        /// Spawns a friendly squad mid-battle at the given point, at the unit's normal base unit count.
+        /// The squad behaves like any other player squad until killed, but is never persisted: it
+        /// carries a fresh GUID that matches no slot in the saved roster, and the post-battle write-back
+        /// only ever updates squads it can find in that roster.
+        /// </summary>
+        public void SummonSquad(UnitName _unitName, Vector3 _position)
+        {
+            EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
+
+            // SpawnSquadFromSaveData dereferences UnitGPUAnimPrefabs.Find(...).Value directly, so a
+            // missing preload would throw rather than fail softly. Summoned units are preloaded
+            // alongside both armies in LoadBothArmies.
+            if(UnitGPUAnimPrefabs.Find(entityManager, _unitName) == null)
+            {
+                Debug.LogError($"[ArmySpawnManager] Cannot summon {_unitName}, GPU anim prefabs were not preloaded for this battle.");
+                return;
+            }
+
+            // Feed the same high index to both UnitIndex and _spawnIndex: GetSpawnIndexForPlayer uses
+            // UnitIndex in campaign battles and _spawnIndex in custom battles, so this lands on the
+            // same squadId either way.
+            SquadToLoad summon = new SquadToLoad(_unitName) { UnitIndex = SUMMON_UNIT_INDEX_BASE + summonsThisBattle };
+            summonedUniqueIds.Add(summon.UniqueID);
+            summonsThisBattle++;
+
+            Team previousTeam = selectedTeam;
+            selectedTeam = Team.Player;
+            SpawnSquadFromSaveData(summon, playerArmyCenter.rotation, _position, summon.UnitIndex);
+            selectedTeam = previousTeam;
+        }
+        #endregion
+
+        public void SpawnSquadFromSaveData(SquadToLoad squadToLoad, Quaternion rotation, Vector3 spawnPointTransform, int _spawnIndex, int2 widthAndDepth = default)
         {
             // Debug.Log($"Spawning squad {squadToLoad.UnitName} at {spawnPointTransform} for team {selectedTeam}");
             EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
@@ -1255,6 +1327,10 @@ namespace Memori.SaveData
 
         public void RecordSquadUniqueID(string uniqueID, int squadId, int unitCount)
         {
+            // The final squadId is not predictable at summon time - RegisterSquad overrides it in
+            // custom battles - so the summon is matched here by its GUID instead.
+            if(summonedUniqueIds.Contains(uniqueID)) summonedSquadIds.Add(squadId);
+
             if(!uniqueIDToSquadId.ContainsKey(uniqueID)){
                 uniqueIDToSquadId.Add(uniqueID, squadId);
             } else {
@@ -1266,6 +1342,12 @@ namespace Memori.SaveData
             }
             else {
                 squadIdToUnitCount[squadId] = unitCount;
+            }
+
+            // First registration this battle only - this is the true starting roster size,
+            // used later to compute losses without re-deriving unit count from health.
+            if (!squadIdToInitialUnitCount.ContainsKey(squadId)) {
+                squadIdToInitialUnitCount.Add(squadId, unitCount);
             }
         }
 
@@ -1450,7 +1532,7 @@ namespace Memori.SaveData
         }
         private void OnDestroy()
         {
-            if(BattleManager.Instance == null) return;
+            if(!BattleManager.HasInstance) return;
             BattleManager.Instance.SquadManager.OnSquadUpdated -= OnSquadUpdated;
         }
     }

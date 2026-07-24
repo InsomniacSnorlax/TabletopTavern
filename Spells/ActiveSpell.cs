@@ -120,7 +120,14 @@ public class ActiveSpell : MonoBehaviour
         EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
         var ecb = World.DefaultGameObjectInjectionWorld.GetOrCreateSystemManaged<EndSimulationEntityCommandBufferSystem>().CreateCommandBuffer();
 
-        if (spellData.GrantsBattlefieldBonus)
+        if (spellData.SummonsSquad)
+        {
+            // Spawns a real player squad that lasts until killed. No SpellEntity is created, so
+            // SpellSystem never sees this cast - the squad is the entire effect. CleanUpSpell still
+            // runs below, but that only governs this GameObject's visuals, not the squad's lifetime.
+            BattleManager.Instance.ArmySpawnManager.SummonSquad(spellData.SummonedUnitName, transform.position);
+        }
+        else if (spellData.GrantsBattlefieldBonus)
         {
             // Pure buff spell - no damage pipeline at all, just a battlefield-bonus aura
             // functioning exactly like the world's static bonus prefabs (Shrine/Statue/etc.),

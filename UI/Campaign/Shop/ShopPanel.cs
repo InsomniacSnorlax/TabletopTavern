@@ -298,6 +298,7 @@ namespace TJ.Shop
             CloseFeedback();
             Debug.Log("[Map] Closing ShopPanel");
             DisableShopPanel();
+            campaignSaveManager.ClearSoldGear();
             IAudioRequester.Instance.PlaySFX(SFXData.Continue);
             IAudioRequester.Instance.PlaySFX(SFXData.MerchantGoodbye);
             SceneHandler.Instance.TranstionCameras(

@@ -27,18 +27,27 @@ public class PlayerToken : MonoBehaviour
     }
     public void FinishHop()
     {
+        // Guards against a stray callback from a stale hop cycle after ReachedDestination
+        // has already handed things off to landFeedbacks below.
+        if (!isHopping) return;
         IAudioRequester.Instance.PlaySFX(SFXData.PlayerToken);
-        if(isHopping) {
-            hopFeedbacks.StopFeedbacks();
-            hopFeedbacks.PlayFeedbacks();
-        } else {
-            landFeedbacks.PlayFeedbacks();
-        }
+        hopFeedbacks.StopFeedbacks();
+        hopFeedbacks.PlayFeedbacks();
     }
     public void ReachedDestination(MapSceneManager _mapSceneManager)
     {
         mapSceneManager = _mapSceneManager;
+        if (!isHopping) return;
         isHopping = false;
+
+        // Drive the hop -> land handoff from here (the position-lerp coroutine) rather than
+        // waiting for the hop feedback's own repeat cycle to notice isHopping went false.
+        // That old path called StopFeedbacks/PlayFeedbacks on hopFeedbacks from inside a
+        // callback hopFeedbacks itself was invoking, which could desync under irregular
+        // frame timing (e.g. a player alt-tabbing mid-hop) and leave the token stuck forever.
+        IAudioRequester.Instance.PlaySFX(SFXData.PlayerToken);
+        hopFeedbacks.StopFeedbacks();
+        landFeedbacks.PlayFeedbacks();
     }
     public void OnLand()
     {

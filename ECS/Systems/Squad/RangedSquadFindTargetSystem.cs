@@ -33,13 +33,16 @@ partial struct RangedSquadFindTargetSystem : ISystem
         // Collect all non-broken squad data once per frame instead of querying inside the loop
         var allSquadData = _nonBrokenSquadQuery.ToComponentDataArray<SquadEntity>(Allocator.Temp);
 
+        double now = SystemAPI.Time.ElapsedTime;
+
         //Squad Finding Target
-        foreach (var (squad, squadMovementComponent, SquadOverridesComponent, entityBuffer, queuedOrders, rangedSquad) in SystemAPI.Query<RefRW<
+        foreach (var (squad, squadMovementComponent, SquadOverridesComponent, entityBuffer, queuedOrders, blacklist, rangedSquad) in SystemAPI.Query<RefRW<
             SquadEntity>,
             RefRO<SquadMovementComponent>,
             SquadOverridesComponent,
             DynamicBuffer<EntityReferenceBufferElement>,
             DynamicBuffer<QueuedOrder>,
+            DynamicBuffer<TargetBlacklistElement>,
             RefRO<RangedSquad>>()
         .WithNone<
             ChargeSquad,
@@ -60,6 +63,20 @@ partial struct RangedSquadFindTargetSystem : ISystem
             if(!SquadOverridesComponent.AutoTarget && !entityManager.Exists(squad.ValueRO.TargetSquadEntity))
             {
                 continue;
+            }
+
+            // Prune expired kiter-blacklist entries, then a helper to skip still-blacklisted targets.
+            for (int b = blacklist.Length - 1; b >= 0; b--)
+            {
+                if (now >= blacklist[b].ExpireTime) blacklist.RemoveAtSwapBack(b);
+            }
+            bool IsBlacklisted(Entity candidate)
+            {
+                for (int b = 0; b < blacklist.Length; b++)
+                {
+                    if (blacklist[b].Target == candidate) return true;
+                }
+                return false;
             }
 
             #region if ranged squad target is set, make sure units have targets
@@ -108,6 +125,8 @@ partial struct RangedSquadFindTargetSystem : ISystem
                 } else {
                     if(enemySquadData.SquadId < 0) continue;
                 }
+
+                if(IsBlacklisted(enemySquadData.SelfEntity)) continue;
 
                 float3 centerOfTarget = _squadMovementLookup[enemySquadData.SelfEntity].SquadCenter;
                 float distance = math.distance(squadMovementComponent.ValueRO.SquadCenter, centerOfTarget);

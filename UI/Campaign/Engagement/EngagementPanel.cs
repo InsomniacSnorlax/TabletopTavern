@@ -673,7 +673,7 @@ namespace TJ.Engagement
         public void GenerateBattleRewards()
         {
             //gold
-            goldRewardAmount = engagementType == EngagementType.Skirmish ? TabletopTavernConstants.SKIRMISH_REWARD : TabletopTavernConstants.HORDE_REWARD;
+            goldRewardAmount = engagementType == EngagementType.Skirmish ? TabletopTavernConstants.GetSkirmishReward() : TabletopTavernConstants.GetHordeReward();
 
             if(campaignSaveManager.SaveData.BattlesFought < 3)
             {
@@ -714,7 +714,7 @@ namespace TJ.Engagement
             }
 
             //ransom captives
-            ransomAmount = TabletopTavernConstants.RANSOM_CAPTIVES_REWARD;
+            ransomAmount = TabletopTavernConstants.GetRansomCaptivesReward();
 
             if(campaignSaveManager.SaveData.BattlesFought < 3)
             {
@@ -873,6 +873,8 @@ namespace TJ.Engagement
                 halfHealthHealing = true;
             }
 
+            ShowUnitsSlain();
+            
             if(!garrisonFight)
             {
                 campaignSaveManager.HealTroopsInReserve(halfHealthHealing);
@@ -888,7 +890,6 @@ namespace TJ.Engagement
 
             HideAutoResolvePrediction();
             campaignSaveManager.PrestigeUnitsOnKills();
-            ShowUnitsSlain();
             
             string townGarrisonLocalized = LocalizationManager.Instance.GetText("TownGarrison");
             string companyShatteredLocalized = LocalizationManager.Instance.GetText("CompanyShattered");
@@ -944,11 +945,18 @@ namespace TJ.Engagement
         {
             if(autoResolved)
             {
+                // UnitsAlive is ceiling-rounded from pooled health (see AutoResolveBattleManager), so it can
+                // read as 1 even when only a sliver of a unit's health is left - which undercounts losses by
+                // 1 in that case. Floor-dividing the same finalHealth avoids that without touching the sim's
+                // own UnitsAlive value (still used elsewhere for targeting/combat resolution).
+                int EndingUnits(AutoResolveSquad squad) => squad.healthPerKill > 0 ? squad.finalHealth / squad.healthPerKill : squad.UnitsAlive;
+
                 AutoResolveSquad[] aRSS = autoResolveBattleManager.PlayerAutoResolveStats;
                 foreach (SquadDisplayCardMenu squadDisplayCardMenu in mapSceneUIManager.HUDPanel.PlayerSquadsCards) {
                     for(int i = 0; i < aRSS.Length; i++) {
                         if (squadDisplayCardMenu.UniqueID == aRSS[i].UniqueID) {
                             squadDisplayCardMenu.ShowUnitsSlain(aRSS[i].UnitsSlain);
+                            squadDisplayCardMenu.ShowUnitsLost(Mathf.Max(0, aRSS[i].maxUnits - EndingUnits(aRSS[i])));
                         }
                     }
                 }
@@ -958,6 +966,7 @@ namespace TJ.Engagement
                     for(int i = 0; i < aRSS.Length; i++) {
                         if(squadDisplayCardMenu.UniqueID == aRSS[i].UniqueID) {
                             squadDisplayCardMenu.ShowUnitsSlain(aRSS[i].UnitsSlain);
+                            squadDisplayCardMenu.ShowUnitsLost(Mathf.Max(0, aRSS[i].maxUnits - EndingUnits(aRSS[i])));
                         }
                     }
                 }
@@ -965,10 +974,16 @@ namespace TJ.Engagement
             else
             {
                 List<SquadKillsStored> squadKillsStore = campaignSaveManager.GetSquadIdKillCounter();
+                List<SquadLossesStored> squadLossesStore = campaignSaveManager.GetSquadIdLossCounter();
                 foreach (SquadDisplayCardMenu squadDisplayCardMenu in mapSceneUIManager.HUDPanel.PlayerSquadsCards) {
                     squadKillsStore.ForEach(squadKillsStored => {
                         if(squadDisplayCardMenu.UniqueID == squadKillsStored.SquadGUID) {
                             squadDisplayCardMenu.ShowUnitsSlain(squadKillsStored.Kills);
+                        }
+                    });
+                    squadLossesStore.ForEach(squadLossesStored => {
+                        if(squadDisplayCardMenu.UniqueID == squadLossesStored.SquadGUID) {
+                            squadDisplayCardMenu.ShowUnitsLost(squadLossesStored.Losses);
                         }
                     });
                 }
@@ -978,6 +993,11 @@ namespace TJ.Engagement
                             squadDisplayCardMenu.ShowUnitsSlain(squadKillsStored.Kills);
                         }
                     });
+                    squadLossesStore.ForEach(squadLossesStored => {
+                        if(squadDisplayCardMenu.UniqueID == squadLossesStored.SquadGUID) {
+                            squadDisplayCardMenu.ShowUnitsLost(squadLossesStored.Losses);
+                        }
+                    });
                 }
             }
         }
@@ -985,9 +1005,11 @@ namespace TJ.Engagement
         {
             foreach (SquadDisplayCardMenu squadDisplayCardMenu in mapSceneUIManager.HUDPanel.PlayerSquadsCards) {
                 squadDisplayCardMenu.HideUnitsSlain();
+                squadDisplayCardMenu.HideUnitsLost();
             }
             foreach (SquadDisplayCardMenu squadDisplayCardMenu in enemySquadsCards) {
                 squadDisplayCardMenu.HideUnitsSlain();
+                squadDisplayCardMenu.HideUnitsLost();
             }
         }
         #endregion
