@@ -1,10 +1,12 @@
+using Memori.Steamworks;
+using Steamworks.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
-using Memori.Steamworks;
-using Steamworks.Data;
 using UgcItem = Steamworks.Ugc.Item;
 using UgcPublishResult = Steamworks.Ugc.PublishResult;
 
@@ -33,9 +35,12 @@ namespace TJ
         public static async Task SyncSubscribedItemsToModsFolderAsync()
         {
             List<UgcItem> items = await SteamWorkshop.GetSubscribedItemsAsync();
-            if (items.Count == 0) return;
 
             ModLoadOrder.EnsureModsDirectoryExists();
+
+            CleanPossibleUnsubscribedMods(items);
+
+            if (items.Count == 0) return;
 
             foreach (UgcItem item in items)
             {
@@ -57,6 +62,19 @@ namespace TJ
             }
 
             Debug.Log($"[SteamWorkshopModSync] Synced {items.Count} subscribed Workshop item(s) into {ModLoadOrder.ModsRootPath}.");
+        }
+
+        private static void CleanPossibleUnsubscribedMods(List<UgcItem> items)
+        {
+            var cacheDirectories = items.Select(item => WorkshopFolderPrefix + item.Id.Value);
+
+            Directory.GetDirectories(ModLoadOrder.ModsRootPath).Where(directory => IsUnsubscribedMod(directory, cacheDirectories))
+                .ToList().ForEach(directory => Directory.Delete(directory, true));
+
+            bool IsUnsubscribedMod(string directory, IEnumerable<string> items)
+            {
+                return Regex.IsMatch(directory, $"^{WorkshopFolderPrefix}\\d{{10}}$") && !items.Any(item => items.Equals(directory));
+            }
         }
 
         private static void CopyModContent(string sourceDir, string targetDir)
