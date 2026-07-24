@@ -308,7 +308,7 @@ namespace TJ
             weatherDropdown.onValueChanged.RemoveAllListeners();
             mapRegionDropdown.onValueChanged.RemoveAllListeners();
 
-            if (BattleManager.Instance != null)
+            if (BattleManager.HasInstance)
                 BattleManager.Instance.OnCursorModeChanged -= OnCursorModeChanged;
         }
         private async void RegenerateBattlefield()

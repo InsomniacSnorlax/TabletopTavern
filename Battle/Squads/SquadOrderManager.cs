@@ -14,6 +14,13 @@ namespace TJ.Battle
         private List<int> _squadOrder = new();
         public IReadOnlyList<int> SquadOrder => _squadOrder.AsReadOnly();
 
+        private bool _initialized;
+        /// <summary>
+        /// True once Initialize has established the starting order. Lets callers tell a squad arriving
+        /// during the initial load from one joining later (e.g. summoned by a spell).
+        /// </summary>
+        public bool IsInitialized => _initialized;
+
         public event Action<IReadOnlyList<int>> OnSquadOrderChanged;
 
         /// <summary>
@@ -23,6 +30,7 @@ namespace TJ.Battle
         public void Initialize(List<int> orderedIds)
         {
             _squadOrder = new List<int>(orderedIds);
+            _initialized = true;
             OnSquadOrderChanged?.Invoke(_squadOrder.AsReadOnly());
         }
 
@@ -130,6 +138,19 @@ namespace TJ.Battle
             }
 
             SetOrder(newOrder);
+        }
+
+        /// <summary>
+        /// Appends a squad to the end of the order. Called when a squad joins after Initialize has
+        /// already run, e.g. a squad summoned by a spell mid-battle. Without this its card exists but
+        /// has no entry in the order, so MoveSquad would reject any attempt to drag it.
+        /// </summary>
+        public void AddSquad(int squadId)
+        {
+            if (_squadOrder.Contains(squadId)) return;
+
+            _squadOrder.Add(squadId);
+            OnSquadOrderChanged?.Invoke(_squadOrder.AsReadOnly());
         }
 
         /// <summary>

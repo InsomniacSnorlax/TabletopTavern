@@ -145,7 +145,7 @@ namespace TJ
 
         private void OnDestroy()
         {
-            if (InputHandler.Instance != null)
+            if (InputHandler.HasInstance)
                 InputHandler.Instance.OnShowUnitMovement -= ToggleRange;
         }
     }

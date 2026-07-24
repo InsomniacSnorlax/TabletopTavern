@@ -23,6 +23,7 @@ partial struct BattlefieldBonusSystem : ISystem
     private ComponentLookup<InRainTag> _inRainLookup;
     private ComponentLookup<InSnowTag> _inSnowLookup;
     private ComponentLookup<InForestTag> _inForestLookup;
+    private ComponentLookup<RallyingTag> _rallyingLookup;
     private ComponentLookup<LargeTag> _largeTagLookup;
     private ComponentLookup<LocalTransform> _existsLookup;
     // Unit + squad component writes
@@ -50,6 +51,7 @@ partial struct BattlefieldBonusSystem : ISystem
         _inRainLookup            = state.GetComponentLookup<InRainTag>(true);
         _inSnowLookup            = state.GetComponentLookup<InSnowTag>(true);
         _inForestLookup          = state.GetComponentLookup<InForestTag>(true);
+        _rallyingLookup          = state.GetComponentLookup<RallyingTag>(true);
         _largeTagLookup          = state.GetComponentLookup<LargeTag>(true);
         _existsLookup            = state.GetComponentLookup<LocalTransform>(true);
         _agentLocomotionLookup   = state.GetComponentLookup<AgentLocomotion>(false);
@@ -76,6 +78,7 @@ partial struct BattlefieldBonusSystem : ISystem
         _inRainLookup.Update(ref state);
         _inSnowLookup.Update(ref state);
         _inForestLookup.Update(ref state);
+        _rallyingLookup.Update(ref state);
         _largeTagLookup.Update(ref state);
         _existsLookup.Update(ref state);
         _agentLocomotionLookup.Update(ref state);
@@ -105,6 +108,7 @@ partial struct BattlefieldBonusSystem : ISystem
             InRainLookup            = _inRainLookup,
             InSnowLookup            = _inSnowLookup,
             InForestLookup          = _inForestLookup,
+            RallyingLookup          = _rallyingLookup,
             LargeTagLookup          = _largeTagLookup,
             ExistsLookup            = _existsLookup,
             AgentLocomotionLookup   = _agentLocomotionLookup,
@@ -134,6 +138,7 @@ partial struct BattlefieldBonusJob : IJobEntity
     [ReadOnly] public ComponentLookup<InRainTag>                   InRainLookup;
     [ReadOnly] public ComponentLookup<InSnowTag>                   InSnowLookup;
     [ReadOnly] public ComponentLookup<InForestTag>                 InForestLookup;
+    [ReadOnly] public ComponentLookup<RallyingTag>                 RallyingLookup;
     [ReadOnly] public ComponentLookup<LargeTag>                    LargeTagLookup;
     [ReadOnly] public ComponentLookup<LocalTransform>              ExistsLookup;
     [NativeDisableParallelForRestriction] public ComponentLookup<AgentLocomotion> AgentLocomotionLookup;
@@ -417,6 +422,20 @@ partial struct BattlefieldBonusJob : IJobEntity
                         MoraleComponentLookup[entity] = morale;
                     }
                 }
+                else if (bonus.BattlefieldBonusEnum == BattlefieldBonusEnum.LesserMoraleSpell)
+                {
+                    // Squad-level, like Snow above - morale lives on the squad entity, not its units,
+                    // so this cannot be a case in the per-unit UnitStat switch below. The tag carries a
+                    // regen rate that MoraleUpdateJob adds each frame; removal is handled in the
+                    // distance/duration block further down and needs no reversal arithmetic.
+                    bonus.Applied = true;
+                    bonusBuffer.RemoveAt(i--);
+                    bonusBuffer.Add(new BattlefieldBonusBufferElement { Value = bonus });
+                    if (!RallyingLookup.HasComponent(entity))
+                    {
+                        Ecb.AddComponent(sortKey, entity, new RallyingTag { MoralePerSecond = bonus.Value });
+                    }
+                }
                 else if (bonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog)
                 {
                     bonus.Applied = true;
@@ -533,6 +552,11 @@ partial struct BattlefieldBonusJob : IJobEntity
                 {
                     if (bonus.BattlefieldBonusEnum == BattlefieldBonusEnum.Forest && InForestLookup.HasComponent(entity))
                         Ecb.RemoveComponent<InForestTag>(sortKey, entity);
+
+                    // Squad left the radius or the spell expired - drop the regen tag. The per-unit
+                    // loop below no-ops for this bonus since there is no UnitStat.Leadership case.
+                    if (bonus.BattlefieldBonusEnum == BattlefieldBonusEnum.LesserMoraleSpell)
+                        Ecb.RemoveComponent<RallyingTag>(sortKey, entity);
 
                     for (int j = 0; j < entityBuffer.Length; j++)
                     {

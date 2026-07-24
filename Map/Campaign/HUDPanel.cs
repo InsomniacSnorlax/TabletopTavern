@@ -246,7 +246,7 @@ namespace TJ.Map
         }
         public void ArmyHealthChanged()
         {
-            // Debug.Log($"Army health changed");
+            Debug.Log($"Army health changed");
             SquadToLoad[] playerSquadsSaveData = campaignSaveManager.SaveData.playerArmy;
             if(playerSquadsCards == null) return;
             for (int i = 0; i < playerSquadsCards.Count; i++)
@@ -254,7 +254,7 @@ namespace TJ.Map
                 //match squad card with save data by SquadId
                 for (int j = 0; j < playerSquadsSaveData.Length; j++)
                 {
-                    if (playerSquadsCards[i].SquadId == playerSquadsSaveData[j].UnitIndex)
+                    if (playerSquadsCards[i].UniqueID == playerSquadsSaveData[j].UniqueID)
                     {
                         playerSquadsCards[i].UpdateUnitCount(playerSquadsSaveData[j]);
                         break;

@@ -14,7 +14,7 @@ public class FireplaceSFX : MonoBehaviour
     }
     private void OnDestroy() 
     {
-        if (IAudioRequester.Instance != null)
+        if (IAudioRequester.HasInstance)
             IAudioRequester.Instance.ambienceVolume.OnValueChanged -= FireplaceSFXLevelChange;
     }
     private void FireplaceSFXLevelChange(float volume) 

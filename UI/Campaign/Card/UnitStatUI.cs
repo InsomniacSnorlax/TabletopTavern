@@ -31,13 +31,24 @@ namespace TJ
             string baseValueLocalized = LocalizationManager.Instance.GetText("Base Value");
             string PrestigeLocalised = LocalizationManager.Instance.GetText("Prestige");
 
-            gearManager = SceneHandler.Instance.CurrentGameState switch
+            // A hover can land here mid-transition, when CurrentGameState has already flipped but the
+            // target scene's manager doesn't exist yet, so resolve without ever creating one.
+            // battleManager stays null outside battle and gates the battlefield-bonus section below.
+            BattleManager battleManager = null;
+            switch (SceneHandler.Instance.CurrentGameState)
             {
-                GameStateEnum.Battle => BattleManager.Instance.GearManager,
-                GameStateEnum.Map => CampaignManager.Instance.GearManager,
-                //menu
-                _ => null,
-            };
+                case GameStateEnum.Battle:
+                    battleManager = BattleManager.InstanceIfExists;
+                    gearManager = battleManager != null ? battleManager.GearManager : null;
+                    break;
+                case GameStateEnum.Map:
+                    CampaignManager campaignManager = CampaignManager.InstanceIfExists;
+                    gearManager = campaignManager != null ? campaignManager.GearManager : null;
+                    break;
+                default: //menu
+                    gearManager = null;
+                    break;
+            }
             memoriTooltipTrigger = GetComponent<MemoriTooltipTrigger>();
 
             statImage.sprite = SpriteData.GetSprite(unitStat.ToString());
@@ -121,7 +132,7 @@ namespace TJ
                 if (HeroBonusManager.Instance.ActiveHeroID == 11 || HeroBonusManager.Instance.ActiveHeroID == 12)
                 {
                     //check if units only sakura dynasty
-                    if (BattleManager.HasInstance && BattleManager.Instance.OnlySakuraUnits)
+                    if (battleManager != null && battleManager.OnlySakuraUnits)
                     {
                         List<UnitStatBonus> factionBonuses = HeroBonusManager.GetFactionBonus(unitStat);
 
@@ -135,10 +146,10 @@ namespace TJ
             }
 
             //if battle, check squad for battlefield bonuses and defensive stance
-            if(SceneHandler.Instance.CurrentGameState == GameStateEnum.Battle)
+            if(battleManager != null)
             {
                 EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-                SquadEntity squadEntity = BattleManager.Instance.UIManager.SquadBattleInfo.SquadEntity;
+                SquadEntity squadEntity = battleManager.UIManager.SquadBattleInfo.SquadEntity;
                 if(entityManager.Exists(squadEntity.SelfEntity))
                 {
                     if(entityManager.HasComponent<BattlefieldBonusBufferElement>(squadEntity.SelfEntity))
@@ -157,17 +168,26 @@ namespace TJ
                                     string localisedBonusName = LocalizationManager.Instance.GetText(bonus.Value.BattlefieldBonusEnum.ToString());
                                     description += $"\n<color {(bonus.Value.Value > 0 ? ColorData.Green : ColorData.Error)}>{localisedBonusName}: {(bonus.Value.Value > 0 ? "+" : "")}{roundedArmorPenalty} </color>";
                                 }
-                                else if (unitStat == UnitStat.Speed)
+                                else if (unitStat == UnitStat.Speed && bonus.Value.BattlefieldBonusEnum == BattlefieldBonusEnum.Swamp)
                                 {
-                                    if (bonus.Value.BattlefieldBonusEnum != BattlefieldBonusEnum.Rain && TabletopTavernData.Instance.IgnoresSwamp(_unitName))
+                                    if (TabletopTavernData.Instance.IgnoresSwamp(_unitName))
                                     {
                                         continue;
                                     }
-                                    // speed bonuses are fractions of remaining speed (e.g. 0.5 = half) and compound multiplicatively,
-                                    // so stack them as a running multiplier instead of subtracting each one from the base amount
+                                    // Swamp's speed penalty is a fraction of remaining speed (e.g. 0.5 = half) and compounds multiplicatively,
+                                    // so stack it as a running multiplier instead of subtracting from the base amount
                                     speedMultiplier *= bonus.Value.Value;
                                     string localisedBonusName = LocalizationManager.Instance.GetText(bonus.Value.BattlefieldBonusEnum.ToString());
                                     description += $"\n<color {ColorData.Error}>{localisedBonusName}: -{Mathf.RoundToInt((1f - bonus.Value.Value) * 100f)}% </color>";
+                                }
+                                else if (unitStat == UnitStat.Speed)
+                                {
+                                    // Speed bonuses are stored in AgentLocomotion scale (SquadStats.Speed / 10) for the movement mutation;
+                                    // convert back up to SquadStats scale to match "amount" for display
+                                    int displaySpeedBonus = Mathf.RoundToInt(bonus.Value.Value * 10f);
+                                    totalBonus += displaySpeedBonus;
+                                    string localisedBonusName = LocalizationManager.Instance.GetText(bonus.Value.BattlefieldBonusEnum.ToString());
+                                    description += $"\n<color {(displaySpeedBonus > 0 ? ColorData.Green : ColorData.Error)}>{localisedBonusName}: {(displaySpeedBonus > 0 ? "+" : "")}{displaySpeedBonus} </color>";
                                 }
                                 else if (bonus.Value.BattlefieldBonusEnum == BattlefieldBonusEnum.Fog)
                                 {

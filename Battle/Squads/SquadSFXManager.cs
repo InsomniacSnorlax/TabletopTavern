@@ -205,7 +205,7 @@ namespace TJ
         {
             StopChargeSound();
             StopCombatSound();
-            if (BattleManager.Instance != null)
+            if (BattleManager.HasInstance)
                 BattleManager.Instance.OnGamePhaseChanged -= OnGamePhaseChanged;
         }
 

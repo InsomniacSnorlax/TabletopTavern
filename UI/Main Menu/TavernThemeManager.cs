@@ -13,30 +13,18 @@ namespace TJ.MainMenu
         [SerializeField] private MeshRenderer[] _flags;
         Material _flagMaterialInstance;
         GameObject _activeThemeInstance;
+        string _activeThemeKey;
         TavernThemeData themeToLoad;
         int _loadGeneration;
 
         private async void Start()
         {
             _flagMaterialInstance = Instantiate(_flagMaterial);
-            CheckAndUnlockCompletedThemes();
+            SaveDataHandler.RefreshTavernThemeUnlocks();
             themeToLoad = GetThemeForCurrentSave();
 // #if !UNITY_EDITOR
             await LoadTheme(themeToLoad);
 // #endif
-        }
-
-        private void CheckAndUnlockCompletedThemes()
-        {
-            foreach (TavernThemeData theme in _allThemes)
-            {
-                if (theme.Race == Race.Special) continue;
-                if (!SaveDataHandler.IsTavernThemeUnlocked(theme.Race) &&
-                    SaveDataHandler.HasCompletedGodkingWithRace(theme.Race))
-                {
-                    SaveDataHandler.UnlockTavernTheme(theme.Race);
-                }
-            }
         }
 
         private TavernThemeData GetThemeForCurrentSave()
@@ -73,6 +61,15 @@ namespace TJ.MainMenu
                 Destroy(_activeThemeInstance);
                 _activeThemeInstance = null;
             }
+
+            // Release the previous theme's handle. It was loaded persistent (pinned),
+            // so ReleaseAll() won't reclaim it — the owner must release it explicitly
+            // or switching themes leaks the old bundle.
+            if (!string.IsNullOrEmpty(_activeThemeKey))
+            {
+                AddressablesManager.Instance.Release(_activeThemeKey);
+                _activeThemeKey = null;
+            }
         }
 
         private async System.Threading.Tasks.Task LoadTheme(TavernThemeData _theme)
@@ -83,9 +80,13 @@ namespace TJ.MainMenu
                 return;
 
             int generation = ++_loadGeneration;
-            GameObject prefab = await AddressablesManager.Instance.LoadAsync<GameObject>(_theme.ThemeObjects);
+            string key = _theme.ThemeObjects.AssetGUID;
+            // Persistent: the Tavern scene is permanent, so this instance stays alive
+            // across the ReleaseAll() calls on Map/Battle transitions.
+            GameObject prefab = await AddressablesManager.Instance.LoadAsync<GameObject>(_theme.ThemeObjects, persistent: true);
             if (prefab == null || generation != _loadGeneration) return;
 
+            _activeThemeKey = key;
             _activeThemeInstance = Instantiate(prefab, _spawnParent);
             ColorFlags();
         }

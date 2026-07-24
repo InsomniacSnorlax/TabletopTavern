@@ -246,25 +246,49 @@ namespace TJ
                 if (_entityManager.HasComponent<BrokenSquadTag>(artilleryEntity)) { _artillerySquads.RemoveAt(i); continue; }
                 if (!_entityManager.HasComponent<RangedSquad>(artilleryEntity))   { _artillerySquads.RemoveAt(i); continue; }
 
-                // Already targeting a ranged unit — no action needed.
-                Entity currentTarget = _entityManager.GetComponentData<SquadEntity>(artilleryEntity).TargetSquadEntity;
-                if (currentTarget != Entity.Null && _entityManager.HasComponent<RangedSquad>(currentTarget)) continue;
-
+                Entity currentTarget   = _entityManager.GetComponentData<SquadEntity>(artilleryEntity).TargetSquadEntity;
                 float3 artilleryCenter = _entityManager.GetComponentData<SquadMovementComponent>(artilleryEntity).SquadCenter;
                 float  attackRange     = _entityManager.GetComponentData<RangedSquad>(artilleryEntity).AttackRange;
 
+                // Distance to the current target only if it is a valid in-range ranged squad.
+                float currentTargetDist = float.MaxValue;
+                if (currentTarget != Entity.Null && _entityManager.Exists(currentTarget)
+                    && _entityManager.HasComponent<RangedSquad>(currentTarget))
+                {
+                    float d = math.distance(artilleryCenter,
+                        _entityManager.GetComponentData<SquadMovementComponent>(currentTarget).SquadCenter);
+                    if (d <= attackRange) currentTargetDist = d;
+                }
+
+                // Find the CLOSEST player ranged squad within range.
                 NativeArray<Entity> playerEntities = _playerSquadQuery.ToEntityArray(Allocator.Temp);
+                int   bestTargetId = 0;
+                float bestDist     = float.MaxValue;
                 foreach (Entity playerEntity in playerEntities)
                 {
                     if (!_entityManager.HasComponent<RangedSquad>(playerEntity)) continue;
                     float3 playerCenter = _entityManager.GetComponentData<SquadMovementComponent>(playerEntity).SquadCenter;
-                    if (math.distance(artilleryCenter, playerCenter) > attackRange) continue;
+                    float  dist         = math.distance(artilleryCenter, playerCenter);
+                    if (dist > attackRange) continue;
 
-                    int targetId = _entityManager.GetComponentData<SquadEntity>(playerEntity).SquadId;
-                    IssueAttackOrder(artilleryEntity, targetId);
-                    break;
+                    if (dist < bestDist)
+                    {
+                        bestDist     = dist;
+                        bestTargetId = _entityManager.GetComponentData<SquadEntity>(playerEntity).SquadId;
+                    }
                 }
                 playerEntities.Dispose();
+
+                if (bestTargetId == 0) continue; // no ranged target in range -> keep current
+
+                // No valid ranged target yet -> redirect onto the closest ranged squad. Already on a
+                // ranged squad -> only switch if the alternative is meaningfully closer (hysteresis).
+                bool hasValidRangedTarget = currentTargetDist < float.MaxValue;
+                if (!hasValidRangedTarget ||
+                    bestDist < currentTargetDist * TabletopTavernConstants.RANGED_REPRIORITIZE_CLOSER_FRACTION)
+                {
+                    IssueAttackOrder(artilleryEntity, bestTargetId);
+                }
             }
         }
 
@@ -292,45 +316,63 @@ namespace TJ
                 float3 archerCenter = _entityManager.GetComponentData<SquadMovementComponent>(archerEntity).SquadCenter;
                 float  attackRange  = _entityManager.GetComponentData<RangedSquad>(archerEntity).AttackRange;
 
-                if (HasValidPriorityTarget(archerEntity, archerCenter, attackRange)) continue;
+                // Distance to the current target if it is still a valid (in-range, unshielded) priority.
+                float currentTargetDist = CurrentPriorityTargetDistance(archerEntity, archerCenter, attackRange);
 
+                // Find the CLOSEST qualifying (in-range, unshielded) player squad.
                 NativeArray<Entity> playerEntities = _playerSquadQuery.ToEntityArray(Allocator.Temp);
+                int   bestTargetId = 0;
+                float bestDist     = float.MaxValue;
                 foreach (Entity playerEntity in playerEntities)
                 {
+                    if (_entityManager.GetComponentData<ShieldedStanceSquadComponent>(playerEntity).Stance != ShieldedStance.None) continue;
+
                     float3 playerCenter = _entityManager.GetComponentData<SquadMovementComponent>(playerEntity).SquadCenter;
-                    bool   isUnshielded = _entityManager.GetComponentData<ShieldedStanceSquadComponent>(playerEntity).Stance
-                                         == ShieldedStance.None;
+                    float  dist         = math.distance(archerCenter, playerCenter);
+                    if (dist > attackRange) continue;
 
-                    if (math.distance(archerCenter, playerCenter) > attackRange) continue;
-                    if (!isUnshielded) continue;
-
-                    int targetId = _entityManager.GetComponentData<SquadEntity>(playerEntity).SquadId;
-                    IssueAttackOrder(archerEntity, targetId);
-                    break;
+                    if (dist < bestDist)
+                    {
+                        bestDist     = dist;
+                        bestTargetId = _entityManager.GetComponentData<SquadEntity>(playerEntity).SquadId;
+                    }
                 }
                 playerEntities.Dispose();
+
+                if (bestTargetId == 0) continue; // nothing qualifies
+
+                // No valid current target -> take the closest. Valid current target -> only steal aim if
+                // the alternative is meaningfully closer (hysteresis prevents frame-to-frame flip-flop).
+                bool hasValidTarget = currentTargetDist < float.MaxValue;
+                if (!hasValidTarget ||
+                    bestDist < currentTargetDist * TabletopTavernConstants.RANGED_REPRIORITIZE_CLOSER_FRACTION)
+                {
+                    IssueAttackOrder(archerEntity, bestTargetId);
+                }
             }
         }
 
         /// <summary>
-        /// Returns true if the archer's current target is in range and unshielded.
-        /// Clears the archer's queued orders if the target has moved out of range.
+        /// Returns the distance to the archer's current target if it is a valid priority
+        /// (exists, in range, unshielded); otherwise float.MaxValue. Clears the archer's queued
+        /// orders if the target has moved out of range.
         /// </summary>
-        private bool HasValidPriorityTarget(Entity archerEntity, float3 archerCenter, float attackRange)
+        private float CurrentPriorityTargetDistance(Entity archerEntity, float3 archerCenter, float attackRange)
         {
             Entity targetEntity = _entityManager.GetComponentData<SquadEntity>(archerEntity).TargetSquadEntity;
-            if (targetEntity == Entity.Null || !_entityManager.Exists(targetEntity)) return false;
+            if (targetEntity == Entity.Null || !_entityManager.Exists(targetEntity)) return float.MaxValue;
 
             ShieldedStance targetStance =
                 _entityManager.GetComponentData<ShieldedStanceSquadComponent>(targetEntity).Stance;
-            if (targetStance != ShieldedStance.None) return false;
+            if (targetStance != ShieldedStance.None) return float.MaxValue;
 
             float3 targetCenter = _entityManager.GetComponentData<SquadMovementComponent>(targetEntity).SquadCenter;
-            if (math.distance(archerCenter, targetCenter) <= attackRange) return true;
+            float  dist         = math.distance(archerCenter, targetCenter);
+            if (dist <= attackRange) return dist;
 
             // Target drifted out of range — clear the stale attack order.
             _entityManager.GetBuffer<QueuedOrder>(archerEntity).Clear();
-            return false;
+            return float.MaxValue;
         }
 
         #endregion

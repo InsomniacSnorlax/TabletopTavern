@@ -136,7 +136,7 @@ namespace TJ
         private void OnDestroy()
         {
             if (_setup) TearDown();
-            if (BattleManager.Instance == null || BattleManager.Instance.UIManager == null) return;
+            if (!BattleManager.HasInstance || BattleManager.Instance.UIManager == null) return;
         }
 
         #endregion

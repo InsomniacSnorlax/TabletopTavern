@@ -410,9 +410,9 @@ namespace TJ.MainMenu
             {
                 Destroy(localizationPanelInstance);
                 localizationPanelInstance = null;
+                Resources.UnloadUnusedAssets();
             }
             AddressablesManager.Instance.Release(localizationPanelRef.AssetGUID);
-            Resources.UnloadUnusedAssets();
         }
         private void OpenMainMenuPanel()
         {
@@ -438,13 +438,13 @@ namespace TJ.MainMenu
         }
         private void OnDestroy()
         {
-            if (SceneHandler.Instance != null)
+            if (SceneHandler.HasInstance)
                 SceneHandler.Instance.OnGameStateChanged -= OnGameStateChanged;
 
-            if (LocalizationManager.Instance != null)
+            if (LocalizationManager.HasInstance)
                 LocalizationManager.Instance.OnLocalizedStringsLoaded -= UpdateButtonText;
 
-            if (SettingsManager.Instance != null)
+            if (SettingsManager.HasInstance)
                 SettingsManager.Instance.OnSettingsPanelToggled -= OnSettingsPanelToggled;
         }
     }

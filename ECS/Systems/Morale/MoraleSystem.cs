@@ -14,6 +14,7 @@ namespace TJ.Morale {
         private ComponentLookup<TakingFireDamage> TakingFireDamageTagLookup;
         private ComponentLookup<ArmyLossesPenaltyTag> ArmyLossesPenaltyTagLookup;
         private ComponentLookup<SanguineCourtRaceTag> SanguineCourtRaceTagLookup;
+        private ComponentLookup<RallyingTag> RallyingTagLookup;
 
         [BurstCompile]
         public void OnCreate(ref SystemState state)
@@ -26,6 +27,7 @@ namespace TJ.Morale {
             TakingFireDamageTagLookup = state.GetComponentLookup<TakingFireDamage>(true);
             ArmyLossesPenaltyTagLookup = state.GetComponentLookup<ArmyLossesPenaltyTag>(true);
             SanguineCourtRaceTagLookup = state.GetComponentLookup<SanguineCourtRaceTag>(true);
+            RallyingTagLookup = state.GetComponentLookup<RallyingTag>(true);
         }
 
         [BurstCompile]
@@ -38,6 +40,7 @@ namespace TJ.Morale {
             TakingFireDamageTagLookup.Update(ref state);
             ArmyLossesPenaltyTagLookup.Update(ref state);
             SanguineCourtRaceTagLookup.Update(ref state);
+            RallyingTagLookup.Update(ref state);
 
             state.Dependency = new MoraleUpdateJob {
                 DeltaTime = SystemAPI.Time.DeltaTime,
@@ -47,7 +50,8 @@ namespace TJ.Morale {
                 TakingFlankingDamageTagLookup = TakingFlankingDamageTagLookup,
                 TakingFireDamageTagLookup = TakingFireDamageTagLookup,
                 ArmyLossesPenaltyTagLookup = ArmyLossesPenaltyTagLookup,
-                SanguineCourtRaceTagLookup = SanguineCourtRaceTagLookup
+                SanguineCourtRaceTagLookup = SanguineCourtRaceTagLookup,
+                RallyingTagLookup = RallyingTagLookup
             }.ScheduleParallel(state.Dependency);
         }
     }
@@ -64,6 +68,7 @@ namespace TJ.Morale {
         [ReadOnly] public ComponentLookup<TakingFireDamage> TakingFireDamageTagLookup;
         [ReadOnly] public ComponentLookup<ArmyLossesPenaltyTag> ArmyLossesPenaltyTagLookup;
         [ReadOnly] public ComponentLookup<SanguineCourtRaceTag> SanguineCourtRaceTagLookup;
+        [ReadOnly] public ComponentLookup<RallyingTag> RallyingTagLookup;
         public const float RECENT_HEALTH_LOSS_PENALTY = 0.075f;
         public const float NO_RECENT_HEALTH_LOSS_REGENERATION = 2f;
         public const float MORALE_TOTAL_HEAL_DEPLETION_PENALTY = 0.75f;
@@ -106,6 +111,12 @@ namespace TJ.Morale {
             totalModifier += MORALE_WINNING_BONUS * (isWinning ? 1f : 0f); // Winning bonus
             totalModifier += MORALE_LOSING_PENALTY * (isLosing ? 1f : 0f); // Losing penalty
             totalModifier -= MORALE_FIRE_DAMAGE_PENALTY * (takingFireDamage ? 1f : 0f); // Taking fire damage penalty
+
+            // Rally spell aura - present only while the squad stands inside the spell's radius.
+            // Added before the global modifier below so it scales like every other term.
+            if(RallyingTagLookup.HasComponent(entity)) {
+                totalModifier += RallyingTagLookup[entity].MoralePerSecond;
+            }
 
             totalModifier *= TabletopTavernConstants.MORALE_LOSS_MODIFIER;
 

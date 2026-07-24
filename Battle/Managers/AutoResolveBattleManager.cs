@@ -678,6 +678,7 @@ namespace TJ.Engagement
     {
         string playerKey = GetPlayerArmyKey();
         List<SquadKillsStored> squadKillsStored = new();
+        List<SquadLossesStored> squadLossesStored = new();
         // Debug.Log($"playerAutoResolveStats length: {playerAutoResolveStats.Length}");
         // Debug.Log($"playerArmy length: {playerArmy.Length}");
         for (int i = 0; i < playerAutoResolveStats.Length; i++)
@@ -693,6 +694,10 @@ namespace TJ.Engagement
                         playerAutoResolveStats[i].finalHealth = math.max(0, playerAutoResolveStats[i].finalHealth);
                         playerArmy[j].SquadCurrentHealth = playerAutoResolveStats[i].finalHealth;
                         squadKillsStored.Add(new SquadKillsStored() { SquadGUID = playerArmy[j].UniqueID, Kills = playerAutoResolveStats[i].UnitsSlain });
+                        // UnitsAlive is ceiling-rounded from pooled health, so it can read as 1 even when only a
+                        // sliver of a unit's health remains - floor-dividing finalHealth avoids undercounting losses by 1.
+                        int endingUnits = playerAutoResolveStats[i].healthPerKill > 0 ? playerAutoResolveStats[i].finalHealth / playerAutoResolveStats[i].healthPerKill : playerAutoResolveStats[i].UnitsAlive;
+                        squadLossesStored.Add(new SquadLossesStored() { SquadGUID = playerArmy[j].UniqueID, Losses = math.max(0, playerAutoResolveStats[i].maxUnits - endingUnits) });
                         //get how many units were killed
                         // Debug.Log($"Unit {playerArmy[j].UnitName} now at {playerArmy[j].SquadCurrentHealth} health");
                     }
@@ -743,7 +748,7 @@ namespace TJ.Engagement
                 Debug.Log($"[AutoResolve] Result cached. Cache size: {_resultCache.Count}. Player defeated: {playerArmyIsDefeated}, Enemy defeated: {enemyArmyIsDefeated}");
             }
             if(_save){
-                CampaignManager.Instance.CampaignSaveManager.SaveSquadsPostAutoresolve(playerArmy, enemyArmy, enemyArmyIsDefeated, squadKillsStored);
+                CampaignManager.Instance.CampaignSaveManager.SaveSquadsPostAutoresolve(playerArmy, enemyArmy, enemyArmyIsDefeated, squadKillsStored, squadLossesStored);
             }
         } else {
             //reset unit counts to max unit counts this is just for testing in editor

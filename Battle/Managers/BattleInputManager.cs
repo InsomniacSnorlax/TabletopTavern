@@ -758,11 +758,11 @@ public class BattleInputManager : MonoBehaviour
     }
     private bool CanThisTeamBeSelected(Team team) => team == Team.Player;
     private void OnDestroy() {
-        if (BattleManager.Instance != null)
+        if (BattleManager.HasInstance)
         {
             BattleManager.Instance.OnCursorModeChanged -= OnCursorModeChanged;
         }
-        if (InputHandler.Instance != null)
+        if (InputHandler.HasInstance)
         {
             InputHandler.Instance.OnAddUnitsToSelection -= AddUnitsToSelection;
             InputHandler.Instance.OnAddUnitsToSelectionCanceled -= CancelAddingUnitsToSelection;

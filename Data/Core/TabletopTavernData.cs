@@ -53,12 +53,16 @@ namespace TJ
             ModLoadOrder.SetLoadedSnapshot(modFolders);
             GearData.ClearModifierOverrides();
             ArmyGenerationRuleData.ClearModRules();
+            EconomyOverrideLoader.ClearOverrides();
+            Memori.Localization.LocalizationOverrides.Clear();
             foreach (string modFolder in modFolders)
             {
                 SquadStatsOverrideLoader.ApplyOverridesFromModFolder(modFolder, SquadStatsDictionary, SquadAssetsDictionary, UnitsOfRaceDictionary);
                 RaceDataOverrideLoader.ApplyOverridesFromModFolder(modFolder, RaceDataDictionary);
                 GearOverrideLoader.ApplyOverridesFromModFolder(modFolder);
                 ArmyGenerationRuleOverrideLoader.ApplyOverridesFromModFolder(modFolder);
+                EconomyOverrideLoader.ApplyOverridesFromModFolder(modFolder);
+                LocalizationOverrideLoader.ApplyOverridesFromModFolder(modFolder);
             }
             HeroData.LoadFromResourcesAndOverrides(modFolders);
             HeroBonusManager.LoadRulesFromResourcesAndOverrides(modFolders);
@@ -272,9 +276,15 @@ namespace TJ
             }
             return handle.Result;
         }
-        public async Task<GameObject> LoadHeroPrefabAsync(int heroID)
+        public async Task<GameObject> LoadHeroPrefabAsync(int heroID, bool persistent = false)
         {
-            return await AddressablesManager.Instance.LoadAsync<GameObject>(_heroAssetsData.GetByID(heroID).Prefab);
+            return await AddressablesManager.Instance.LoadAsync<GameObject>(_heroAssetsData.GetByID(heroID).Prefab, persistent);
+        }
+
+        /// <summary>Addressable key for a hero prefab, so a persistent owner can release it explicitly.</summary>
+        public string GetHeroPrefabKey(int heroID)
+        {
+            return _heroAssetsData.GetByID(heroID).Prefab.AssetGUID;
         }
         public async Task<GameObject> LoadRecruitmentPrefabAsync(UnitName _unitName)
         {

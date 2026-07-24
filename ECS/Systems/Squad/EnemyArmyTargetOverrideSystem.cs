@@ -24,16 +24,23 @@ partial struct EnemyArmyTargetOverrideSystem : ISystem
         EntityManager entityManager = state.EntityManager;
         EntityCommandBuffer entityCommandBuffer = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
         
-        foreach (var (squad, squadMovementComponent, enemySquad) in SystemAPI.Query<
-            RefRW<SquadEntity>, 
-            RefRO<SquadMovementComponent>, 
+        foreach (var (squad, squadMovementComponent, blacklist, enemySquad) in SystemAPI.Query<
+            RefRW<SquadEntity>,
+            RefRO<SquadMovementComponent>,
+            DynamicBuffer<TargetBlacklistElement>,
             EnemySquad
         >().WithNone<
-            InCombat, 
+            InCombat,
             WithdrawSquadTag>()
         .WithNone<
             CavalryFlankingTag>()
         ){
+
+            // Prune expired kiter-blacklist entries so an abandoned target becomes eligible again.
+            for (int b = blacklist.Length - 1; b >= 0; b--)
+            {
+                if (currentTime >= blacklist[b].ExpireTime) blacklist.RemoveAtSwapBack(b);
+            }
 
             bool dazedFromOpponentRunningAway = entityManager.HasComponent<OpponentRanAwayTag>(squad.ValueRO.SelfEntity);
             if(dazedFromOpponentRunningAway) {
@@ -63,6 +70,14 @@ partial struct EnemyArmyTargetOverrideSystem : ISystem
 
                 //ignore current target
                 if(playerSquad.ValueRO.SelfEntity == squad.ValueRO.TargetSquadEntity) continue;
+
+                //skip a target this squad just abandoned as an uncatchable kiter
+                bool blacklisted = false;
+                for (int b = 0; b < blacklist.Length; b++)
+                {
+                    if (blacklist[b].Target == playerSquad.ValueRO.SelfEntity) { blacklisted = true; break; }
+                }
+                if (blacklisted) continue;
 
                 float3 centerOfSquad = squadMovementComponent.ValueRO.SquadCenter;
                 float3 centerOfTargetSquad = entityManager.GetComponentData<SquadMovementComponent>(playerSquad.ValueRO.SelfEntity).SquadCenter;

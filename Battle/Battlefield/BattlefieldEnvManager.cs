@@ -277,7 +277,7 @@ namespace TJ
         }
         private void OnDestroy() 
         {
-            if(IAudioRequester.Instance != null)
+            if(IAudioRequester.HasInstance)
             {
                 IAudioRequester.Instance.ambienceVolume.OnValueChanged -= RainSoundLevelChange;
             }

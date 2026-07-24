@@ -22,6 +22,10 @@ namespace TJ
         [SerializeField] private GameObject unitsSlainGroup;
         [SerializeField] private TMP_Text unitsSlainText;
 
+        [Header("Units Lost")]
+        [SerializeField] private GameObject unitsLostGroup;
+        [SerializeField] private TMP_Text unitsLostText;
+
         [Header("Squad Options")]
         [SerializeField] private GameObject squadOptionsGroup;
         [SerializeField] private Button disbandButton, renameButton, mergeButton;
@@ -104,6 +108,7 @@ namespace TJ
             squadOptionsGroup.SetActive(false);
             autoResolveProjectionObject.SetActive(false);
             unitsSlainGroup.SetActive(false);
+            unitsLostGroup.SetActive(false);
             willDieObject.SetActive(squad.SquadCurrentHealth == 0);
             graphicRaycaster = GetComponent<GraphicRaycaster>();
 
@@ -258,6 +263,14 @@ namespace TJ
             unitsSlainGroup.SetActive(true);
             hudPanel.CheckForPrestigeAvailability(prestigeUnitButton, squad.UnitName, squad.UnitPrestige);
         }
+        public void ShowUnitsLost(int _unitsLost)
+        {
+            if (_unitsLost <= 0) return;
+            if (isEnemy) return;
+
+            unitsLostText.text = "-"+_unitsLost.ToString();
+            unitsLostGroup.SetActive(true);
+        }
         public void UpdateUnitCount(SquadToLoad _squad)
         {
             _presenter.HealthSlider.value = _squad.SquadCurrentHealth;
@@ -272,6 +285,8 @@ namespace TJ
         }
         public void ShowHealthRecoveryJuice(int changeInUnitCount)
         {
+            if(unitsLostGroup.activeSelf) return; // don't show health recovery juice if units were lost (i.e. negative change in unit count)
+
             // Debug.Log($"ShowHealthRecoveryJuice({changeInUnitCount})");
             if (inReserve)
             {
@@ -299,6 +314,11 @@ namespace TJ
         {
             if (unitsSlainGroup != null)
                 unitsSlainGroup.SetActive(false);
+        }
+        public void HideUnitsLost()
+        {
+            if (unitsLostGroup != null)
+                unitsLostGroup.SetActive(false);
         }
         public void AttemptDisbandSquad()
         {

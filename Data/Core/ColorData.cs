@@ -197,7 +197,10 @@ namespace TJ
                     }
                 }
             }
-            string[] unitStats = new string[] { "MeleeAttack", "MeleeDefense", "WeaponStrength", "Accuracy", "Range", "MissileStrength", "HitPoints", "None", "Speed", "Armor", "ChargeBonus", "Leadership", "Ammunition", "ChargeImpactDamage", "Ranged" };
+            // Terms to colour, not a strict UnitStat enum mirror - "Ranged" and "Morale" have no
+            // matching enum value. Morale is here so effects that move CurrentMorale can name it
+            // instead of misattributing themselves to [Leadership], which is the MaxMorale cap.
+            string[] unitStats = new string[] { "MeleeAttack", "MeleeDefense", "WeaponStrength", "Accuracy", "Range", "MissileStrength", "HitPoints", "None", "Speed", "Armor", "ChargeBonus", "Leadership", "Ammunition", "ChargeImpactDamage", "Ranged", "Morale" };
             string[] damageAttributes = new string[] { "None", "ArmorPiercing", "AntiInfantry", "AntiLarge", "ArmorPiercingAntiInfantry", "ArmorPiercingAntiLarge", "Terror", "Outrider", "Rage", "StandardShields", "Terrifying", "Stalwart", "Ethereal", "SwampCreature", "ForestDweller", "ChickenFlight", "BloodFrenzy", "Emblazing", "Unstoppable", "HeavyShields", "ThrowingAxes", "ArmorSundering", "ForgefuryTempering", "FlamingAmmo", "MonsterSlayer", "DragonsHoard", "BackStabbers" };//"TowerShields",
 
             string[] unitStatLocalized = new string[unitStats.Length];

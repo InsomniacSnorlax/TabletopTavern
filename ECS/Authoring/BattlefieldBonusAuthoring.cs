@@ -23,9 +23,12 @@ public class BattlefieldBonusAuthoring : MonoBehaviour
     }
 }
 public enum BattlefieldBonusEnum { None, StatueOfBoromid, Rain, Blacksmith, GoblinBarracks, GoblinCamp, ShrineToTheAllMother, Watchtower, ChargeBonus, Forest, Swamp, BloodFrenzy, Rage, Emblazing, Fog, Snow, CrashingHorde, Deathcry, HuntersPatience, KenseiEye, Oathcarved, ApexHunters, 
-LesserWeaponStrengthSpell, 
-Slayer, 
-LesserWindSpell 
+LesserWeaponStrengthSpell,
+Slayer,
+LesserWindSpell,
+// Append only - these ordinals are serialized by BattlefieldBonusAuthoring and packed into a ulong
+// bitmask by BattlefieldBonusAppliedDetectionSystem (1ul << (int)bonusEnum, so a 64 value ceiling).
+LesserMoraleSpell
 }
 public struct BattlefieldBonusApplicator : IComponentData
 {

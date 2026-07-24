@@ -86,7 +86,7 @@ namespace TJ
             InputHandler.Instance.PauseButtonPressed -= PauseGame;
             InputHandler.Instance.OnSpeedUp -= IncreaseSpeed;
             InputHandler.Instance.OnSpeedDown -= DecreaseSpeed;
-            if (SettingsManager.Instance != null)
+            if (SettingsManager.HasInstance)
                 SettingsManager.Instance.OnSettingsPanelToggled -= OnSettingsPanelToggled;
         }
         public void LockEndOfBattleSpeed()

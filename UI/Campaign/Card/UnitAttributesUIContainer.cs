@@ -38,13 +38,17 @@ namespace TJ
         }
         public void Load(UnitName _unitName, bool _applyGearBonuses = false, UnitAttribute _prestigeTrait = UnitAttribute.None)
         {
+            // Resolve without creating: a hover during a scene transition sees the new game state
+            // before that scene's manager exists, and Instance would fabricate an unconfigured one.
             switch(SceneHandler.Instance.CurrentGameState)
             {
                 case GameStateEnum.Battle:
-                    gearManager = BattleManager.Instance.GearManager;
+                    BattleManager battleManager = BattleManager.InstanceIfExists;
+                    gearManager = battleManager != null ? battleManager.GearManager : null;
                     break;
                 case GameStateEnum.Map:
-                    gearManager = CampaignManager.Instance.GearManager;
+                    CampaignManager campaignManager = CampaignManager.InstanceIfExists;
+                    gearManager = campaignManager != null ? campaignManager.GearManager : null;
                     break;
                 default: //menu
                     gearManager = null;

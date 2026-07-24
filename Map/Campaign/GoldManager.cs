@@ -13,11 +13,28 @@ public class GoldManager : MonoBehaviour
     [SerializeField] GoldNotificationSpawner goldNotificationSpawner;
     CampaignSaveManager campaignSaveManager;
     public event Action<int> OnGoldAmountChanged;
-    private int maxInterest = 5;
-    private int potionRewardsOdds = 25;
-    public int PotionRewardsOdds => potionRewardsOdds;
+    public const int DefaultMaxInterest = 5;
+    public const int DefaultPotionRewardsOdds = 25;
+    private int maxInterest = DefaultMaxInterest;
+    private int potionRewardsOdds = DefaultPotionRewardsOdds;
     private int _currentGoldAmount = 0;
     public int CurrentGoldAmount => _currentGoldAmount;
+
+    // GoldManager is a scene-instantiated MonoBehaviour that doesn't exist yet when
+    // TabletopTavernData.Awake() applies mod overrides at boot (main menu scene, before the
+    // campaign map scene loads). Static fields sidestep that timing gap - same mechanism
+    // HeroBonusManager already uses for its boot-loaded, campaign-scene-consumed rule lists.
+    private static int? MaxInterestOverride;
+    private static int? PotionRewardsOddsOverride;
+    public static void ClearEconomyOverrides()
+    {
+        MaxInterestOverride = null;
+        PotionRewardsOddsOverride = null;
+    }
+    public static void SetMaxInterestOverride(int value) => MaxInterestOverride = value;
+    public static void SetPotionRewardsOddsOverride(int value) => PotionRewardsOddsOverride = value;
+
+    public int PotionRewardsOdds => PotionRewardsOddsOverride ?? potionRewardsOdds;
 
     public void ModifyGold(int amount, string localizedString, bool silent = false)
     {
@@ -49,7 +66,7 @@ public class GoldManager : MonoBehaviour
     }
     public int GetMaxInterest()
     {
-        int _maxInterest = maxInterest;
+        int _maxInterest = MaxInterestOverride ?? maxInterest;
         if(CampaignManager.Instance.GearManager.CheckForGear(GearID.DwarvenTaxCollectors)) _maxInterest = 10;
 
         return _maxInterest;

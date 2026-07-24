@@ -272,11 +272,11 @@ namespace TJ
 
         public void OnDestroy()
         {
-            if (SceneHandler.Instance != null)
+            if (SceneHandler.HasInstance)
             {
                 SceneHandler.Instance.OnGameStateChanged -= OnGameStateChanged;
             }
-            if (InputHandler.Instance != null)
+            if (InputHandler.HasInstance)
             {
                 InputHandler.Instance.SettingsButtonPressed -= SettingsHotkeyPressed;
             }

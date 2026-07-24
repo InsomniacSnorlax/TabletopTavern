@@ -153,7 +153,9 @@ namespace TJ
             battleManager.EntityWatcher.SetUp();
             battleManager.EnemyGeneral.SetUp();            
             battleManager.EnemyGeneral.SetRiverCrossing(isRiverCrossing);      
-            battleManager.SpellManager.LoadSpellManager();      
+#if UNITY_EDITOR || SPELLS
+            battleManager.SpellManager.LoadSpellManager(); 
+#endif     
         }
         public async void NotifyOfBattlefieldGenerationCompletion(MapRegion mapRegion, Biome biome, bool regeneratingBattlefield)
         {
@@ -295,7 +297,7 @@ namespace TJ
         }
         public void OnDestroy()
         {
-            if(SceneHandler.Instance == null) return;
+            if(!SceneHandler.HasInstance) return;
             SceneHandler.Instance.OnRequestSceneCleanUp -= OnRequestSceneCleanUp;
             if (simulationStarted)
                 UnloadSubscene();

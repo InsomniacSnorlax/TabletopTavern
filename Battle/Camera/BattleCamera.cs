@@ -412,13 +412,13 @@ namespace TJ
         }
         public void OnDestroy()
         {
-            if (SettingsManager.Instance != null)
+            if (SettingsManager.HasInstance)
             {
                 SettingsManager.Instance.CameraRotationSpeed.OnValueChanged -= OnCameraRotationSpeedChanged;
                 SettingsManager.Instance.CameraMovementSpeed.OnValueChanged -= OnCameraMovementSpeedChanged;
             }
             EdgePanningToggle.OnEdgePanningChanged -= OnEdgePanningChanged;
-            if (BattleManager.Instance != null)
+            if (BattleManager.HasInstance)
                 BattleManager.Instance.OnGamePhaseChanged -= OnGamePhaseChanged;
         }
         private void OnEdgePanningChanged(bool value)

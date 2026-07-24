@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Memori.Audio;
 using Memori.Input;
@@ -38,11 +39,13 @@ public class SpellManager : MonoBehaviour
 
     private void Start()
     {
+#if UNITY_EDITOR || SPELLS
         BattleManager.Instance.OnCursorModeChanged += CursorModeChanged;
         InputHandler.Instance.OnSelectSpell1 += SelectSpellHotkey1;
         InputHandler.Instance.OnSelectSpell2 += SelectSpellHotkey2;
         InputHandler.Instance.OnSelectSpell3 += SelectSpellHotkey3;
         InputHandler.Instance.OnSelectSpell4 += SelectSpellHotkey4;
+#endif
     }
     private void Update()
     {
@@ -75,6 +78,23 @@ public class SpellManager : MonoBehaviour
         selectedSpellIndex = -1;
 
         spellQuickCastMenu.Load(defaultSpells);
+    }
+    /// <summary>
+    /// Unit names any equipped spell can summon, so their GPU anim prefabs can be preloaded with the
+    /// two armies at battle start. Reads the serialized spell list directly rather than slotStates so
+    /// this does not depend on LoadSpellManager having run yet.
+    /// </summary>
+    public IEnumerable<UnitName> GetSummonUnitNames()
+    {
+        List<UnitName> summonUnitNames = new();
+        if(defaultSpells == null) return summonUnitNames;
+
+        foreach(SpellData spell in defaultSpells)
+        {
+            if(spell == null || !spell.SummonsSquad) continue;
+            summonUnitNames.Add(spell.SummonedUnitName);
+        }
+        return summonUnitNames;
     }
     private void SelectSpellHotkey1() => SelectSpellByHotkeyIndex(1);
     private void SelectSpellHotkey2() => SelectSpellByHotkeyIndex(2);
@@ -233,6 +253,7 @@ public class SpellManager : MonoBehaviour
     }
     private void OnDestroy()
     {
+#if UNITY_EDITOR || SPELLS
         if(BattleManager.HasInstance)
         {
             BattleManager.Instance.OnCursorModeChanged -= CursorModeChanged;
@@ -244,6 +265,7 @@ public class SpellManager : MonoBehaviour
             InputHandler.Instance.OnSelectSpell3 -= SelectSpellHotkey3;
             InputHandler.Instance.OnSelectSpell4 -= SelectSpellHotkey4;
         }
+#endif
     }
 }
 }

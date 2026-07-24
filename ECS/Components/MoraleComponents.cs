@@ -10,6 +10,11 @@ namespace TJ.Morale
         public byte MoraleState;       // 0 = Steady, 1 = Wavering, 2 = Broken, 3 = Rallying
     }
     public struct IsTerrified : IComponentData, IEnableableComponent { }
+    // Present on a squad entity while it stands inside a rally spell's radius. MoraleUpdateJob reads
+    // it as an extra per-second regeneration term. Deliberately a rate rather than a one-shot
+    // CurrentMorale delta: the existing formula already clamps to MaxMorale, so expiry needs no
+    // reversal arithmetic - removing the component is the whole cleanup.
+    public struct RallyingTag : IComponentData { public float MoralePerSecond; }
     public struct RetreatingNearbyAllies : IComponentData, IEnableableComponent { public float AlertTimer; }
     public struct AlertNearbyUnitsOfBreakingTag : IComponentData { }
     public struct SquadDamageComponent : IComponentData { 

@@ -43,9 +43,9 @@ namespace TJ
 
         private void OnDestroy()
         {
-            if (BattleManager.Instance != null)
+            if (BattleManager.HasInstance)
                 BattleManager.Instance.OnGamePhaseChanged -= OnGamePhaseChanged;
-            if (SettingsManager.Instance != null)
+            if (SettingsManager.HasInstance)
                 SettingsManager.Instance.CameraShakeEnabled.OnValueChanged -= OnCameraShakeSettingChanged;
         }
 

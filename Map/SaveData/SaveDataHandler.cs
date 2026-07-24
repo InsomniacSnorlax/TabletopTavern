@@ -19,7 +19,8 @@ namespace Memori.SaveData
         public List<int> nodePath;
         public List<GearID> Gear;
         // Gear sold this run, excluded from future gear-pack/loot draws so a sold item can't
-        // immediately reappear. Cleared automatically once it would exhaust the draw pool.
+        // immediately reappear. Cleared on leaving the shop, or automatically once it would
+        // exhaust the draw pool.
         public List<GearID> SoldGear = new();
         public List<ConsumableEnum> consumables = new ();
         public int heroID;
@@ -37,6 +38,7 @@ namespace Memori.SaveData
         public bool playerWonBattle;
         public List<SquadKillsStored> SquadKillsStore;
         public List<SquadKillsStored> HistoricalKillStore;
+        public List<SquadLossesStored> SquadLossesStore;
         public List<UnitNameOverrides> unitNameOverrides;
         public RunStats RunStats;
         public BattleFieldPreset battleFieldPreset;
@@ -73,6 +75,7 @@ namespace Memori.SaveData
             }
             SquadKillsStore = new List<SquadKillsStored>();
             HistoricalKillStore = new List<SquadKillsStored>();
+            SquadLossesStore = new List<SquadLossesStored>();
             unitNameOverrides = new List<UnitNameOverrides>();
             RunStats = new RunStats();
             withdrawnSquads = new List<SquadToLoad>();
@@ -178,6 +181,11 @@ namespace Memori.SaveData
         public string SquadGUID;
         public int Kills;
     }
+    [System.Serializable] public struct SquadLossesStored
+    {
+        public string SquadGUID;
+        public int Losses;
+    }
     [System.Serializable] public struct UnitNameKillsStored
     {
         public UnitName UnitName;
@@ -196,6 +204,11 @@ namespace Memori.SaveData
     public static class SaveDataHandler
     {
         static readonly bool useLocal = false;
+
+        // In-memory authoritative copy of playerSaveData.json. SaveDataHandler is the sole gateway
+        // to that file, so every read returns this cached instance and every write refreshes it.
+        // Populated lazily on first LoadPlayerSaveData(); invalidated by DeletePlayerSaveData().
+        static PlayerSaveData _playerCache;
 
         public static bool CheckForGear(GearID _gearID)
         {
@@ -285,12 +298,6 @@ namespace Memori.SaveData
         private static string GetPath (string filename)
         {
             return useLocal ? Application.dataPath +"/Data/" +filename : Application.persistentDataPath + "/" + filename;
-        }
-        private static void WriteFile (string path, string content)
-        {
-            FileStream fileStream = new (path, FileMode.Create);
-            using StreamWriter writer = new (fileStream);
-            writer.Write(content);
         }
         private static string ReadFile (string path)
         {
@@ -407,7 +414,8 @@ namespace Memori.SaveData
         /// <param name="_enemySquads"></param>
         /// <param name="_playerWon"></param>
         /// <param name="_squadIdKillCounter"></param>
-        public static void SaveSquadsPostBattle(SquadToLoad[] _playerSquads, SquadToLoad[] _enemySquads, bool _playerWon, List<SquadKillsStored> _squadIdKillCounter)
+        /// <param name="_squadIdLossCounter"></param>
+        public static void SaveSquadsPostBattle(SquadToLoad[] _playerSquads, SquadToLoad[] _enemySquads, bool _playerWon, List<SquadKillsStored> _squadIdKillCounter, List<SquadLossesStored> _squadIdLossCounter)
         {
             UnityEngine.Debug.Log($"SaveDataHandler SaveSquadsPostBattle: player won: {_playerWon}");
             CampaignSaveData saveData = Load();
@@ -434,6 +442,7 @@ namespace Memori.SaveData
 
             saveData.HistoricalKillStore = AddToHistoricalKills(saveData.HistoricalKillStore, _squadIdKillCounter);
             RecordUnitNameKills(_playerSquads, _squadIdKillCounter);
+            saveData.SquadLossesStore = _squadIdLossCounter;
             if(saveData.townData == null) {
                 saveData.townData = new TownSaveData();
                 UnityEngine.Debug.Log($"Created new TownSaveData in SaveSquadsPostBattle");
@@ -488,6 +497,7 @@ namespace Memori.SaveData
         }
         public static void SavePlayerSaveData(PlayerSaveData toSave)
         {
+            _playerCache = toSave;
             SaveToJSON(toSave, "playerSaveData.json");
         }
         public static bool CampaignSaveExists()
@@ -512,6 +522,7 @@ namespace Memori.SaveData
             string path = GetPath("playerSaveData.json");
             if (File.Exists(path))
                 File.Delete(path);
+            _playerCache = null;
         }
         public static CampaignSaveData Load()
         {
@@ -554,11 +565,14 @@ namespace Memori.SaveData
         }
         public static PlayerSaveData LoadPlayerSaveData()
         {
+            if (_playerCache != null) return _playerCache;
+
             PlayerSaveData loadedSaveData = ReadListFromJSON<PlayerSaveData>("playerSaveData.json");
             loadedSaveData ??= new PlayerSaveData();
+            _playerCache = loadedSaveData;
             MigrateLegacyDepositedGoldToRenown(loadedSaveData);
 
-            return loadedSaveData;
+            return _playerCache;
         }
 
         // One-time migration: folds any pre-existing goldToDeposit/depositedGold balance into
@@ -662,6 +676,36 @@ namespace Memori.SaveData
             }
             return false;
         }
+        // Grants the tavern theme for every race whose heroes have a recorded Godking completion.
+        // Must be called from anywhere the unlock state is read or earned, not just once at boot:
+        // Tavern.unity is a persistent scene, so TavernThemeManager.Start() only runs on the first
+        // load and would never see a completion earned later in the same session.
+        // Walks the completion list directly (one save read) and only writes when something changed.
+        public static void RefreshTavernThemeUnlocks()
+        {
+            PlayerSaveData saveData = LoadPlayerSaveData();
+            bool changed = false;
+
+            for (int i = 0; i < saveData.HeroDifficultiesCompleted.Count; i++)
+            {
+                if (!saveData.HeroDifficultiesCompleted[i].DifficultiesCompleted.Contains((int)TT_Difficulty.Godking))
+                    continue;
+
+                int heroID = saveData.HeroDifficultiesCompleted[i].HeroID;
+                // GetHeroByID falls back to the default hero for unknown IDs, which would wrongly
+                // unlock that hero's race if a mod removed the hero this entry refers to.
+                if (HeroData.GetHeroByID(heroID).HeroID != heroID) continue;
+
+                Race race = HeroData.GetRaceFromHero(heroID);
+                if (race == Race.Special || saveData.unlockedTavernThemes.Contains(race)) continue;
+
+                saveData.unlockedTavernThemes.Add(race);
+                changed = true;
+            }
+
+            if (changed)
+                SavePlayerSaveData(saveData);
+        }
         public static bool IsCustomBattle()
         {
             return LoadPlayerSaveData().customBattle;
@@ -687,7 +731,8 @@ namespace Memori.SaveData
         }
         public static Race GetEnemyRace()
         {
-            return Load().enemyArmy != null && Load().enemyArmy.Length > 0 ? TabletopTavernData.Instance.GetRaceFromUnitName(Load().enemyArmy[0].UnitName) : Race.Special;
+            CampaignSaveData save = Load();
+            return save.enemyArmy != null && save.enemyArmy.Length > 0 ? TabletopTavernData.Instance.GetRaceFromUnitName(save.enemyArmy[0].UnitName) : Race.Special;
         }
 
         public static void OpenSaveFolder()
@@ -723,11 +768,12 @@ namespace Memori.SaveData
             //DifficultyMod 18
             if(_difficultyLevelSelected >= TT_Difficulty.Overlord) startingHealth = 0.75f;
 
+            List<UnitName> recruitedUnitNames = new(squadsToLoad.Length);
             for(int i = 0; i < squadsToLoad.Length; i++) {
                 playerArmy[i] = new SquadToLoad(
-                    squadsToLoad[i].UnitName, 
-                    _prestige: 0, 
-                    _unitIndex: i, 
+                    squadsToLoad[i].UnitName,
+                    _prestige: 0,
+                    _unitIndex: i,
                     _modifiedHealthValueByAmount : startingHealth
                 );
 
@@ -737,8 +783,9 @@ namespace Memori.SaveData
                 playerArmy[i].SquadCurrentHealth = (int)((baseUnitCount * maxUnitCount) * startingHealth);
                 playerArmy[i].maxUnitCount = baseUnitCount;
                 playerArmy[i].HitPointsPerUnit = maxUnitCount;
-                AquiredTroop(playerArmy[i].UnitName);
+                recruitedUnitNames.Add(playerArmy[i].UnitName);
             }
+            AquiredTroops(recruitedUnitNames);
 
             int seed = UnityEngine.Random.Range(0, 1000000);
             CampaignSaveData campaignSaveData = new (seed, hero.HeroID, startingGold, playerArmy, _difficultyLevelSelected, _startingGear, _runUUID);
@@ -755,12 +802,13 @@ namespace Memori.SaveData
         {
             if (_gearID == GearID.None) return;
             PlayerSaveData saveData = LoadPlayerSaveData();
-            if(saveData.gearIdsCollected.Contains(0)) {
-                saveData.gearIdsCollected.Remove(0);
+            bool changed = saveData.gearIdsCollected.Remove(0); // strip legacy placeholder 0 if present
+            if (!saveData.gearIdsCollected.Contains((int)_gearID))
+            {
+                saveData.gearIdsCollected.Add((int)_gearID);
+                changed = true;
             }
-            if(saveData.gearIdsCollected.Contains((int)_gearID)) return;
-            saveData.gearIdsCollected.Add((int)_gearID);
-            SavePlayerSaveData(saveData);
+            if (changed) SavePlayerSaveData(saveData);
         }
         public static List<int> GetGearIDsAcknowledged()
         {
@@ -769,13 +817,13 @@ namespace Memori.SaveData
         public static void AcknowledgedGear(GearID _gearID)
         {
             PlayerSaveData saveData = LoadPlayerSaveData();
-            if(saveData.gearIdsAcknowledged.Contains(0)) {
-                saveData.gearIdsAcknowledged.Remove(0);
-                SavePlayerSaveData(saveData);
+            bool changed = saveData.gearIdsAcknowledged.Remove(0); // strip legacy placeholder 0 if present
+            if (!saveData.gearIdsAcknowledged.Contains((int)_gearID))
+            {
+                saveData.gearIdsAcknowledged.Add((int)_gearID);
+                changed = true;
             }
-            if(saveData.gearIdsAcknowledged.Contains((int)_gearID)) return;
-            saveData.gearIdsAcknowledged.Add((int)_gearID);
-            SavePlayerSaveData(saveData);
+            if (changed) SavePlayerSaveData(saveData);
         }
         public static List<UnitName> GetTroopsIDsCollected()
         {
@@ -789,6 +837,20 @@ namespace Memori.SaveData
             if(saveData.troopsRecruited.Contains(_unitName)) return;
             saveData.troopsRecruited.Add(_unitName);
             SavePlayerSaveData(saveData);
+        }
+        // Batch variant: records several recruited troops with a single save, so callers adding a
+        // whole army (e.g. CreateCampaign) don't pay one whole-file write per unit.
+        public static void AquiredTroops(IEnumerable<UnitName> _unitNames)
+        {
+            PlayerSaveData saveData = LoadPlayerSaveData();
+            bool changed = false;
+            foreach (UnitName unitName in _unitNames)
+            {
+                if (saveData.troopsRecruited.Contains(unitName)) continue;
+                saveData.troopsRecruited.Add(unitName);
+                changed = true;
+            }
+            if (changed) SavePlayerSaveData(saveData);
         }
         public static List<UnitName> GetTroopsIDsAcknowledged()
         {

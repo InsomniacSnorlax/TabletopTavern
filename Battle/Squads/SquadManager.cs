@@ -770,6 +770,10 @@ public class SquadManager : MonoBehaviour
         int i = 0;
         foreach (SquadEntity squad in playerSquadEntities)
         {
+            // Summoned squads have no slot in the saved roster, so persisting a battle position
+            // keyed to their GUID would leave an entry nothing can ever resolve.
+            if(BattleManager.Instance.ArmySpawnManager.IsSummonedSquad(squad.SquadId)) continue;
+
             Vector3 position = new ();
             Quaternion rotation = new ();
             int2 squadWidthAndDepth = new (0, 0);
@@ -806,6 +810,10 @@ public class SquadManager : MonoBehaviour
                 SavedSquadGroup savedGroup = new() { slotIndex = j };
                 foreach (int squadId in squadGroups[j].squadIds)
                 {
+                    // Same reason as the battle positions above - a summoned squad's GUID would fail
+                    // to resolve back to a squad on the next load.
+                    if (BattleManager.Instance.ArmySpawnManager.IsSummonedSquad(squadId)) continue;
+
                     string uniqueId = BattleManager.Instance.ArmySpawnManager.GetUnitUniqueIDFromSquadID(squadId);
                     if (!string.IsNullOrEmpty(uniqueId))
                         savedGroup.squadUniqueIds.Add(uniqueId);
@@ -818,19 +826,24 @@ public class SquadManager : MonoBehaviour
         {
             if(isCustomBattle)
             {
-                SquadToLoad[] playerSquadToLoads = new SquadToLoad[playerSquadEntities.Length];
+                // Unlike the campaign branch below, this one builds the saved army from the live
+                // squads, so summons must be filtered out here or they would persist into the
+                // custom battle's roster and come back as real units next load.
+                var playerArmyList = new List<SquadToLoad>();
                 for (int j = 0; j < playerSquadEntities.Length; j++)
                 {
-                    playerSquadToLoads[j] = new(
+                    if (BattleManager.Instance.ArmySpawnManager.IsSummonedSquad(playerSquadEntities[j].SquadId)) continue;
+
+                    playerArmyList.Add(new SquadToLoad(
                         playerSquadEntities[j].UnitName,
                         _prestige: GetSquadPrestige(playerSquadEntities[j].SquadId),
-                        j
+                        playerArmyList.Count
                     )
                     {
                         UniqueID = BattleManager.Instance.ArmySpawnManager.GetUnitUniqueIDFromSquadID(playerSquadEntities[j].SquadId)
-                    };
+                    });
                 }
-                customBattleData.playerCustomBattleArmy = playerSquadToLoads;
+                customBattleData.playerCustomBattleArmy = playerArmyList.ToArray();
                 customBattleData.playerCustomBattleSquadBattlePositions = battlePositions;
                 customBattleData.playerCustomBattleSquadGroups = savedGroups;
                 SaveDataHandler.SaveCustomBattleSaveData(customBattleData);
@@ -1360,7 +1373,7 @@ public class SquadManager : MonoBehaviour
     {
         if (InputHandler.HasInstance)
             InputHandler.Instance.OnShowUnitMovement -= ToggleAllRanges;
-        if(BattleManager.Instance != null && BattleManager.Instance.SquadOrderManager != null)
+        if(BattleManager.HasInstance && BattleManager.Instance.SquadOrderManager != null)
             BattleManager.Instance.SquadOrderManager.OnSquadOrderChanged -= OnSquadOrderChanged;
     }
     private void OnSquadOrderChanged(IReadOnlyList<int> newOrder)

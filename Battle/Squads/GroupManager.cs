@@ -357,13 +357,13 @@ public class SquadGroup
                 InputHandler.Instance.OnSelectedGroup6 -= SelectGroup6;
                 InputHandler.Instance.OnSelectAll -= SelectAllSquads;
             }
-            if(BattleManager.Instance != null && BattleManager.Instance.UIManager != null)
+            if(BattleManager.HasInstance && BattleManager.Instance.UIManager != null)
                 BattleManager.Instance.UIManager.OnSquadDisplaysChanged -= OnSquadDisplaysChanged;
 
-            if(BattleManager.Instance != null && BattleManager.Instance.SquadManager != null)
+            if(BattleManager.HasInstance && BattleManager.Instance.SquadManager != null)
                 BattleManager.Instance.SquadManager.OnDestroyedSquad -= RemoveSquadFromGroups;
 
-            if(BattleManager.Instance != null && BattleManager.Instance.UnitSelectionManager != null)
+            if(BattleManager.HasInstance && BattleManager.Instance.UnitSelectionManager != null)
                 BattleManager.Instance.UnitSelectionManager.OnSelectedSquadsChanged -= OnSelectedSquadsChanged;
         }
         public void RemoveSquadFromGroups(int _squadId)

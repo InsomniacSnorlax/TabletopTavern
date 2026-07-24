@@ -634,7 +634,7 @@ namespace TJ
         }
         private void OnDestroy() 
         {
-            if(BattleManager.Instance != null)
+            if(BattleManager.HasInstance)
             {
                 BattleManager.Instance.OnCursorModeChanged -= OnCursorModeChanged;
                 BattleManager.Instance.OnGamePhaseChanged -= OnGamePhaseChanged;

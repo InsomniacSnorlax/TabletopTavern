@@ -58,13 +58,20 @@ namespace TJ
         {
             for (int i = 0; i < squadEntities.Length; i++)
             {
-                if(!squadNavObjects.ContainsKey(squadEntities[i]))
+                if(!squadNavObjects.TryGetValue(squadEntities[i], out SquadNavObject squadMovementObject))
                 {
-                    Debug.LogError($"SquadNavObject dictionary does not contain entity: {squadEntities[i]}");
+                    // A squad spawned mid-battle (e.g. summoned by a spell) carries SquadEntity for a
+                    // frame or two before its nav object exists: RegisterSquad queues NeedsToBeProcessed
+                    // on an ECB, SquadEntitySetUpSystem swaps that for SquadEntityGameObjectsProcessingNeeded
+                    // on another, and only then does EntityWatcher call ReceiveSquadEntity. Stay quiet
+                    // while that handshake is in flight - a missing entry outside it is still a real bug.
+                    bool awaitingSetUp = entityManager.HasComponent<NeedsToBeProcessed>(squadEntities[i])
+                                      || entityManager.HasComponent<SquadEntityGameObjectsProcessingNeeded>(squadEntities[i]);
+                    if(!awaitingSetUp)
+                        Debug.LogError($"SquadNavObject dictionary does not contain entity: {squadEntities[i]}");
                     continue;
                 }
                 SquadMovementComponent squadEntityMovementComponent = entityManager.GetComponentData<SquadMovementComponent>(squadEntities[i]);
-                SquadNavObject squadMovementObject = squadNavObjects[squadEntities[i]];
                 squadMovementObject.UpdateNavObject(squadEntityMovementComponent);
             }
         }
@@ -155,17 +162,15 @@ namespace TJ
         {
             // Debug.Log($"EnteringSwamp: {entity}");
 
-            if(squadNavObjects[entity] == null)
+            // Lookup must come before the null test - indexing a missing key throws, which made the
+            // ContainsKey guard below it unreachable. A squad can legitimately be absent here while
+            // its nav object is still being set up (see HandleSquadMovement).
+            if(!squadNavObjects.TryGetValue(entity, out SquadNavObject navObject) || navObject == null)
             {
                 Debug.LogError($"SquadNavObject not found for entity: {entity}");
                 return;
             }
-            if(!squadNavObjects.ContainsKey(entity))
-            {
-                Debug.LogError($"SquadNavObject dictionary does not contain entity: {entity}");
-                return;
-            }
-            
+
             EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
             var entityBuffer = entityManager.GetBuffer<EntityReferenceBufferElement>(entity);
 

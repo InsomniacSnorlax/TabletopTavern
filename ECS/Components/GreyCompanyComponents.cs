@@ -119,6 +119,25 @@ public struct FindTargets : IComponentData { }
 public struct SquadMoveOverrideTag : IComponentData { public float DistanceGoal; }
 public struct CancelSquadMoveOverrideTag : IComponentData { }
 public struct OpponentRanAwayTag : IComponentData { public float DazedTime; }
+
+// Tracks whether a charging melee squad is making net closing progress toward its target.
+// Added/removed on demand by EnemyMeleePursuitWatchdogSystem; present only during an active pursuit.
+public struct PursuitProgress : IComponentData
+{
+    public Entity TrackedTarget;     // target change -> reset progress
+    public float  BestDistance;      // min center-to-center distance achieved this pursuit
+    public float  TimeSinceImproved; // seconds accumulated without net closing
+    public double LastSampleTime;    // throttle bookkeeping
+}
+
+// Cooldown blacklist of abandoned kiters, stored on the PURSUER (not global) so different
+// enemy squads can still legitimately target the same player squad. Self-prunes on expiry.
+[InternalBufferCapacity(4)]
+public struct TargetBlacklistElement : IBufferElementData
+{
+    public Entity Target;
+    public double ExpireTime;        // SystemAPI.Time.ElapsedTime when this entry lapses
+}
 public struct BreakSquadTag : IComponentData { }
 public struct BrokenSquadTag : IComponentData { }
 public struct CeaseFireTag : IComponentData, IEnableableComponent { }

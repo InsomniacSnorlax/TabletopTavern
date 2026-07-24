@@ -5,8 +5,8 @@ using UnityEngine;
 
 namespace TJ
 {
-    // One-click "known-good starting point" for mod authors, covering all four override file
-    // types. TabletopTavernData.ExportUnitOverridesTemplate (its own [ContextMenu]) still exists for
+    // One-click "known-good starting point" for mod authors, covering every override file
+    // type. TabletopTavernData.ExportUnitOverridesTemplate (its own [ContextMenu]) still exists for
     // exporting just unit_overrides.json on its own - this is the unified version.
     public static class ModTemplateExporter
     {
@@ -33,6 +33,12 @@ namespace TJ
 
             File.WriteAllText(Path.Combine(templateFolder, ArmyGenerationRuleOverrideLoader.FileName),
                 ArmyGenerationRuleOverrideLoader.ExportTemplate());
+
+            File.WriteAllText(Path.Combine(templateFolder, EconomyOverrideLoader.FileName),
+                EconomyOverrideLoader.ExportTemplate());
+
+            File.WriteAllText(Path.Combine(templateFolder, LocalizationOverrideLoader.FileName),
+                LocalizationOverrideLoader.ExportTemplate());
 
             string modManifestPath = Path.Combine(templateFolder, ModLoadOrder.ModManifestFileName);
             if (!File.Exists(modManifestPath))

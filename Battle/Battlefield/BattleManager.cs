@@ -156,7 +156,7 @@ public class BattleManager : Singleton<BattleManager>
 
     public void OnDestroy()
     {
-        if(SceneHandler.Instance == null) return;
+        if(!SceneHandler.HasInstance) return;
 
         SceneHandler.Instance.OnGameStateChanged -= OnGameStateChanged;
     }
